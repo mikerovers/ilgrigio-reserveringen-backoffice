@@ -1,0 +1,42 @@
+Reserveringsbevestiging #{{ order_number }}
+
+Hartelijk dank voor jouw reservering.
+
+Je tickets moet je nog downloaden!! Lees onderstaande instructie goed!
+
+Hieronder tref je de downloadlink(s) van jouw e-ticket(s). Print deze e-tickets uit en neem ze mee als toegangsbewijs. Elk document heeft een unieke QR-code en geeft toegang aan één persoon. Indien je meerdere toegangsbewijzen hebt gekocht, print dan ieder toegangsbewijs (op A4 formaat) afzonderlijk uit, ontmoet je het afdrukken of de QR-code slecht leesbaar is! We kunnen deze QR-code(s) ook scannen vanaf je telefoon. Zorg dan wel (bij meerdere tickets) dat je deze codes alvast hebt opgeslagen in jouw telefoon.
+
+Controleer de bestelling op aantal tickets, datum, en soort (kind/volwassenen). Bij afwijkingen kun je tijdens de circus-periode bellen naar 0411 - 62 12 15 (zie voor openingstijden onze website www.ilgrigio.nl). Heb je deze kaarten eerder besteld dan 10 juli, dan kun je mailen naar reservering@ilgrigio.nl.
+
+Annuleren van aangekochte tickets is helaas niet mogelijk. Je kunt ze wel overdragen aan iemand anders.
+
+Kijk op www.ilgrigio.nl voor:
+- Een routebeschrijving
+- Meer informatie over parkeren en OV-mogelijkheden
+- Faciliteiten voor minder validen
+- Veel gestelde vragen
+
+Wil je op de hoogte blijven van nieuws van Il Grigio? Like onze Facebook-pagina.
+
+Wij wensen je een fijne voorstelling!
+
+[Bestelling #{{ order_number }}] ({{ order_date|date('d F Y') }})
+
+Bestellingsdetails:
+{% if order_data.line_items %}
+{% for item in order_data.line_items %}
+- {{ item.name }}
+{% if item.meta_data is defined and item.meta_data %}{% for meta in item.meta_data %}{% if meta.key is defined and meta.key == 'Type' and meta.value is defined %}  Type: {{ meta.value }}{% endif %}{% endfor %}{% endif %}
+  Aantal: {{ item.quantity }} | Prijs: €{{ item.total }}
+{% endfor %}
+{% endif %}
+
+Subtotaal: €{{ ((order_total - order_data.total_tax)|number_format(2, '.', ''))|default(order_total) }}
+Betaalmethode: {{ order_data.payment_method_title|default('iDEAL') }}
+Totaal: €{{ order_total }}{% if order_data.total_tax is defined and order_data.total_tax %} (inclusief €{{ order_data.total_tax }} BTW 9%){% endif %}
+
+Download je e-tickets: {{ download_url }}
+
+---
+Bedankt voor uw reservering!
+Dit is een automatische bevestiging. Bewaar deze voor uw administratie.

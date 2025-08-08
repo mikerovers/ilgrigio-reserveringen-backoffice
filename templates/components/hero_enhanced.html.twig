@@ -1,0 +1,45 @@
+{#
+  Enhanced Hero Section Component with Custom Content
+  Parameters:
+  - title: Main heading text (optional if using custom content)
+  - subtitle: Optional subtitle text
+  - show_back_nav: Optional boolean to show back navigation (default: false)
+  - back_url: URL for back navigation (default: app_tickets)
+  - back_text: Text for back navigation (default: "Terug naar shows")
+  - custom_content: Optional custom content block for complex hero sections
+  - padding: Optional padding class (default: py-6, py-12 for custom content)
+#}
+
+{% if show_back_nav|default(false) %}
+<!-- Back to Events Bar -->
+<div class="bg-red-600 text-white">
+    <div class="container mx-auto px-4 py-3">
+        <a href="{{ path(back_url|default('app_tickets')) }}" class="flex items-center text-white hover:text-gray-200 transition-colors duration-200">
+            <i class="fas fa-arrow-left mr-2"></i>
+            {{ back_text|default('Terug naar shows') }}
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Hero Section -->
+<div class="relative bg-gray-900 text-white overflow-hidden">
+    <!-- Background Image -->
+    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat blur-sm" style="background-image: url('{{ asset('images/IlGrigio-zaal.jpg') }}');"></div>
+    <!-- Dark Overlay for text readability -->
+    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    <!-- Content -->
+    <div class="relative container mx-auto px-4 {{ custom_content ? 'py-12' : 'py-6' }}">
+        {% if custom_content %}
+            {{ custom_content|raw }}
+        {% else %}
+            <div class="text-center">
+                <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" class="h-24 w-auto mx-auto mb-4">
+                <h1 class="text-4xl md:text-5xl font-bold">{{ title }}</h1>
+                {% if subtitle %}
+                    <p class="text-lg mt-2">{{ subtitle }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>

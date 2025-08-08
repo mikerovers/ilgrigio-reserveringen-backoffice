@@ -1,0 +1,7 @@
+framework:
+    messenger:
+        transports:
+            # Force synchronous processing in test environment
+            async: 'sync://sync'
+        routing:
+            'Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage': async

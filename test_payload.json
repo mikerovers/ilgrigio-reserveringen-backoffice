@@ -1,0 +1,178 @@
+{
+    "id": 93439,
+    "parent_id": 0,
+    "status": "completed",
+    "currency": "EUR",
+    "version": "9.9.3",
+    "prices_include_tax": true,
+    "date_created": "2025-08-08T12:47:55",
+    "date_modified": "2025-08-08T12:47:57",
+    "discount_total": "0.00",
+    "discount_tax": "0.00",
+    "shipping_total": "0.00",
+    "shipping_tax": "0.00",
+    "cart_tax": "0.83",
+    "total": "10.00",
+    "total_tax": "0.83",
+    "customer_id": 0,
+    "order_key": "wc_order_49OxT9AwXCVfT",
+    "billing": {
+        "first_name": "Mike",
+        "last_name": "Test",
+        "company": "",
+        "address_1": "",
+        "address_2": "",
+        "city": "Oisterwijk",
+        "state": "",
+        "postcode": "",
+        "country": "",
+        "email": "",
+        "phone": ""
+    },
+    "shipping": {
+        "first_name": "",
+        "last_name": "",
+        "company": "",
+        "address_1": "",
+        "address_2": "",
+        "city": "",
+        "state": "",
+        "postcode": "",
+        "country": "",
+        "phone": ""
+    },
+    "payment_method": "",
+    "payment_method_title": "",
+    "transaction_id": "",
+    "customer_ip_address": "",
+    "customer_user_agent": "",
+    "created_via": "rest-api",
+    "customer_note": "",
+    "date_completed": "2025-08-08T12:47:57",
+    "date_paid": "2025-08-08T12:47:57",
+    "cart_hash": "",
+    "number": "93439",
+    "meta_data": [
+        { "id": 1073438, "key": "POS", "value": "true" },
+        { "id": 1073439, "key": "suppress_email", "value": "true" },
+        {
+            "id": 1073440,
+            "key": "tc_cart_info",
+            "value": { "buyer_data": [], "owner_data": [] }
+        },
+        { "id": 1073441, "key": "_tc_paid_date", "value": "1754650075" },
+        { "id": 1073446, "key": "tc_cart_contents", "value": { "76118": 1 } }
+    ],
+    "line_items": [
+        {
+            "id": 33377,
+            "name": "Bombolini - zondag 13 juli - 3 t/m 12 jaar",
+            "product_id": 76115,
+            "variation_id": 76118,
+            "quantity": 1,
+            "tax_class": "",
+            "subtotal": "9.17",
+            "subtotal_tax": "0.83",
+            "total": "9.17",
+            "total_tax": "0.83",
+            "taxes": [{ "id": 1, "total": "0.825688", "subtotal": "0.825688" }],
+            "meta_data": [
+                {
+                    "id": 364922,
+                    "key": "type",
+                    "value": "3 t/m 12 jaar",
+                    "display_key": "Type",
+                    "display_value": "3 t/m 12 jaar"
+                },
+                {
+                    "id": 364933,
+                    "key": "_reduced_stock",
+                    "value": "1",
+                    "display_key": "_reduced_stock",
+                    "display_value": "1"
+                }
+            ],
+            "sku": "",
+            "price": 9.174312,
+            "image": {
+                "id": 76082,
+                "src": "https://reserveringen.ilgrigio.nl/wp-content/uploads/2025/05/Website-image-scaled.jpg"
+            },
+            "parent_name": "Bombolini - zondag 13 juli"
+        }
+    ],
+    "tax_lines": [
+        {
+            "id": 33378,
+            "rate_code": "BTW 9%-1",
+            "rate_id": 1,
+            "label": "BTW 9%",
+            "compound": false,
+            "tax_total": "0.83",
+            "shipping_tax_total": "0.00",
+            "rate_percent": 9,
+            "meta_data": [
+                {
+                    "id": 364929,
+                    "key": "_wcpdf_rate_percentage",
+                    "value": "9.0000",
+                    "display_key": "_wcpdf_rate_percentage",
+                    "display_value": "9.0000"
+                },
+                {
+                    "id": 364930,
+                    "key": "_wcpdf_ubl_tax_category",
+                    "value": "",
+                    "display_key": "_wcpdf_ubl_tax_category",
+                    "display_value": ""
+                },
+                {
+                    "id": 364931,
+                    "key": "_wcpdf_ubl_tax_scheme",
+                    "value": "",
+                    "display_key": "_wcpdf_ubl_tax_scheme",
+                    "display_value": ""
+                },
+                {
+                    "id": 364932,
+                    "key": "_wcpdf_ubl_tax_reason",
+                    "value": "",
+                    "display_key": "_wcpdf_ubl_tax_reason",
+                    "display_value": ""
+                }
+            ]
+        }
+    ],
+    "shipping_lines": [],
+    "fee_lines": [],
+    "coupon_lines": [],
+    "refunds": [],
+    "payment_url": "https://reserveringen.ilgrigio.nl/afrekenen/order-pay/93439/?pay_for_order=true&key=wc_order_49OxT9AwXCVfT",
+    "is_editable": false,
+    "needs_payment": false,
+    "needs_processing": true,
+    "date_created_gmt": "2025-08-08T10:47:55",
+    "date_modified_gmt": "2025-08-08T10:47:57",
+    "date_completed_gmt": "2025-08-08T10:47:57",
+    "date_paid_gmt": "2025-08-08T10:47:57",
+    "currency_symbol": "\u20ac",
+    "_links": {
+        "self": [
+            {
+                "href": "https://reserveringen.ilgrigio.nl/wp-json/wc/v3/orders/93439",
+                "targetHints": {
+                    "allow": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+                }
+            }
+        ],
+        "collection": [
+            { "href": "https://reserveringen.ilgrigio.nl/wp-json/wc/v3/orders" }
+        ],
+        "email_templates": [
+            {
+                "embeddable": true,
+                "href": "https://reserveringen.ilgrigio.nl/wp-json/wc/v3/orders/93439/actions/email_templates"
+            }
+        ]
+    }
+}

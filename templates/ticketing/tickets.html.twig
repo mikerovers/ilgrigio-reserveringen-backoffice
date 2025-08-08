@@ -1,0 +1,298 @@
+{% extends 'base.html.twig' %}
+
+{% from 'components/macros.html.twig' import dutch_date %}
+
+{% block title %}
+	{{ event.name }}
+	-
+	{{ 'tickets.page_title'|trans }}
+{% endblock %}
+
+{% block body %}
+	<!-- Back to Events Bar -->
+	<div class="bg-red-600 text-white">
+		<div class="container mx-auto px-4 py-3">
+			<a href="{{ path('app_tickets') }}" class="flex items-center text-white hover:text-gray-200 transition-colors duration-200">
+				<i class="fas fa-arrow-left mr-2"></i>
+				{{ 'tickets.back_to_events'|trans }}
+			</a>
+		</div>
+	</div>
+
+	<!-- Hero Section with Event Info -->
+	<div
+		class="relative bg-gray-900 text-white overflow-hidden">
+		<!-- Background Image -->
+		<div class="absolute inset-0 bg-cover bg-center bg-no-repeat blur-sm" style="background-image: url('{{ asset('images/IlGrigio-zaal.jpg') }}');"></div>
+		<!-- Dark Overlay for text readability -->
+		<div class="absolute inset-0 bg-black bg-opacity-50"></div>
+
+		<!-- Content -->
+		<div class="relative container mx-auto px-4 py-12">
+			<div class="max-w-4xl">
+				<h1 class="text-4xl md:text-5xl font-bold mb-4">{{ event.name }}</h1>
+
+				<!-- Event Details -->
+				<div class="flex flex-wrap gap-6 text-lg mb-6">
+					<div class="flex items-center">
+						<i class="fas fa-calendar text-yellow-400 mr-2"></i>
+						<span>{{ event.date ? dutch_date(event.date) : 'tickets.date_tbd'|trans }}</span>
+					</div>
+					{% if event.time %}
+						<div class="flex items-center">
+							<i class="fas fa-clock text-yellow-400 mr-2"></i>
+							<span>{{ event.time }}</span>
+						</div>
+					{% endif %}
+					{% if event.location %}
+						<div class="flex items-center">
+							<i class="fas fa-map-marker-alt text-yellow-400 mr-2"></i>
+							<span>{{ event.location }}</span>
+						</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Main Content -->
+	<div class="bg-gray-50 min-h-screen py-8">
+		<div class="container mx-auto px-4">
+			<form method="POST" action="{{ path('app_tickets_order', {'id': event.id}) }}" novalidate data-controller="ticket-selection" data-ticket-selection-ticket-types-value="{{ ticketTypes|json_encode|e('html_attr') }}" data-ticket-selection-event-permalink-value="{{ event.permalink }}" data-ticket-selection-max-tickets-per-order-value="{{ maxTicketsPerOrder }}" data-ticket-selection-tax-rate-value="{{ taxRate }}" data-ticket-selection-shared-stock-value="{{ sharedStock ?? 999 }}" data-action="submit->ticket-selection#validateForm">
+				<div
+					class="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto">
+
+					<!-- Left Column - Ticket Selection -->
+					<div class="lg:w-2/3">
+						<div
+							class="bg-white rounded-lg shadow-lg overflow-hidden">
+							<!-- Header -->
+							<div class="bg-red-600 text-white px-6 py-4">
+								<h2 class="text-xl font-bold flex items-center">
+									<i class="fas fa-ticket-alt mr-2"></i>
+									{{ 'tickets.select_tickets'|trans }}
+								</h2>
+							</div>
+
+							<!-- Shared Stock Status Banner -->
+							{% if stockStatus == 'outofstock' %}
+								<div class="bg-red-100 border-b border-red-200 px-6 py-3">
+									<div class="flex items-center text-red-800">
+										<i class="fas fa-times-circle mr-2"></i>
+										<span class="font-medium">{{ 'tickets.sold_out_label'|trans }}</span>
+									</div>
+								</div>
+							{% elseif sharedStock and sharedStock < 10 %}
+								<div class="bg-yellow-100 border-b border-yellow-200 px-6 py-3">
+									<div class="flex items-center text-yellow-800">
+										<i class="fas fa-exclamation-triangle mr-2"></i>
+										<span class="font-medium">{{ 'tickets.only_left'|trans({'%count%': sharedStock}) }}</span>
+									</div>
+								</div>
+							{% endif %}
+
+							<!-- Validation Errors -->
+							{% for message in app.flashes('error') %}
+								<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+									<div class="flex items-center">
+										<i class="fas fa-exclamation-triangle mr-2"></i>
+										<span>{{ message }}</span>
+									</div>
+								</div>
+							{% endfor %}
+
+							<!-- Ticket Types -->
+							<div class="p-6">
+								{% if ticketTypes %}
+									{% for ticketType in ticketTypes %}
+										<div class="border border-gray-200 rounded-lg mb-4 overflow-hidden hover:shadow-md transition-shadow duration-200 {% if stockStatus == 'outofstock' %}opacity-60{% endif %}">
+											<div class="p-6">
+												<div
+													class="flex flex-col md:flex-row md:items-center justify-between">
+													<!-- Ticket Info -->
+													<div class="flex-1 mb-4 md:mb-0">
+														<div class="flex items-center mb-2">
+															<div class="flex-1">
+																<h3 class="text-lg font-semibold text-gray-800">{{ ticketType.name }}</h3>
+																{% if ticketType.age_range %}
+																	<p class="text-sm text-gray-600">{{ ticketType.age_range }}</p>
+																{% endif %}
+															</div>
+
+															{% if ticketType.stock_status != 'outofstock' %}
+																{% if ticketType.price == '0' %}
+																	<span class="ml-auto text-2xl font-bold text-green-600 px-2">
+																		{{ 'tickets.free'|trans }}
+																	</span>
+																{% else %}
+																	<span class="ml-auto text-2xl font-bold text-green-600 px-2">
+																		€{{ ticketType.price }}
+																	</span>
+																{% endif %}
+															{% endif %}
+														</div>
+
+														<!-- Requirements/Details -->
+														{% if ticketType.requirements %}
+															<ul class="text-sm text-gray-600 mt-2 space-y-1">
+																{% for requirement in ticketType.requirements %}
+																	<li class="flex items-center">
+																		<i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+																		{{ requirement }}
+																	</li>
+																{% endfor %}
+															</ul>
+														{% endif %}
+													</div>
+
+													<!-- Quantity Selector -->
+													{% if ticketType.name != 'Rolstoel (alleen telefonisch)' %}
+														<div class="flex items-center">
+															{% if stockStatus == 'outofstock' %}
+																<div class="text-sm font-medium text-gray-500 mr-4">{{ 'tickets.sold_out'|trans }}</div>
+																<div class="flex items-center border border-gray-200 rounded-lg opacity-50">
+																	<button type="button" class="px-3 py-2 text-gray-400 rounded-l-lg cursor-not-allowed" disabled>
+																		<i class="fas fa-minus"></i>
+																	</button>
+																	<input type="number" id="quantity-{{ ticketType.id }}" class="w-16 text-center border-0 py-2 focus:ring-0 bg-gray-100 text-gray-400" value="0" min="0" max="0" data-ticket-id="{{ ticketType.id }}" data-price="{{ ticketType.price }}" data-ticket-selection-target="quantity" disabled>
+																	<button type="button" class="px-3 py-2 text-gray-400 rounded-r-lg cursor-not-allowed" disabled>
+																		<i class="fas fa-plus"></i>
+																	</button>
+																</div>
+															{% else %}
+																<label class="text-sm font-medium text-gray-700 mr-4">{{ 'tickets.quantity'|trans }}:</label>
+																<div class="flex items-center border border-gray-300 rounded-lg">
+																	<button type="button" class="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-l-lg" data-ticket-id="{{ ticketType.id }}" data-action="click->ticket-selection#decreaseQuantity">
+																		<i class="fas fa-minus"></i>
+																	</button>
+																	<input
+																	type="number" id="quantity-{{ ticketType.id }}" name="tickets[{{ ticketType.id }}][quantity]" class="w-16 text-center border-0 py-2 focus:ring-0" value="{% if existingQuantities[ticketType.id] is defined %}{{ existingQuantities[ticketType.id] }}{% elseif ticketType.type == 'baby' %}1{% elseif ticketType.type == 'minor' %}1{% else %}0{% endif %}" min="0" max="{{ sharedStock ?? 999 }}" data-ticket-id="{{ ticketType.id }}" data-price="{{ ticketType.price }}" data-ticket-selection-target="quantity" data-action="change->ticket-selection#quantityChanged" required>
+																	<!-- Hidden fields for ticket info -->
+																	<input type="hidden" name="tickets[{{ ticketType.id }}][id]" value="{{ ticketType.id }}">
+																	<input type="hidden" name="tickets[{{ ticketType.id }}][name]" value="{{ ticketType.name }}">
+																	<input type="hidden" name="tickets[{{ ticketType.id }}][price]" value="{{ ticketType.price }}">
+																	<button type="button" class="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-r-lg" data-ticket-id="{{ ticketType.id }}" data-action="click->ticket-selection#increaseQuantity">
+																		<i class="fas fa-plus"></i>
+																	</button>
+																</div>
+															{% endif %}
+														</div>
+													{% endif %}
+												</div>
+											</div>
+										</div>
+									{% endfor %}
+								{% else %}
+									<div class="text-center py-8">
+										<i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+										<h3 class="text-xl font-semibold text-gray-800 mb-2">{{ 'tickets.no_ticket_types_available'|trans }}</h3>
+										<p class="text-gray-600">{{ 'tickets.check_back_later'|trans }}</p>
+									</div>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+
+					<!-- Right Column - Order Summary -->
+					<div class="lg:w-1/3">
+						<div
+							class="bg-white rounded-lg shadow-lg overflow-hidden sticky top-8">
+							<!-- Header -->
+							<div class="bg-red-600 text-white px-6 py-4">
+								<h3 class="text-lg font-bold flex items-center">
+									<i class="fas fa-shopping-cart mr-2"></i>
+									{{ 'tickets.order_summary'|trans }}
+								</h3>
+							</div>
+
+							<!-- Order Items -->
+							<div class="p-6">
+								<div
+									data-ticket-selection-target="orderItems" class="space-y-3 mb-6"><!-- Dynamic content will be added here -->
+								</div>
+
+								<!-- Coupon Section -->
+								<div class="border-t pt-4 mb-4">
+									<div class="mb-3">
+										<label for="coupon-code" class="block text-sm font-medium text-gray-700 mb-2">
+											{{ 'tickets.coupon_code'|trans }}
+										</label>
+										<div class="flex space-x-2">
+											<input type="text" id="coupon-code" name="coupon_code" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="{{ 'tickets.enter_coupon_code'|trans }}" value="{% if appliedCoupon %}{{ appliedCoupon.code }}{% endif %}" data-ticket-selection-target="couponInput">
+											<button type="button" class="bg-red-600 text-white hover:bg-red-700 font-medium py-2 px-4 rounded-lg text-sm transition duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed" data-ticket-selection-target="applyCouponButton" data-action="click->ticket-selection#applyCoupon">
+												{{ 'tickets.apply'|trans }}
+											</button>
+										</div>
+									</div>
+
+									<!-- Coupon Status -->
+									<div
+										data-ticket-selection-target="couponStatus" class="hidden"><!-- Dynamic coupon status will be shown here -->
+									</div>
+								</div>
+
+								<!-- Order Totals -->
+								<div
+									class="border-t pt-4">
+									<!-- Subtotal -->
+									<div class="flex justify-between items-center mb-2">
+										<span class="text-gray-700">{{ 'tickets.subtotal'|trans }}</span>
+										<span class="text-green-600" data-ticket-selection-target="subtotalPrice">€0.00</span>
+									</div>
+
+									<!-- Discount (hidden by default) -->
+									<div data-ticket-selection-target="discountRow" class="flex justify-between items-center mb-2 hidden">
+										<span class="text-green-600">{{ 'tickets.discount'|trans }}
+											(<span data-ticket-selection-target="couponDescription"></span>)</span>
+										<span class="text-green-600" data-ticket-selection-target="discountAmount">-€0.00</span>
+									</div>
+
+									<!-- Tax -->
+									<div class="flex justify-between items-center mb-2 text-sm text-gray-600">
+										<span>BTW ({{ taxRate }}%)</span>
+										<span class="text-green-600" data-ticket-selection-target="taxAmount">€0.00</span>
+									</div>
+
+									<!-- Total -->
+									<div class="flex justify-between items-center text-lg font-semibold border-t border-gray-200 pt-2">
+										<span>{{ 'tickets.total'|trans }}
+											(incl. BTW) (<span data-ticket-selection-target="totalTickets">2</span>
+											{{ 'tickets.total_tickets'|trans }})</span>
+										<span class="text-green-600" data-ticket-selection-target="totalPrice">€25</span>
+									</div>
+
+									<!-- Maximum tickets warning -->
+									<div data-ticket-selection-target="maxTicketsWarning" class="text-xs text-gray-500 mt-2 p-2 bg-gray-50 rounded hidden">
+										<i class="fas fa-info-circle mr-1"></i>
+										Maximum
+										{{ maxTicketsPerOrder }}
+										tickets per bestelling. Groepen vanaf 25 personen kunnen in aanmerking komen voor korting mits zij van tevoren gereserveerd hebben. Voor informatie over groepskortingen ontvangen wij graag een e-mail (info@ilgrigio.nl).
+									</div>
+								</div>
+
+								<!-- Proceed Button -->
+								<button type="submit" data-ticket-selection-target="proceedButton" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg mt-6 transition duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+									{{ 'tickets.proceed_to_checkout'|trans }}
+								</button>
+
+								<!-- Hidden form fields for validation -->
+								<input type="hidden" name="event_id" value="{{ event.id }}">
+								<input type="hidden" name="applied_coupon" data-ticket-selection-target="appliedCouponField" value="{% if appliedCoupon %}{{ appliedCoupon|json_encode }}{% endif %}">
+								<input
+								type="hidden" name="discount_amount" data-ticket-selection-target="discountAmountField" value="0">
+
+								<!-- Error display -->
+								<div data-ticket-selection-target="errorContainer" class="mt-4 hidden">
+									<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
+										<strong class="font-bold">{{ 'tickets.validation_error'|trans }}</strong>
+										<span data-ticket-selection-target="errorMessage" class="block sm:inline"></span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+
+	{% endblock %}

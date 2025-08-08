@@ -1,0 +1,301 @@
+{% extends 'base.html.twig' %}
+
+{% from 'components/macros.html.twig' import dutch_date_checkout as dutch_date %}
+
+{% block title %}Checkout - Il Grigio Reserveringen
+{% endblock %}
+
+{% block body %}
+	{{ include('components/hero.html.twig', {
+    'title': 'Reservering afronden',
+    'subtitle': 'Vul je gegevens in om je reservering af te ronden',
+    'show_back_nav': true,
+    'back_text': 'Terug naar shows'
+}) }}
+
+	<!-- Main Content -->
+	<div class="bg-gray-50 min-h-screen py-8">
+		<div class="container mx-auto px-4">
+			<div
+				class="max-w-4xl mx-auto">
+
+				<!-- Event Information Section -->
+				{% if event %}
+					<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+						<div class="flex items-start space-x-4">
+							{% if event.image_url %}
+								<div class="flex-shrink-0">
+									<img src="{{ event.image_url }}" alt="{{ event.name }}" class="w-24 h-24 rounded-lg object-cover">
+								</div>
+							{% endif %}
+							<div class="flex-1">
+								<h2 class="text-2xl font-bold text-gray-800 mb-3">{{ event.name|default('Event') }}</h2>
+								<div class="space-y-2 text-gray-600">
+									{% if event.date %}
+										<div class="flex items-center">
+											<i class="fas fa-calendar-alt mr-3 text-red-600 w-4"></i>
+											<span class="font-medium">{{ dutch_date(event.date) }}</span>
+										</div>
+										<div class="flex items-center">
+											<i class="fas fa-clock mr-3 text-red-600 w-4"></i>
+											<span>{{ event.time|default(event.date|date('H:i')) }}</span>
+										</div>
+									{% elseif event.formatted_date %}
+										<div class="flex items-center">
+											<i class="fas fa-calendar-alt mr-3 text-red-600 w-4"></i>
+											<span class="font-medium">{{ event.formatted_date }}</span>
+										</div>
+									{% endif %}
+									{% if event.location %}
+										<div class="flex items-center">
+											<i class="fas fa-map-marker-alt mr-3 text-red-600 w-4"></i>
+											<span>{{ event.location }}</span>
+										</div>
+									{% else %}
+										<div class="flex items-center">
+											<i class="fas fa-map-marker-alt mr-3 text-red-600 w-4"></i>
+											<span>Bossebaan 5b, 5076 NC HAAREN (NB)</span>
+										</div>
+									{% endif %}
+								</div>
+								{% if event.description and event.description|length > 0 %}
+									<div class="mt-4 pt-3 border-t border-gray-200">
+										<p class="text-sm text-gray-700 leading-relaxed">{{ event.description|striptags|slice(0, 200) }}
+											{% if event.description|length > 200 %}...
+											{% endif %}
+										</p>
+									</div>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				{% elseif cart_items and cart_items|length > 0 %}
+					<!-- Fallback if no event data but we have cart items -->
+					<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+						<div class="flex items-center">
+							<i class="fas fa-ticket-alt mr-3 text-red-600"></i>
+							<h2 class="text-2xl font-bold text-gray-800">{{ cart_items[0].event_name|default('Event Tickets') }}</h2>
+						</div>
+						{% if cart_items[0].date %}
+							<div class="mt-3 flex items-center text-gray-600">
+								<i class="fas fa-calendar-alt mr-3 text-red-600 w-4"></i>
+								<span>{{ dutch_date(cart_items[0].date) }}</span>
+							</div>
+						{% endif %}
+					</div>
+				{% endif %}
+
+				<div
+					class="grid grid-cols-1 lg:grid-cols-3 gap-8" data-controller="checkout" data-checkout-subtotal-value="{{ subtotal|default(0) }}" data-checkout-discount-amount-value="{{ discount|default(0) }}" data-checkout-total-value="{{ total|default(0) }}" data-checkout-tax-rate-value="{{ taxRate }}" data-checkout-applied-coupon-value="{{ applied_coupon ? (applied_coupon|json_encode) : '{}' }}">
+
+					<!-- Left Column - Checkout Form -->
+					<div class="lg:col-span-2">
+						<div class="bg-white rounded-lg shadow-lg p-6">
+							<h2 class="text-2xl font-bold text-gray-800 mb-6">
+								<i class="fas fa-user-edit mr-2 text-red-600"></i>
+								Persoonlijke Gegevens
+							</h2>
+
+							<!-- Validation Errors -->
+							{% for message in app.flashes('error') %}
+								<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+									<div class="flex items-center">
+										<i class="fas fa-exclamation-triangle mr-2"></i>
+										<span>{{ message }}</span>
+									</div>
+								</div>
+							{% endfor %}
+
+							<form
+								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-checkout-target="form">
+								<!-- Name Fields -->
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+									<div>
+										<label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">
+											Voornaam
+											<span class="text-red-500">*</span>
+										</label>
+										<input type="text" id="firstName" name="firstName" required data-checkout-target="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je voornaam in">
+									</div>
+									<div>
+										<label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">
+											Achternaam
+											<span class="text-red-500">*</span>
+										</label>
+										<input type="text" id="lastName" name="lastName" required data-checkout-target="lastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je achternaam in">
+									</div>
+								</div>
+
+								<!-- Company Name (Optional) -->
+								<div class="mb-4">
+									<label for="companyName" class="block text-sm font-medium text-gray-700 mb-2">
+										Bedrijfsnaam
+										<span class="text-gray-400">(optioneel)</span>
+									</label>
+									<input type="text" id="companyName" name="companyName" data-checkout-target="companyName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je bedrijfsnaam in (optioneel)">
+								</div>
+
+								<!-- City -->
+								<div class="mb-4">
+									<label for="city" class="block text-sm font-medium text-gray-700 mb-2">
+										Plaats
+										<span class="text-red-500">*</span>
+									</label>
+									<input type="text" id="city" name="city" required data-checkout-target="city" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je woonplaats in">
+								</div>
+
+								<!-- Phone Number (Optional) -->
+								<div class="mb-4">
+									<label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-2">
+										Telefoonnummer
+										<span class="text-gray-400">(optioneel)</span>
+									</label>
+									<input type="tel" id="phoneNumber" name="phoneNumber" data-checkout-target="phoneNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je telefoonnummer in (optioneel)">
+								</div>
+
+								<!-- Email -->
+								<div class="mb-4">
+									<label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+										E-mailadres
+										<span class="text-red-500">*</span>
+									</label>
+									<input type="email" id="email" name="email" required data-checkout-target="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je e-mailadres in">
+								</div>
+
+								<!-- Email Confirmation -->
+								<div class="mb-6">
+									<label for="emailConfirm" class="block text-sm font-medium text-gray-700 mb-2">
+										Bevestig e-mailadres
+										<span class="text-red-500">*</span>
+									</label>
+									<input type="email" id="emailConfirm" name="emailConfirm" required data-checkout-target="emailConfirm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Bevestig je e-mailadres">
+									<div id="email-match-error" data-checkout-target="emailMatchError" class="text-red-500 text-sm mt-1 hidden">
+										E-mailadressen komen niet overeen
+									</div>
+								</div>
+
+								<!-- Terms and Conditions -->
+								<div class="mb-6">
+									<label class="flex items-start">
+										<input type="checkbox" id="terms" name="terms" required data-checkout-target="terms" class="mt-1 mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+										<span class="text-sm text-gray-700">
+											Ik ga akkoord met de
+											<a href="{{ path('app_terms_conditions') }}" target="_blank" class="text-red-600 hover:text-red-700 underline">
+												Algemene Voorwaarden
+											</a>
+											<span class="text-red-500">*</span>
+										</span>
+									</label>
+								</div>
+							</form>
+						</div>
+					</div>
+
+					<!-- Right Column - Order Summary -->
+					<div class="lg:col-span-1">
+						<div class="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+							<h3 class="text-xl font-bold text-gray-800 mb-4">
+								<i class="fas fa-shopping-cart mr-2 text-red-600"></i>
+								Bestelling
+							</h3>
+
+							<!-- Order Items -->
+							<div class="space-y-3 mb-6">
+								{% if cart_items is defined %}
+									{% for item in cart_items %}
+										<div class="flex justify-between items-start py-2 border-b border-gray-200">
+											<div class="flex-1">
+												<h4 class="text-sm font-medium text-gray-800">{{ item.name }}</h4>
+												<p class="text-xs text-gray-600">{{ item.date|date('d-m-Y') }}</p>
+												<p class="text-xs text-gray-600">Aantal:
+													{{ item.quantity }}</p>
+											</div>
+											<div class="text-sm font-medium text-gray-800">
+												€{{ item.total|number_format(2, ',', '.') }}
+											</div>
+										</div>
+									{% endfor %}
+
+									<!-- Back to adjust tickets button -->
+									<div class="pt-2">
+										<a href="{{ path('app_event_tickets', {'id': cart_items[0].event_id|default(1)}) }}" class="inline-flex items-center text-sm text-red-600 hover:text-red-700 font-medium">
+											<i class="fas fa-edit mr-2"></i>
+											Tickets aanpassen
+										</a>
+									</div>
+								{% else %}
+									<div class="text-center py-4 text-gray-500">
+										<i class="fas fa-shopping-cart text-2xl mb-2"></i>
+										<p>Je winkelwagen is leeg</p>
+										<a href="{{ path('app_tickets') }}" class="inline-flex items-center text-red-600 hover:text-red-700 font-medium mt-2">
+											<i class="fas fa-arrow-left mr-2"></i>
+											Terug naar shows
+										</a>
+									</div>
+								{% endif %}
+							</div>
+
+							<!-- Coupon Code -->
+							<div class="mb-4">
+								<label for="couponCode" class="block text-sm font-medium text-gray-700 mb-2">
+									Kortingscode
+								</label>
+								<div class="space-y-2">
+									<input type="text" id="couponCode" name="couponCode" data-checkout-target="couponInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors text-sm" placeholder="Voer code in" value="{{ applied_coupon ? applied_coupon.code : '' }}">
+									<button type="button" data-checkout-target="applyCouponButton" data-action="click->checkout#applyCoupon" class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition duration-200 text-sm">
+										Toepassen
+									</button>
+								</div>
+								<div data-checkout-target="couponStatus"></div>
+							</div>
+
+							<!-- Order Total -->
+							<div class="border-t border-gray-200 pt-4">
+								<div class="flex justify-between text-sm text-gray-600 mb-2">
+									<span>Subtotaal:</span>
+									<span data-checkout-target="subtotal">€{{ subtotal|default('0,00')|number_format(2, ',', '.') }}</span>
+								</div>
+								<div data-checkout-target="discountRow" class="flex justify-between text-sm text-green-600 mb-2 {% if not discount or discount <= 0 %}hidden{% endif %}">
+									<span>Korting:</span>
+									<span data-checkout-target="discount">-€{{ discount|default('0,00')|number_format(2, ',', '.') }}</span>
+								</div>
+								<div class="flex justify-between text-sm text-gray-600 mb-2">
+									<span>BTW ({{ taxRate }}%):</span>
+									<span data-checkout-target="tax">€{{ tax|default('0,00')|number_format(2, ',', '.') }}</span>
+								</div>
+								<div class="flex justify-between text-lg font-bold text-gray-800 border-t border-gray-200 pt-2">
+									<span>Totaal (incl. BTW):</span>
+									<span data-checkout-target="total">€{{ total|default('0,00')|number_format(2, ',', '.') }}</span>
+								</div>
+							</div>
+
+							<!-- Checkout Button -->
+							<div class="mt-6">
+								<button type="submit" form="checkout-form" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+									<i class="fas fa-credit-card mr-2"></i>
+									Doorgaan naar betaling
+								</button>
+							</div>
+
+							<!-- Security Info -->
+							<div class="mt-4 text-xs text-gray-500 text-center">
+								<i class="fas fa-lock mr-1"></i>
+								Veilige betaling via iDEAL
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Navigation Buttons -->
+				{% if cart_items is defined and cart_items|length > 0 %}
+					<div class="mt-8 text-center">
+						<a href="{{ path('app_event_tickets', {'id': cart_items[0].event_id|default(1)}) }}" class="inline-flex items-center justify-center bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-800 font-medium py-3 px-6 rounded-lg transition duration-300 shadow-sm hover:shadow-md">
+							<i class="fas fa-edit mr-2"></i>
+							Tickets aanpassen
+						</a>
+					</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+{% endblock %}

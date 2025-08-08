@@ -1,0 +1,26 @@
+{#
+  Main Content Wrapper Component
+  Parameters:
+  - max_width: Optional max width class (default: max-w-4xl)
+  - padding: Optional padding class (default: p-8)
+  - center: Optional boolean to center content (default: true)
+#}
+
+<!-- Main Content -->
+<div class="bg-gray-50 min-h-screen py-8">
+    <div class="container mx-auto px-4">
+        {% if center|default(true) %}
+        <div class="{{ max_width|default('max-w-4xl') }} mx-auto">
+        {% endif %}
+            {% if card|default(true) %}
+            <div class="bg-white rounded-lg shadow-lg {{ padding|default('p-8') }}">
+                {{ content }}
+            </div>
+            {% else %}
+                {{ content }}
+            {% endif %}
+        {% if center|default(true) %}
+        </div>
+        {% endif %}
+    </div>
+</div>

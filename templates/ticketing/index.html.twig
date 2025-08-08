@@ -1,0 +1,147 @@
+{% extends 'base.html.twig' %}
+
+{% from 'components/macros.html.twig' import dutch_date %}
+
+{% block title %}
+	{{ 'events.page_title'|trans }}
+{% endblock %}
+
+{% block body %}
+	{{ include('components/hero.html.twig', {
+    'title': 'Reserveringen',
+    'subtitle': 'Welkom bij ons online reserveringssysteem!'
+}) }}
+
+	<!-- Main Content -->
+	<div class="bg-gray-50 min-h-screen py-8">
+		<div class="container mx-auto px-4">
+
+			<!-- Scroll to Events Button (only shown if events exist) -->
+			{# {% if events %}
+										<div class="text-center mb-12">
+											<button onclick="document.getElementById('aankomende-shows').scrollIntoView({behavior: 'smooth'})" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 inline-flex items-center">
+												<i class="fas fa-arrow-down mr-2"></i>
+												Bekijk aankomende shows
+											</button>
+										</div>
+									{% endif %} #}
+
+
+			<!-- Section Header -->
+				<div class="mb-12"> <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Belangrijke Informatie</h2>
+
+				<div class="max-w-3xl mx-auto">
+					<!-- Reserveringsvoorwaarden -->
+					<div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-500">
+						<div class="flex items-center mb-4">
+							<i class="fas fa-clipboard-list text-red-500 text-xl mr-3"></i>
+							<h3 class="text-xl font-bold text-gray-800">Reserveringsvoorwaarden</h3>
+						</div>
+
+						<ul class="space-y-1 text-gray-700">
+							<li class="flex items-start">
+								<span class="text-red-500 mr-2 mt-1">•</span>
+								<span>Annuleren van aangeschafte tickets is helaas niet mogelijk</span>
+							</li>
+							<li class="flex items-start">
+								<span class="text-red-500 mr-2 mt-1">•</span>
+								<span>Je kunt ze wel overdragen aan iemand anders</span>
+							</li>
+							<li class="flex items-start">
+								<span class="text-red-500 mr-2 mt-1">•</span>
+								<span>Rolstoelplaatsen inclusief plaatsen voor begeleiders zijn alleen telefonisch te reserveren en zijn beperkt beschikbaar</span>
+							</li>
+							<li class="flex items-start">
+								<span class="text-red-500 mr-2 mt-1">•</span>
+								<span>Je kunt geen stoelen reserveren</span>
+							</li>
+							<li class="flex items-start">
+								<span class="text-red-500 mr-2 mt-1">•</span>
+								<span>Kom op tijd om vooraan en/of bij elkaar te zitten</span>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+
+			<!-- Events Grid -->
+			{% if events %}
+				<h2 id="aankomende-shows" class="text-3xl font-bold text-center text-gray-800 mb-8">Aankomende shows</h2>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+					{% for event in events %}
+						<div
+							class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+							<!-- Event Details -->
+							<div class="p-6">
+								<h3 class="text-xl font-bold text-gray-800 mb-3">{{ event.name }}</h3>
+
+								<!-- Event Info -->
+								<div class="space-y-2 mb-4">
+									<div class="flex items-center text-gray-600">
+										<i class="fas fa-calendar text-red-500 mr-2"></i>
+										<span>{{ event.date ? dutch_date(event.date) : 'events.date_tbd'|trans }}</span>
+									</div>
+									{% if event.time %}
+										<div class="flex items-center text-gray-600">
+											<i class="fas fa-clock text-red-500 mr-2"></i>
+											<span>{{ event.time }}</span>
+										</div>
+									{% endif %}
+									{# {% if event.location %}
+																			<div class="flex items-center text-gray-600">
+																				<i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+																				<span>{{ event.location }}</span>
+																			</div>
+																		{% endif %} #}
+								</div>
+
+								<!-- Stock Status -->
+								<div class="mb-4">
+									{% if event.stock_status == 'instock' %}
+										{% if event.stock_quantity < event.low_stock_amount %}
+											<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+												<i class="fas fa-exclamation-triangle mr-1"></i>
+												{{ 'events.limited_tickets'|trans() }}
+											</span>
+										{% else %}
+											<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+												<i class="fas fa-check-circle mr-1"></i>
+												{{ 'events.available'|trans }}
+											</span>
+										{% endif %}
+									{% else %}
+										<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+											<i class="fas fa-times-circle mr-1"></i>
+											{{ 'events.sold_out'|trans }}
+										</span>
+									{% endif %}
+								</div>
+
+								<!-- Select Tickets Button -->
+								{% if event.stock_status == 'instock' %}
+									<a href="{{ path('app_event_tickets', {'id': event.id}) }}" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 block text-center">
+										{{ 'events.select_tickets'|trans }}
+									</a>
+								{% else %}
+									<button disabled class="w-full bg-gray-300 text-gray-500 font-bold py-3 px-4 rounded-lg cursor-not-allowed block text-center">
+										{{ 'events.sold_out'|trans }}
+									</button>
+								{% endif %}
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			{% else %}
+				<!-- No Events Available -->
+				<div class="text-center py-16">
+					<h3 class="text-2xl font-semibold text-gray-800 mb-4">{{ 'events.no_events'|trans }}</h3>
+					<p class="text-gray-600 mb-8">{{ 'events.check_back_soon'|trans }}</p>
+					<a href="{{ path('app_tickets') }}" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+						{{ 'events.refresh_page'|trans }}
+					</a>
+				</div>
+			{% endif %}
+		</div>
+	</div>
+{% endblock %}

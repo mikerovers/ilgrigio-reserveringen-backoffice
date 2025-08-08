@@ -1,0 +1,96 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    default_from_email: 'noreply@example.com'
+    default_admin_email: 'admin@example.com'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+    # Webhook services
+    App\Service\WebhookSecurityService:
+        arguments:
+            $logger: '@logger'
+            $webhookSecret: '%env(WOOCOMMERCE_WEBHOOK_SECRET)%'
+
+    App\Webhook\WooCommerceRequestParser:
+        arguments:
+            $webhookSecurityService: '@App\Service\WebhookSecurityService'
+            $logger: '@logger'
+        tags:
+            - { name: 'webhook.request_parser', type: 'woocommerce' }
+
+    # Email message handler configuration
+    App\MessageHandler\SendOrderEmailMessageHandler:
+        arguments:
+            $fromEmail: '%env(default:default_from_email:MAILER_FROM_EMAIL)%'
+            $adminEmail: '%env(default:default_admin_email:ADMIN_EMAIL)%'
+
+    # PDF Storage Service configuration
+    App\Service\SecurePdfStorageService:
+        arguments:
+            $tokenSecret: '%env(PDF_TOKEN_SECRET)%'
+            $tokenExpirationDays: '%env(int:PDF_TOKEN_EXPIRATION_DAYS)%'
+
+    # Ticket API Service configuration
+    App\Service\TicketApiService:
+        arguments:
+            $ticketApiUrl: '%env(ILGRIGIO_TICKET_API_URL)%'
+            $ticketApiKey: '%env(ILGRIGIO_TICKET_API_KEY)%'
+
+    # WooCommerce Events Service configuration
+    App\Service\WooCommerceEventsService:
+        arguments:
+            $ilgrigioBaseApiUrl: '%env(ILGRIGIO_BASE_API_URL)%'
+            $woocommerceConsumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
+            $woocommerceConsumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
+
+    # WooCommerce Product Variations Service configuration
+    App\Service\WooCommerceProductVariationsService:
+        arguments:
+            $ilgrigioBaseApiUrl: '%env(ILGRIGIO_BASE_API_URL)%'
+            $woocommerceConsumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
+            $woocommerceConsumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
+
+    # WooCommerce Coupon Service configuration
+    App\Service\WooCommerceCouponService:
+        arguments:
+            $baseUrl: '%env(ILGRIGIO_BASE_URL)%'
+            $consumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
+            $consumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
+
+    # WooCommerce Service configuration
+    App\Service\WooCommerceService:
+        arguments:
+            $baseUrl: '%env(ILGRIGIO_BASE_URL)%'
+            $consumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
+            $consumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
+
+    # Mollie Service configuration
+    App\Service\MollieService:
+        arguments:
+            $mollieApiKey: '%env(MOLLIE_API_KEY)%'
+
+    # Remote event consumers
+    # Note: WooCommerceWebhookController uses AsRemoteEventConsumer attribute for auto-configuration
+
+    # Ticketing Controller configuration
+    App\Controller\TicketingController:
+        arguments:
+            $ilgrigioBaseUrl: '%env(ILGRIGIO_BASE_URL)%'
+            $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
+            $taxRate: '%env(float:TAX_RATE)%'

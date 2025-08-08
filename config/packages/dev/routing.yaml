@@ -1,0 +1,5 @@
+framework:
+    router:
+        # Configure how to generate URLs in non-HTTP contexts, such as CLI commands.
+        # For development, use localhost:8000 to match the Symfony dev server
+        default_uri: https://localhost:8000

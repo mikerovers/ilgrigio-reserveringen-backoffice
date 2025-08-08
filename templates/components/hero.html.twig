@@ -1,0 +1,39 @@
+{#
+  Hero Section Component
+  Parameters:
+  - title: Main heading text
+  - subtitle: Optional subtitle text
+  - show_back_nav: Optional boolean to show back navigation (default: false)
+  - back_url: URL for back navigation (default: app_tickets)
+  - back_text: Text for back navigation (default: "Terug naar shows")
+#}
+
+{% if show_back_nav|default(false) %}
+<!-- Back to Events Bar -->
+<div class="bg-red-600 text-white">
+    <div class="container mx-auto px-4 py-3">
+        <a href="{{ path(back_url|default('app_tickets')) }}" class="flex items-center text-white hover:text-gray-200 transition-colors duration-200">
+            <i class="fas fa-arrow-left mr-2"></i>
+            {{ back_text|default('Terug naar shows') }}
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Hero Section -->
+<div class="relative bg-gray-900 text-white overflow-hidden">
+    <!-- Background Image -->
+    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat blur-sm" style="background-image: url('{{ asset('images/IlGrigio-zaal.jpg') }}');"></div>
+    <!-- Dark Overlay for text readability -->
+    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    <!-- Content -->
+    <div class="relative container mx-auto px-4 py-6">
+        <div class="text-center">
+            <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" class="h-24 w-auto mx-auto mb-4">
+            <h1 class="text-4xl md:text-5xl font-bold">{{ title|default('Il Grigio') }}</h1>
+            {% if subtitle is defined and subtitle %}
+                <p class="text-lg mt-2">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
