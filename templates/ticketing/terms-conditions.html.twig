@@ -1,0 +1,49 @@
+  {% extends 'base.html.twig' %}
+
+{% block title %}Algemene Voorwaarden - Il Grigio TicketHub{% endblock %}
+
+{% block body %}
+<!-- Hero Section -->
+<div class="relative bg-red-600 text-white overflow-hidden">
+    <!-- Background Image -->
+    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat blur-sm" style="background-image: url('{{ asset('images/IlGrigio-zaal.jpg') }}');"></div>
+    <!-- Dark Overlay for text readability -->
+    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    <!-- Content -->
+    <div class="relative container mx-auto px-4 py-8">
+        <div class="text-center">
+            <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" class="h-16 w-auto mx-auto mb-4">
+            <h1 class="text-3xl md:text-4xl font-bold">Algemene Voorwaarden</h1>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="bg-gray-50 min-h-screen py-16">
+    <div class="container mx-auto px-4 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Algemene voorwaarden JeugdCircus Il Grigio</h2>
+            
+            <div class="prose prose-lg text-gray-700 leading-relaxed">
+                <p class="mb-6">
+                    Jeugdcircus Il Grigio gebruikt Mollie voor de verwerking van alle online transacties. 
+                    Uw persoonsgegevens worden in dit kader gedeeld met Mollie en aan haar gelieerde ondernemingen. 
+                    Wanneer u via onze website uw kaarten reserveert, dan geeft u, direct of indirect, toestemming 
+                    aan Jeugdcircus Il Grigio, Mollie en aan haar gelieerde ondernemingen, alle vereiste 
+                    (uitdrukkelijke) toestemmingen als bedoeld in de toepasselijke gegevensbeschermingswetgeving 
+                    te verwerken.
+                </p>
+            </div>
+            
+            <!-- Back to Home Button -->
+            <div class="mt-8 text-center">
+                <a href="{{ path('app_tickets') }}" 
+                   class="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 inline-flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    {{ 'tickets.back_to_events' | trans }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

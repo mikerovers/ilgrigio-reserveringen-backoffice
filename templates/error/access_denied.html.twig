@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ title }} - Il Grigio Reserveringen{% endblock %}
+
+{% block body %}
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-md w-full text-center">
+            <!-- Error Icon -->
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-4">
+                    <i class="fas fa-ban text-3xl text-red-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ title }}</h1>
+                <p class="text-gray-600">We konden je bestelling niet verifiëren.</p>
+            </div>
+
+            <!-- Error Details -->
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-red-400 mt-0.5 mr-3"></i>
+                    <div class="text-left">
+                        <h3 class="text-sm font-medium text-red-800 mb-1">
+                            {% if error_code == 'missing_key' %}
+                                Ontbrekende verificatiecode
+                            {% elseif error_code == 'invalid_key' %}
+                                Ongeldige verificatiecode
+                            {% elseif error_code == 'order_not_found' %}
+                                Bestelling niet gevonden
+                            {% else %}
+                                Verificatie mislukt
+                            {% endif %}
+                        </h3>
+                        <p class="text-sm text-red-700">
+                            {% if error_code == 'missing_key' %}
+                                De link mist de benodigde veiligheidsparameters om toegang te verlenen tot je bestelling.
+                            {% elseif error_code == 'invalid_key' %}
+                                De verificatiecode in de link komt niet overeen met onze records.
+                            {% elseif error_code == 'order_not_found' %}
+                                De bestelling waarnaar je zoekt bestaat niet in ons systeem.
+                            {% else %}
+                                Er ging iets mis bij het verifiëren van je bestelling.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="space-y-4">
+                <div class="text-sm text-gray-600 mb-6">
+                    <p class="font-medium mb-2">Wat kun je doen?</p>
+                    <ul class="text-left space-y-1">
+                        <li>• Controleer of je de volledige link uit je e-mail hebt gebruikt</li>
+                        <li>• Kopieer de link opnieuw uit je bevestigingsmail</li>
+                        <li>• Neem contact met ons op als het probleem blijft bestaan</li>
+                    </ul>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
+                    <h4 class="font-medium text-gray-900 mb-2">Hulp nodig?</h4>
+                    <p class="text-gray-700">
+                        Neem contact met ons op via 
+                        <a href="mailto:info@ilgrigio.nl" class="text-blue-600 hover:text-blue-800 font-medium">
+                            reserveringen@ilgrigio.nl
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Back to Homepage -->
+                <div class="pt-4">
+                    <a href="{{ path('app_tickets') }}" 
+                       class="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-200">
+                        <i class="fas fa-home mr-2"></i>
+                        Terug naar Evenementen
+                    </a>
+                </div>
+            </div>
+
+            <!-- Technical Details for Support (Hidden by Default) -->
+            <details class="mt-8 text-xs text-gray-400">
+                <summary class="cursor-pointer hover:text-gray-600">Technische details</summary>
+                <div class="mt-2 text-left bg-gray-100 p-3 rounded font-mono">
+                    <div>Error Code: {{ error_code }}</div>
+                    <div>Timestamp: {{ "now"|date("Y-m-d H:i:s") }}</div>
+                </div>
+            </details>
+        </div>
+    </div>
+{% endblock %}

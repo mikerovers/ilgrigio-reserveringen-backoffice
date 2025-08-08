@@ -1,0 +1,6 @@
+framework:
+    webhook:
+        routing:
+            woocommerce:
+                service: 'App\Webhook\WooCommerceRequestParser'
+                secret: '%env(WOOCOMMERCE_WEBHOOK_SECRET)%'

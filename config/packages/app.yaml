@@ -1,0 +1,14 @@
+parameters:
+    app.from_email: '%env(FROM_EMAIL)%'
+    app.admin_email: '%env(ADMIN_EMAIL)%'
+    app.webhook_secret: '%env(default::WOOCOMMERCE_WEBHOOK_SECRET)%'
+
+services:
+    App\Service\OrderPdfService:
+        arguments:
+            $twig: '@twig'
+            $fromEmail: '%app.from_email%'
+    
+    App\Service\WebhookSecurityService:
+        arguments:
+            $webhookSecret: '%app.webhook_secret%'

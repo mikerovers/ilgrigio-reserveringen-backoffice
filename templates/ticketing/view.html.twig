@@ -1,0 +1,184 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Order {{ order_id }} - Il Grigio Tickets{% endblock %}
+
+{% block body %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <a href="{{ path('app_tickets') }}" class="inline-block mb-4">
+                <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" class="h-16 w-auto">
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ ticket_info.event_name ?? 'Your Tickets' }}</h1>
+            <p class="text-gray-600">Order #{{ order_id }}</p>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-wrap gap-3 justify-center">
+                <a href="{{ path('app_pdf_download', {orderId: order_id}) }}" 
+                   class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-file-pdf mr-2"></i>Download PDF
+                </a>
+                <button onclick="window.print()" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-print mr-2"></i>Print
+                </button>
+                <a href="{{ path('app_tickets_search') }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-search mr-2"></i>Search Another Order
+                </a>
+            </div>
+        </div>
+
+        <!-- Event Information -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-calendar-alt mr-2"></i>Event Information
+            </h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Event Name</p>
+                    <p class="font-medium">{{ ticket_info.event_name ?? 'Il Grigio Event' }}</p>
+                </div>
+                {% if ticket_info.event_date %}
+                <div>
+                    <p class="text-sm text-gray-600">Event Date</p>
+                    <p class="font-medium">{{ ticket_info.event_date }}</p>
+                </div>
+                {% endif %}
+                {% if ticket_info.event_time %}
+                <div>
+                    <p class="text-sm text-gray-600">Event Time</p>
+                    <p class="font-medium">{{ ticket_info.event_time }}</p>
+                </div>
+                {% endif %}
+                {% if ticket_info.venue %}
+                <div>
+                    <p class="text-sm text-gray-600">Venue</p>
+                    <p class="font-medium">{{ ticket_info.venue }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tickets -->
+        {% if ticket_info.tickets %}
+            <div class="space-y-4">
+                {% for ticket_id, ticket in ticket_info.tickets %}
+                    <div class="bg-white rounded-lg shadow-md p-6" data-controller="qr-code">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">Ticket #{{ loop.index }}</h3>
+                                {% if ticket.ticket_type %}
+                                    <p class="text-gray-600">{{ ticket.ticket_type }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2 md:mt-0">
+                                <span class="bg-green-100 text-green-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                                    Valid
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <!-- Ticket Details -->
+                            <div class="md:col-span-2">
+                                {% if ticket.ticket_code %}
+                                <div class="mb-3">
+                                    <p class="text-sm text-gray-600">Ticket Code</p>
+                                    <p class="font-mono text-sm bg-gray-100 p-2 rounded">{{ ticket.ticket_code }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if ticket.seat_number %}
+                                <div class="mb-3">
+                                    <p class="text-sm text-gray-600">Seat</p>
+                                    <p class="font-medium">{{ ticket.seat_number }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if ticket.section %}
+                                <div class="mb-3">
+                                    <p class="text-sm text-gray-600">Section</p>
+                                    <p class="font-medium">{{ ticket.section }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if ticket.price %}
+                                <div class="mb-3">
+                                    <p class="text-sm text-gray-600">Price</p>
+                                    <p class="font-medium">€{{ ticket.price }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- QR Code -->
+                            {% if ticket.qr_code_data_uri %}
+                            <div class="flex flex-col items-center">
+                                <p class="text-sm text-gray-600 mb-2">QR Code</p>
+                                <div class="bg-white p-2 border border-gray-300 rounded">
+                                    <img src="{{ ticket.qr_code_data_uri }}" 
+                                         alt="QR Code for Ticket {{ loop.index }}" 
+                                         class="w-24 h-24">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 text-center">Scan at venue</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Ticket Instructions -->
+                        <div class="mt-4 p-3 bg-blue-50 rounded-md">
+                            <h4 class="text-sm font-medium text-blue-800 mb-1">Important Information</h4>
+                            <ul class="text-xs text-blue-700 space-y-1">
+                                <li>• Present this QR code at the venue entrance</li>
+                                <li>• Keep your ticket safe until after the event</li>
+                                <li>• Arrive 30 minutes before the event starts</li>
+                            </ul>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-md">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                No tickets found for this order. Please contact support if you believe this is an error.
+            </div>
+        {% endif %}
+
+        <!-- Footer Actions -->
+        <div class="text-center mt-8 space-y-3">
+            <div>
+                <a href="{{ path('app_tickets_search') }}" 
+                   class="text-blue-600 hover:text-blue-800 transition duration-300 mr-6">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Search
+                </a>
+                <a href="{{ path('app_tickets') }}" 
+                   class="text-blue-600 hover:text-blue-800 transition duration-300">
+                    <i class="fas fa-home mr-2"></i>Back to Home
+                </a>
+            </div>
+            <p class="text-sm text-gray-500">
+                Need help? Contact us at support@ilgrigio.com
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    body {
+        font-size: 12px;
+    }
+    .container {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+}
+</style>
+{% endblock %}

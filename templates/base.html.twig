@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Il Grigio Reserveringen{% endblock %}</title>
+        
+        <!-- Favicon -->
+        <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
+        
+        <!-- Tailwind CSS -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        
+        {% block stylesheets %}
+        {% endblock %}
+
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body class="bg-gray-50 min-h-screen">
+        <!-- Main Content -->
+        <main>
+            {% block body %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="container mx-auto px-4 text-center">
+                <div class="mb-4">
+                    <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" class="h-16 w-auto mx-auto mb-2">
+                    <h3 class="text-lg font-semibold">Il Grigio</h3>
+                </div>
+                
+                <!-- Organization Information -->
+                <div class="mb-6 text-gray-300 text-sm space-y-1">
+                    <p class="font-medium">Stichting Haarens Jeugdcircus Il Grigio</p>
+                    <p>E-mail: <a href="mailto:info@ilgrigio.nl" class="text-blue-400 hover:text-blue-300">info@ilgrigio.nl</a></p>
+                    <p>BTW: NL006137155B01</p>
+                    <p>KvK: 41081727</p>
+                    <p>Website: <a href="http://www.ilgrigio.nl" target="_blank" class="text-blue-400 hover:text-blue-300">www.ilgrigio.nl</a></p>
+                    <p><a href="{{ path('app_terms_conditions') }}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">Algemene Voorwaarden: klik hier</a></p>
+                </div>
+                
+                <!-- Back to Main Website Link -->
+                <div class="mb-4">
+                    <a href="http://ilgrigio.nl" target="_blank" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300">
+                        Terug naar Jeugdcircus Il Grigio
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </body>
+</html>

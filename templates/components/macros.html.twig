@@ -1,0 +1,31 @@
+{#
+  Common Macros for Il Grigio Application
+#}
+
+{% macro dutch_date(date) %}
+    {% if date %}
+        {% set day = date|date('j') %}
+        {% set month_key = 'date.months.' ~ date|date('F')|lower %}
+        {% set year = date|date('Y') %}
+        {{ day }} {{ month_key|trans }} {{ year }}
+    {% endif %}
+{% endmacro %}
+
+{% macro dutch_date_checkout(date) %}
+    {% if date %}
+        {% set day = date|date('j') %}
+        {% set month_names = {
+            'January': 'januari', 'February': 'februari', 'March': 'maart', 'April': 'april',
+            'May': 'mei', 'June': 'juni', 'July': 'juli', 'August': 'augustus',
+            'September': 'september', 'October': 'oktober', 'November': 'november', 'December': 'december'
+        } %}
+        {% set day_names = {
+            'Monday': 'maandag', 'Tuesday': 'dinsdag', 'Wednesday': 'woensdag', 'Thursday': 'donderdag',
+            'Friday': 'vrijdag', 'Saturday': 'zaterdag', 'Sunday': 'zondag'
+        } %}
+        {% set month_en = date|date('F') %}
+        {% set day_en = date|date('l') %}
+        {% set year = date|date('Y') %}
+        {{ day_names[day_en] }} {{ day }} {{ month_names[month_en] }} {{ year }}
+    {% endif %}
+{% endmacro %}
