@@ -3,10 +3,10 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="checkout"
 export default class extends Controller {
     static targets = [
-        "firstName", "lastName", "companyName", "city", "phoneNumber", 
-        "email", "emailConfirm", "emailMatchError", 
-        "terms", "form",
-        "couponInput", "applyCouponButton", "couponStatus", 
+        "firstName", "lastName", "companyName", "city", "phoneNumber",
+        "email", "emailConfirm", "emailMatchError",
+        "terms", "form", "submitButton",
+        "couponInput", "applyCouponButton", "couponStatus",
         "subtotal", "discount", "total", "discountRow", "tax"
     ]
 
@@ -20,13 +20,14 @@ export default class extends Controller {
 
     connect() {
         this.appliedCoupon = null
-        
+        this.isSubmitting = false
+
         // Check if there's a pre-applied coupon from the backend
         if (this.appliedCouponValue && Object.keys(this.appliedCouponValue).length > 0) {
             this.appliedCoupon = this.appliedCouponValue
             this.showCouponSuccess(this.appliedCoupon)
         }
-        
+
         this.setupEmailValidation()
         this.updateTotals()
     }
@@ -80,8 +81,14 @@ export default class extends Controller {
     }
 
     validateForm(event) {
+        // Prevent duplicate submissions
+        if (this.isSubmitting) {
+            event.preventDefault()
+            return
+        }
+
         let isValid = true
-        
+
         // Validate required fields
         const requiredFields = [
             { target: this.firstNameTarget, name: 'Voornaam' },
@@ -111,7 +118,7 @@ export default class extends Controller {
         if (!this.termsTarget.checked) {
             this.showError('Je moet akkoord gaan met de algemene voorwaarden.')
             isValid = false
-        }
+        }        
 
         if (!isValid) {
             event.preventDefault()
@@ -121,6 +128,10 @@ export default class extends Controller {
                 firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' })
                 firstErrorField.focus()
             }
+        } else {
+            // Mark as submitting and disable the submit button
+            this.isSubmitting = true
+            this.disableSubmitButton();
         }
     }
 
@@ -273,10 +284,21 @@ export default class extends Controller {
         }
     }
 
+    disableSubmitButton() {
+        if (this.hasSubmitButtonTarget) {
+            this.submitButtonTarget.disabled = true
+            this.submitButtonTarget.classList.add('opacity-50', 'cursor-not-allowed')
+            this.submitButtonTarget.innerHTML = `
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Bestelling wordt verwerkt...
+            `
+        }
+    }
+
     showError(message) {
         // Create or update error message
         let errorDiv = this.element.querySelector('.checkout-error-message')
-        
+
         if (!errorDiv) {
             errorDiv = document.createElement('div')
             errorDiv.className = 'checkout-error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4'
@@ -285,7 +307,7 @@ export default class extends Controller {
         } else {
             errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>${message}`
         }
-        
+
         // Auto-hide after 5 seconds
         setTimeout(() => {
             if (errorDiv && errorDiv.parentNode) {

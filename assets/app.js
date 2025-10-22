@@ -14,4 +14,4 @@ import TicketSelectionController from './controllers/ticket_selection_controller
 // Register controllers
 app.register('ticket-selection', TicketSelectionController);
 
-console.log('Il Grigio TicketHub loaded successfully!');
+console.log('Il Grigio TickefewfwefwefewfetHub loaded successfully!');

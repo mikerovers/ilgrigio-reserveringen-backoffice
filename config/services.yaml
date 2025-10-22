@@ -94,3 +94,8 @@ services:
             $ilgrigioBaseUrl: '%env(ILGRIGIO_BASE_URL)%'
             $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
             $taxRate: '%env(float:TAX_RATE)%'
+
+    # API Key Authenticator configuration
+    App\Security\ApiKeyAuthenticator:
+        arguments:
+            $apiKey: '%env(API_KEY)%'

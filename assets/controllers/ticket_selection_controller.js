@@ -179,7 +179,7 @@ export default class extends Controller {
         if (this.hasMaxTicketsWarningTarget) {
             this.maxTicketsWarningTarget.innerHTML = `
                 <i class="fas fa-info-circle mr-1"></i>
-                Er zijn nog maar ${this.sharedStockValue} tickets beschikbaar voor dit evenement.
+                Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.
             `
             this.maxTicketsWarningTarget.classList.remove('hidden', 'text-gray-500', 'bg-gray-50', 'text-amber-600', 'bg-amber-50', 'border-amber-200')
             this.maxTicketsWarningTarget.classList.add('text-red-600', 'bg-red-50', 'border-red-200')
@@ -387,7 +387,7 @@ export default class extends Controller {
             if (this.sharedStockValue && totalTickets >= this.sharedStockValue) {
                 this.maxTicketsWarningTarget.innerHTML = `
                     <i class="fas fa-info-circle mr-1"></i>
-                    Er zijn nog maar ${this.sharedStockValue} tickets beschikbaar voor dit evenement.
+                    Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.
                 `
                 this.maxTicketsWarningTarget.classList.remove('hidden', 'text-gray-500', 'bg-gray-50', 'text-amber-600', 'bg-amber-50', 'border-amber-200')
                 this.maxTicketsWarningTarget.classList.add('text-red-600', 'bg-red-50', 'border-red-200')

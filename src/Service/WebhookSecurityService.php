@@ -47,8 +47,12 @@ class WebhookSecurityService
             }
         }
 
-      // Skip draft orders
-        if (in_array($orderData['status'], ['draft', 'auto-draft'])) {
+        // Only process completed orders
+        if ($orderData['status'] !== 'completed') {
+            $this->logger->info('Skipping order - only completed orders trigger email', [
+                'order_id' => $orderData['id'],
+                'status' => $orderData['status']
+            ]);
             return false;
         }
 

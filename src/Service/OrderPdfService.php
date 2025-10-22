@@ -18,138 +18,157 @@ use Twig\Environment;
 
 class OrderPdfService
 {
-  public function __construct(
-    private MessageBusInterface $messageBus,
-    private LoggerInterface $logger,
-    private Environment $twig,
-    private SecurePdfStorageService $securePdfStorageService,
-    private TicketApiService $ticketApiService
-  ) {}
+    public function __construct(
+        private MessageBusInterface $messageBus,
+        private LoggerInterface $logger,
+        private Environment $twig,
+        private SecurePdfStorageService $securePdfStorageService,
+        private TicketApiService $ticketApiService,
+        private TicketNameService $ticketNameService
+    ) {}
 
-  public function processOrder(array $orderData): void
-  {
-    try {
-      // Generate secure token for PDF download
-      $downloadToken = $this->securePdfStorageService->generateSecureToken($orderData);
+    public function processOrder(array $orderData): void
+    {
+        try {
+            // Generate secure token for PDF download
+            $downloadToken = $this->securePdfStorageService->generateSecureToken($orderData);
 
-      // Dispatch message to send email with PDF download link via messenger
-      $this->messageBus->dispatch(new SendOrderEmailMessage($orderData, $downloadToken));
+            // Dispatch message to send email with PDF download link via messenger
+            $this->messageBus->dispatch(new SendOrderEmailMessage($orderData, $downloadToken));
 
-      $this->logger->info('Order processed successfully', [
-        'order_id' => $orderData['id']
-      ]);
-    } catch (\Exception $e) {
-      $this->logger->error('Failed to process order', [
-        'order_id' => $orderData['id'] ?? 'unknown',
-        'error' => $e->getMessage()
-      ]);
-      throw $e;
-    }
-  }
-
-  public function generateOrderPdf(array $orderData): string
-  {
-    // Configure Dompdf
-    $options = new Options();
-    $options->set('defaultFont', 'Arial');
-    $options->set('isRemoteEnabled', true);
-    $options->set('isHtml5ParserEnabled', true);
-    $options->set('isPhpEnabled', true);
-    $options->set('isFontSubsettingEnabled', true);
-
-    $dompdf = new Dompdf($options);
-
-    // Fetch ticket information from the API
-    $orderId = $orderData['id'] ?? $orderData['number'];
-    $ticketInfo = $this->ticketApiService->getTicketInformation((string) $orderId);
-
-    if ($ticketInfo && $this->ticketApiService->validateTicketResponse($ticketInfo)) {
-      $this->logger->info('Using ticket information from API', [
-        'order_id' => $orderId,
-        'event_name' => $ticketInfo['event_name'],
-        'ticket_count' => count($ticketInfo['tickets'])
-      ]);
-
-      // Generate individual QR codes for each ticket
-      foreach ($ticketInfo['tickets'] as $ticketId => &$ticket) {
-        if (isset($ticket['ticket_code'])) {
-          $ticket['qr_code'] = $this->generateTicketQrCode(['ticket_code' => $ticket['ticket_code']]);
+            $this->logger->info('Order processed successfully', [
+                'order_id' => $orderData['id']
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to process order', [
+                'order_id' => $orderData['id'] ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
-      }
-    } else {
-      $this->logger->error('Failed to fetch ticket information from API', [
-        'order_id' => $orderId
-      ]);
-      // Don't fallback, let the template handle the error
-      $ticketInfo = null;
     }
 
-    // Generate HTML content using Twig template (translations handled by Twig)
-    $html = $this->twig->render('pdf/order.html.twig', [
-      'order' => $orderData,
-      'ticket_info' => $ticketInfo
-    ]);
+    public function generateOrderPdf(array $orderData): string
+    {
+        // Configure Dompdf
+        $options = new Options();
+        $options->set('defaultFont', 'Arial');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $options->set('isFontSubsettingEnabled', true);
 
-    // Load HTML and generate PDF
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
+        $dompdf = new Dompdf($options);
 
-    return $dompdf->output();
-  }
+        // Fetch ticket information from the API
+        $orderId = $orderData['id'] ?? $orderData['number'];
+        $ticketInfo = $this->ticketApiService->getTicketInformation((string) $orderId);
 
-  private function generateTicketQrCode(array $ticketData): string
-  {
-    // Use ticket_code if available, otherwise fall back to order number
-    if (isset($ticketData['ticket_code'])) {
-      $qrData = $ticketData['ticket_code'];
-      $logContext = ['ticket_code' => $qrData];
-    } else {
-      $orderNumber = $ticketData['number'] ?? $ticketData['id'];
-      $qrData = (string) $orderNumber;
-      $logContext = ['order_number' => $qrData];
+        if ($ticketInfo && $this->ticketApiService->validateTicketResponse($ticketInfo)) {
+            $this->logger->info('Using ticket information from API', [
+                'order_id' => $orderId,
+                'event_name' => $ticketInfo['event_name'],
+                'ticket_count' => count($ticketInfo['tickets'])
+            ]);
+
+            // Generate individual QR codes for each ticket
+            foreach ($ticketInfo['tickets'] as $ticketId => &$ticket) {
+                if (isset($ticket['ticket_code'])) {
+                    // Generate short ticket name for display
+                    if (isset($ticket['ticket_name'])) {
+                        $ticket['short_ticket_name'] = $this->ticketNameService->generateShortTicketName($ticket['ticket_name']);
+                    }
+                    // Generate QR code
+                    $ticket['qr_code'] = $this->generateTicketQrCode($ticket);
+                }
+            }
+        } else {
+            $this->logger->error('Failed to fetch ticket information from API', [
+                'order_id' => $orderId
+            ]);
+            // Don't fallback, let the template handle the error
+            $ticketInfo = null;
+        }
+
+        // Generate HTML content using Twig template (translations handled by Twig)
+        $html = $this->twig->render('pdf/order.html.twig', [
+            'order' => $orderData,
+            'ticket_info' => $ticketInfo
+        ]);
+
+        // Load HTML and generate PDF
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $dompdf->output();
     }
 
-    // Log the QR data for debugging
-    $this->logger->info('Generating QR code with data', array_merge(['qr_data' => $qrData], $logContext));
+    private function generateTicketQrCode(array $ticketData): string
+    {
+        // Use ticket_code if available, otherwise fall back to order number
+        if (isset($ticketData['ticket_code'])) {
+            $ticketCode = $ticketData['ticket_code'];
+            $qrData = $ticketCode;
+            $logContext = ['ticket_code' => $ticketCode];
+        } else {
+            $orderNumber = $ticketData['number'] ?? $ticketData['id'];
+            $qrData = (string) $orderNumber;
+            $logContext = ['order_number' => $qrData];
+        }
 
-    try {
-      // Generate QR code with proper constructor for version 6.x
-      $qrCode = new QrCode(
-        data: $qrData,
-        encoding: new Encoding('UTF-8'),
-        errorCorrectionLevel: ErrorCorrectionLevel::Low,
-        size: 200,
-        margin: 10,
-        roundBlockSizeMode: RoundBlockSizeMode::Margin,
-        foregroundColor: new Color(0, 0, 0),
-        backgroundColor: new Color(255, 255, 255)
-      );
+        // Log the QR data for debugging
+        $this->logger->info('Generating QR code with data', array_merge(['qr_data' => $qrData], $logContext));
 
-      $writer = new PngWriter();
-      $result = $writer->write($qrCode);
+        try {
+            // Check if GD extension is loaded
+            if (!extension_loaded('gd')) {
+                $this->logger->error('GD extension not loaded - cannot generate QR code', $logContext);
+                throw new \RuntimeException('GD extension is not available');
+            }
 
-      // Log success
-      $this->logger->info('QR code generated successfully', array_merge([
-        'data_size' => strlen($qrData)
-      ], $logContext));
+            // Generate QR code with proper constructor for version 6.x
+            $qrCode = new QrCode(
+                data: $qrData,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::Low,
+                size: 200,
+                margin: 10,
+                roundBlockSizeMode: RoundBlockSizeMode::Margin,
+                foregroundColor: new Color(0, 0, 0),
+                backgroundColor: new Color(255, 255, 255)
+            );
 
-      // Convert to data URI for embedding in PDF
-      return 'data:image/png;base64,' . base64_encode($result->getString());
-    } catch (\Exception $e) {
-      // Log the actual error and return the actual data as text fallback
-      $this->logger->error('QR code generation failed', array_merge([
-        'error' => $e->getMessage(),
-        'qr_data' => $qrData
-      ], $logContext));
+            $writer = new PngWriter();
+            $result = $writer->write($qrCode);
 
-      // Return the QR data as a simple text block if QR generation fails
-      return 'data:image/svg+xml;base64,' . base64_encode(
-        '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+            // Log success
+            $this->logger->info('QR code generated successfully (PNG)', array_merge([
+                'data_size' => strlen($qrData)
+            ], $logContext));
+
+            // Convert to data URI for embedding in PDF (PNG works better with DomPDF than SVG)
+            // Using explicit base64 encoding for better DomPDF compatibility
+            return 'data:image/png;base64,' . base64_encode($result->getString());
+        } catch (\Exception $e) {
+            // Log the actual error and return the actual data as text fallback
+            $this->logger->error('QR code generation failed', array_merge([
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'error_trace' => $e->getTraceAsString(),
+                'qr_data' => $qrData,
+                'gd_loaded' => extension_loaded('gd'),
+                'imagick_loaded' => extension_loaded('imagick')
+            ], $logContext));
+
+            // Return the QR data as a simple text block if QR generation fails
+            return 'data:image/svg+xml;base64,' . base64_encode(
+                '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
-          <text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="14" fill="black">' . htmlspecialchars($qrData) . '</text>
+          <text x="100" y="100" text-anchor="middle" font-family="Arial" ' .
+                    'font-size="14" fill="black">' . htmlspecialchars($qrData) . '</text>
         </svg>'
-      );
+            );
+        }
     }
-  }
 }

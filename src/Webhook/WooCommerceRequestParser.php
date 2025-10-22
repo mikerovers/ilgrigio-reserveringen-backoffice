@@ -3,6 +3,7 @@
 namespace App\Webhook;
 
 use App\Service\WebhookSecurityService;
+use App\Service\WooCommerceService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestMatcher\MethodRequestMatcher;
@@ -15,9 +16,9 @@ class WooCommerceRequestParser extends AbstractRequestParser
 {
     public function __construct(
         private WebhookSecurityService $webhookSecurityService,
+        private WooCommerceService $wooCommerceService,
         private LoggerInterface $logger
-    ) {
-    }
+    ) {}
 
     protected function getRequestMatcher(): RequestMatcherInterface
     {
@@ -27,14 +28,14 @@ class WooCommerceRequestParser extends AbstractRequestParser
     protected function doParse(Request $request, string $secret): ?RemoteEvent
     {
         $payload = $request->getContent();
-        $orderData = json_decode($payload, true);
+        $webhookData = json_decode($payload, true);
 
-        if (!$orderData) {
+        if (!$webhookData) {
             $this->logger->error('Invalid webhook payload received');
             throw new RejectWebhookException(400, 'Invalid JSON payload');
         }
 
-      // Validate webhook signature if secret is provided
+        // Validate webhook signature if secret is provided
         $signature = $request->headers->get('X-WC-Webhook-Signature');
         if ($secret && $signature) {
             if (!$this->webhookSecurityService->validateWooCommerceSignature($payload, $signature, $secret)) {
@@ -44,15 +45,58 @@ class WooCommerceRequestParser extends AbstractRequestParser
             throw new RejectWebhookException(401, 'Missing signature header');
         }
 
-      // Create event type based on WooCommerce webhook topic
-        $topic = $request->headers->get('X-WC-Webhook-Topic', 'order.created');
+        // Get webhook topic from header
+        $topic = $request->headers->get('X-WC-Webhook-Topic');
+        if (!$topic) {
+            $this->logger->error('Missing X-WC-Webhook-Topic header');
+            throw new RejectWebhookException(400, 'Missing webhook topic header');
+        }
 
-      // Add topic information to the payload
+        // Check if this is an action-based webhook (new format)
+        if (isset($webhookData['action']) && isset($webhookData['arg'])) {
+            $this->logger->info('Processing action-based webhook', [
+                'action' => $webhookData['action'],
+                'order_id' => $webhookData['arg']
+            ]);
+
+            // Fetch the full order data from WooCommerce
+            $orderId = (int) $webhookData['arg'];
+            $orderData = $this->wooCommerceService->getOrder($orderId);
+
+            if (!$orderData) {
+                $this->logger->error('Failed to fetch order from WooCommerce', [
+                    'order_id' => $orderId
+                ]);
+
+                throw new RejectWebhookException(400, 'Unable to fetch order data');
+            }
+
+            // Add webhook metadata
+            $orderData['_webhook_topic'] = $topic;
+            $orderData['_webhook_action'] = $webhookData['action'];
+
+            return new RemoteEvent(
+                'woocommerce',
+                (string) $orderData['id'],
+                $orderData
+            );
+        }
+
+        // Handle legacy format (order data directly in payload)
+        $orderData = $webhookData;
+
+        // Validate that order ID exists in legacy format
+        if (!isset($orderData['id'])) {
+            $this->logger->error('Missing order ID in webhook payload');
+            throw new RejectWebhookException(400, 'Missing order ID in payload');
+        }
+
+        // Add topic information to the payload
         $orderData['_webhook_topic'] = $topic;
 
         return new RemoteEvent(
-            'woocommerce', // Use the webhook type, not the event name
-            (string) ($orderData['id'] ?? uniqid()),
+            'woocommerce',
+            (string) $orderData['id'],
             $orderData
         );
     }

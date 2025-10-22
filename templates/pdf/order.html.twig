@@ -1,141 +1,156 @@
 {% extends 'pdf/base.html.twig' %}
 
-{% block title %}{{ 'pdf.ticket.title'|trans }}{% endblock %}
+{% block title %}
+	{{ 'pdf.ticket.title'|trans }}
+{% endblock %}
 
 {% block content %}
-{% if ticket_info and ticket_info.tickets %}
-    {% for ticket_id, ticket in ticket_info.tickets %}
-        <div class="ticket">
-            <!-- Header with event title and QR code -->
-            <div class="ticket-header">
-                <table class="header-table">
-                    <tr>
-                        <td class="title-cell">
-                            <div class="event-title">
-                                {{ ticket_info.event_name|default('Event') }}
-                                {% if ticket.ticket_name %}
-                                    <br><small>{{ ticket.ticket_name }}</small>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td class="qr-cell">
-                            <div class="qr-code">
-                                {% if ticket.qr_code is defined %}
-                                    <img src="{{ ticket.qr_code }}" alt="QR Code" style="width: 150px; height: 150px;" />
-                                {% else %}
-                                    <div class="qr-placeholder" style="width: 150px; height: 150px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center;">{{ ticket.ticket_code|default('QR') }}</div>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-            </div>
+	{% if ticket_info and ticket_info.tickets %}
+		{% for ticket_id, ticket in ticket_info.tickets %}
+			<div
+				class="ticket">
+				<!-- Header with event title and QR code -->
+				<div class="ticket-header">
+					<table class="header-table">
+						<tr>
+							<td class="title-cell">
+								<div class="event-title">
+									{{ ticket_info.event_name|default('Event') }}
+									{% if ticket.ticket_name %}
+										<br><small>{{ ticket.ticket_name }}</small>
+									{% endif %}
+								</div>
+							</td>
+							<td class="qr-cell">
+								<div class="qr-code" style="text-align: center;">
+									{% if ticket.qr_code is defined %}
+										<img src="{{ ticket.qr_code }}" alt="QR Code" style="width: 150px; height: auto; display: block; margin: 0 auto;"/>
+										{% if ticket.short_ticket_name is defined %}
+											<div style="margin-top: 5px; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; color: #000;">
+												{{ ticket.short_ticket_name }}
+											</div>
+										{% endif %}
+									{% else %}
+										<div class="qr-placeholder" style="width: 150px; height: 150px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center;">{{ ticket.ticket_code|default('QR') }}</div>
+									{% endif %}
+								</div>
+							</td>
+						</tr>
+					</table>
+				</div>
 
-            <!-- Date and time -->
-            <div class="datetime">
-                {{ order.date_created ? order.date_created|date('d F Y H:i') : 'now'|date('d F Y H:i') }}
-            </div>
+				<!-- Date and time -->
+				{% if ticket_info.event_date is defined and ticket_info.event_date %}
+					<div class="datetime">
+						{{ 'pdf.ticket.show_start'|trans }}
+						{{ ticket_info.event_date }}
+					</div>
+				{% endif %}
 
-            <!-- Customer info and reference -->
-            <div class="customer-reference">
-                <div class="customer-name">
-                    {% if order.billing is defined %}
-                        {{ order.billing.first_name ?? '' }} {{ order.billing.last_name ?? '' }}
-                    {% else %}
-                        {{ 'pdf.ticket.default_customer'|trans }}
-                    {% endif %}
-                </div>
-                <div class="reference-number">
-                    {{ order.number ?? order.id }}
-                    {% if ticket.ticket_code %}
-                        - {{ ticket.ticket_code }}
-                    {% endif %}
-                </div>
-            </div>
+				<!-- Customer info and reference -->
+				<div class="customer-reference">
+					<div class="customer-name">
+						{% if order.billing is defined %}
+							{{ order.billing.first_name ?? '' }}
+							{{ order.billing.last_name ?? '' }}
+						{% else %}
+							{{ 'pdf.ticket.default_customer'|trans }}
+						{% endif %}
+					</div>
+					<div class="reference-number">
+						{{ order.number ?? order.id }}
+						{% if ticket.ticket_code %}
+							-
+							{{ ticket.ticket_code }}
+						{% endif %}
+					</div>
+				</div>
 
-            <!-- Important notice -->
-            <div class="important-notice">
-                <p><strong>{{ 'pdf.ticket.original_notice'|trans }}</strong></p>
-                <ul class="instructions">
-                    <li>{{ 'pdf.ticket.print_instruction'|trans }}</li>
-                    <li>{{ 'pdf.ticket.qr_scan_instruction'|trans }}</li>
-                    <li>{{ 'pdf.ticket.cancel_instruction'|trans }}</li>
-                    <li>{{ 'pdf.ticket.arrival_instruction'|trans }}</li>
-                    <li>{{ 'pdf.ticket.group_instruction'|trans }}</li>
-                    <li>{{ 'pdf.ticket.ticket_required'|trans }}</li>
-                    <li>{{ 'pdf.ticket.child_free'|trans }}</li>
-                    <li>{{ 'pdf.ticket.stroller_restriction'|trans }}</li>
-                </ul>
-            </div>
+				<!-- Important notice -->
+				<div class="important-notice">
+					<p>
+						<strong>{{ 'pdf.ticket.original_notice'|trans }}</strong>
+					</p>
+					<ul class="instructions">
+						<li>{{ 'pdf.ticket.print_instruction'|trans }}</li>
+						<li>{{ 'pdf.ticket.qr_scan_instruction'|trans }}</li>
+						<li>{{ 'pdf.ticket.cancel_instruction'|trans }}</li>
+						<li>{{ 'pdf.ticket.arrival_instruction'|trans }}</li>
+						<li>{{ 'pdf.ticket.group_instruction'|trans }}</li>
+						<li>{{ 'pdf.ticket.ticket_required'|trans }}</li>
+						<li>{{ 'pdf.ticket.child_free'|trans }}</li>
+						<li>{{ 'pdf.ticket.stroller_restriction'|trans }}</li>
+					</ul>
+				</div>
 
-            <!-- Website reference -->
-            <div class="website-info">
-                <p><strong>{{ 'pdf.ticket.usefull_information'|trans }}</strong></p>
-                <ul class="website-features">
-                    <li>{{ 'pdf.ticket.location_label' | trans }} {{ 'pdf.ticket.location_address'|trans }}</li>
-                    <li>{{ 'pdf.ticket.seating_warning_short'|trans }}</li>
-                    <li>{{ 'pdf.ticket.seating_warning_short_time'|trans }}</li>
-                </ul>
-            </div>
+				<!-- Website reference -->
+				<div class="website-info">
+					<p>
+						<strong>{{ 'pdf.ticket.usefull_information'|trans }}</strong>
+					</p>
+					<ul class="website-features">
+						<li>{{ 'pdf.ticket.location_label' | trans }}
+							{{ 'pdf.ticket.location_address'|trans }}</li>
+						<li>{{ 'pdf.ticket.seating_warning_short'|trans }}</li>
+						<li>{{ 'pdf.ticket.seating_warning_short_time'|trans }}</li>
+					</ul>
+				</div>
 
-            <!-- Seating warning -->
-            <div class="seating-warning">
-                <p><strong>{{ 'pdf.ticket.seating_warning'|trans }}</strong></p>
-            </div>
+				<!-- Seating warning -->
+				{# <div class="seating-warning">
+				                <p><strong>{{ 'pdf.ticket.seating_warning'|trans }}</strong></p>
+				            </div> #}
 
-            <!-- Footer message -->
-            <div class="footer-message">
-                <p>{{ 'pdf.ticket.closing_message'|trans }}</p>
-            </div>
-        </div>
-        
-        {% if not loop.last %}
-            <div class="page-break"></div>
-        {% endif %}
-    {% endfor %}
-{% else %}
-    <!-- No ticket info available -->
-    <div class="ticket">
-        <div class="ticket-header">
-            <table class="header-table">
-                <tr>
-                    <td class="title-cell">
-                        <div class="event-title">
-                            {{ 'pdf.ticket.default_event'|trans }}
-                        </div>
-                    </td>
-                    <td class="qr-cell">
-                        <div class="qr-code">
-                            <div class="qr-placeholder" style="width: 100px; height: 100px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center;">No Data</div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
+				<!-- Footer message -->
+					<div class="footer-message"> <p>{{ 'pdf.ticket.closing_message'|trans }}</p>
+				</div>
+			</div>
 
-        <!-- Date and time -->
-        <div class="datetime">
-            {{ order.date_created ? order.date_created|date('d F Y H:i') : 'now'|date('d F Y H:i') }}
-        </div>
+			{% if not loop.last %}
+				<div class="page-break"></div>
+			{% endif %}
+		{% endfor %}
+	{% else %}
+		<!-- No ticket info available -->
+		<div class="ticket">
+			<div class="ticket-header">
+				<table class="header-table">
+					<tr>
+						<td class="title-cell">
+							<div class="event-title">
+								{{ 'pdf.ticket.default_event'|trans }}
+							</div>
+						</td>
+						<td class="qr-cell">
+							<div class="qr-code">
+								<div class="qr-placeholder" style="width: 100px; height: 100px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center;">No Data</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
 
-        <!-- Customer info and reference -->
-        <div class="customer-reference">
-            <div class="customer-name">
-                {% if order.billing is defined %}
-                    {{ order.billing.first_name ?? '' }} {{ order.billing.last_name ?? '' }}
-                {% else %}
-                    {{ 'pdf.ticket.default_customer'|trans }}
-                {% endif %}
-            </div>
-            <div class="reference-number">
-                {{ order.number ?? order.id }}
-            </div>
-        </div>
+			<!-- Customer info and reference -->
+			<div class="customer-reference">
+				<div class="customer-name">
+					{% if order.billing is defined %}
+						{{ order.billing.first_name ?? '' }}
+						{{ order.billing.last_name ?? '' }}
+					{% else %}
+						{{ 'pdf.ticket.default_customer'|trans }}
+					{% endif %}
+				</div>
+				<div class="reference-number">
+					{{ order.number ?? order.id }}
+				</div>
+			</div>
 
-        <!-- Error message -->
-        <div class="important-notice">
-            <p><strong>Ticket information could not be retrieved. Please contact support.</strong></p>
-        </div>
-    </div>
-{% endif %}
+			<!-- Error message -->
+			<div class="important-notice">
+				<p>
+					<strong>Ticket information could not be retrieved. Please contact support.</strong>
+				</p>
+			</div>
+		</div>
+	{% endif %}
 {% endblock %}

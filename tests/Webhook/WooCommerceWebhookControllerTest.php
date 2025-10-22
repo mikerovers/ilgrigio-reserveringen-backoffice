@@ -35,36 +35,36 @@ class WooCommerceWebhookControllerTest extends KernelTestCase
     public function testConsumeValidOrder(): void
     {
         $orderData = [
-        'id' => 123,
-        'status' => 'processing',
-        'billing' => [
-        'first_name' => 'John',
-        'last_name' => 'Doe',
-        'email' => 'john.doe@example.com'
-        ]
+            'id' => 123,
+            'status' => 'completed',
+            'billing' => [
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'email' => 'john.doe@example.com'
+            ]
         ];
 
         $event = new RemoteEvent('woocommerce', '123', $orderData);
 
         $this->webhookSecurityService
-        ->expects($this->once())
-        ->method('isValidWooCommerceOrder')
-        ->with($orderData)
-        ->willReturn(true);
+            ->expects($this->once())
+            ->method('isValidWooCommerceOrder')
+            ->with($orderData)
+            ->willReturn(true);
 
         $this->orderPdfService
-        ->expects($this->once())
-        ->method('processOrder')
-        ->with($orderData);
+            ->expects($this->once())
+            ->method('processOrder')
+            ->with($orderData);
 
         $this->logger
-        ->expects($this->once())
-        ->method('info')
-        ->with('WooCommerce order webhook received', [
-        'order_id' => 123,
-        'status' => 'processing',
-        'topic' => 'unknown'
-        ]);
+            ->expects($this->once())
+            ->method('info')
+            ->with('WooCommerce order webhook received', [
+                'order_id' => 123,
+                'status' => 'completed',
+                'topic' => 'unknown'
+            ]);
 
         $this->controller->consume($event);
     }
@@ -72,26 +72,29 @@ class WooCommerceWebhookControllerTest extends KernelTestCase
     public function testConsumeInvalidOrder(): void
     {
         $orderData = [
-        'id' => 456,
-        'status' => 'draft'
+            'id' => 456,
+            'status' => 'draft'
         ];
 
         $event = new RemoteEvent('woocommerce', '456', $orderData);
 
         $this->webhookSecurityService
-        ->expects($this->once())
-        ->method('isValidWooCommerceOrder')
-        ->with($orderData)
-        ->willReturn(false);
+            ->expects($this->once())
+            ->method('isValidWooCommerceOrder')
+            ->with($orderData)
+            ->willReturn(false);
 
         $this->orderPdfService
-        ->expects($this->never())
-        ->method('processOrder');
+            ->expects($this->never())
+            ->method('processOrder');
 
         $this->logger
-        ->expects($this->once())
-        ->method('info')
-        ->with('Skipping invalid or draft order', ['order_id' => 456]);
+            ->expects($this->once())
+            ->method('info')
+            ->with('Skipping invalid, draft, or failed order', [
+                'order_id' => 456,
+                'status' => 'draft'
+            ]);
 
         $this->controller->consume($event);
     }
