@@ -25,7 +25,8 @@ class OrderPdfService
         private Environment $twig,
         private SecurePdfStorageService $securePdfStorageService,
         private TicketApiService $ticketApiService
-    ) {}
+    ) {
+    }
 
     public function processOrder(array $orderData): void
     {
@@ -129,6 +130,12 @@ class OrderPdfService
         $this->logger->info('Generating QR code with data', array_merge(['qr_data' => $qrData], $logContext));
 
         try {
+            // Check if GD extension is loaded
+            if (!extension_loaded('gd')) {
+                $this->logger->error('GD extension not loaded - cannot generate QR code', $logContext);
+                throw new \RuntimeException('GD extension is not available');
+            }
+
             // Generate QR code with proper constructor for version 6.x
             $qrCode = new QrCode(
                 data: $qrData,
@@ -167,7 +174,11 @@ class OrderPdfService
             // Log the actual error and return the actual data as text fallback
             $this->logger->error('QR code generation failed', array_merge([
                 'error' => $e->getMessage(),
-                'qr_data' => $qrData
+                'error_class' => get_class($e),
+                'error_trace' => $e->getTraceAsString(),
+                'qr_data' => $qrData,
+                'gd_loaded' => extension_loaded('gd'),
+                'imagick_loaded' => extension_loaded('imagick')
             ], $logContext));
 
             // Return the QR data as a simple text block if QR generation fails

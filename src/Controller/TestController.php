@@ -332,6 +332,34 @@ class TestController extends AbstractController
         }
     }
 
+    #[Route('/test/php-info', name: 'test_php_info', methods: ['GET'])]
+    public function testPhpInfo(): Response
+    {
+        $extensions = [
+            'gd' => extension_loaded('gd'),
+            'imagick' => extension_loaded('imagick'),
+            'mbstring' => extension_loaded('mbstring'),
+            'zlib' => extension_loaded('zlib'),
+        ];
+
+        $gdInfo = [];
+        if ($extensions['gd']) {
+            $gdInfo = [
+                'version' => gd_info()['GD Version'] ?? 'unknown',
+                'png_support' => gd_info()['PNG Support'] ?? false,
+                'jpeg_support' => gd_info()['JPEG Support'] ?? false,
+            ];
+        }
+
+        return new JsonResponse([
+            'php_version' => PHP_VERSION,
+            'extensions' => $extensions,
+            'gd_info' => $gdInfo,
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+        ]);
+    }
+
     #[Route('/test/email-preview', name: 'test_email_preview', methods: ['GET'])]
     public function testEmailPreview(): Response
     {
