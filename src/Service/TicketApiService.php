@@ -16,7 +16,8 @@ class TicketApiService
         private LoggerInterface $logger,
         private string $ticketApiUrl,
         private string $ticketApiKey
-    ) {}
+    ) {
+    }
 
     /**
      * Retrieve ticket information from the Il Grigio API
@@ -101,6 +102,12 @@ class TicketApiService
                 'response_data' => $data
             ]);
             return false;
+        }
+
+        if (!isset($data['event_date'])) {
+            $this->logger->info('Ticket API response missing optional event_date field', [
+                'event_name' => $data['event_name']
+            ]);
         }
 
         if (!is_array($data['tickets'])) {

@@ -32,9 +32,11 @@
             </div>
 
             <!-- Date and time -->
+            {% if ticket_info.event_date is defined and ticket_info.event_date %}
             <div class="datetime">
-                {{ 'pdf.ticket.show_start'|trans }} {{ ticket_info.event_date ?? ('now'|date('d F Y H:i')) }}
+                {{ 'pdf.ticket.show_start'|trans }} {{ ticket_info.event_date }}
             </div>
+            {% endif %}
 
             <!-- Customer info and reference -->
             <div class="customer-reference">
@@ -111,11 +113,6 @@
                     </td>
                 </tr>
             </table>
-        </div>
-
-        <!-- Date and time -->
-        <div class="datetime">
-            {{ 'pdf.ticket.show_start'|trans }} {{ 'now'|date('d F Y H:i') }}
         </div>
 
         <!-- Customer info and reference -->

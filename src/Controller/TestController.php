@@ -14,7 +14,8 @@ class TestController extends AbstractController
     public function __construct(
         private OrderPdfService $orderPdfService,
         private TicketApiService $ticketApiService
-    ) {}
+    ) {
+    }
 
     #[Route('/test/order-pdf', name: 'test_order_pdf', methods: ['GET'])]
     public function testOrderPdf(): Response
@@ -129,6 +130,7 @@ class TestController extends AbstractController
         // Mock ticket API response
         $mockTicketInfo = [
             "event_name" => "Bombolini - dinsdag 15 juli - ochtend",
+            "event_date" => "27 November 2025 21:44",
             "tickets" => [
                 "93436" => [
                     "ticket_code" => "fie56073",
@@ -210,7 +212,8 @@ class TestController extends AbstractController
             return 'data:image/svg+xml;base64,' . base64_encode(
                 '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
-          <text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="14" fill="black">' . htmlspecialchars($ticketCode) . '</text>
+          <text x="100" y="100" text-anchor="middle" font-family="Arial" ' .
+                'font-size="14" fill="black">' . htmlspecialchars($ticketCode) . '</text>
         </svg>'
             );
         }

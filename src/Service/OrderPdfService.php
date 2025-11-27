@@ -7,7 +7,7 @@ use App\Service\SecurePdfStorageService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\SvgWriter;
+use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
@@ -127,16 +127,16 @@ class OrderPdfService
                 backgroundColor: new Color(255, 255, 255)
             );
 
-            $writer = new SvgWriter();
+            $writer = new PngWriter();
             $result = $writer->write($qrCode);
 
           // Log success
-            $this->logger->info('QR code generated successfully (SVG)', array_merge([
+            $this->logger->info('QR code generated successfully (PNG)', array_merge([
             'data_size' => strlen($qrData)
             ], $logContext));
 
-          // Convert to data URI for embedding in PDF (SVG works better with DomPDF than PNG)
-            return 'data:image/svg+xml;base64,' . base64_encode($result->getString());
+          // Convert to data URI for embedding in PDF (PNG works better with DomPDF than SVG)
+            return $result->getDataUri();
         } catch (\Exception $e) {
           // Log the actual error and return the actual data as text fallback
             $this->logger->error('QR code generation failed', array_merge([
@@ -148,7 +148,8 @@ class OrderPdfService
             return 'data:image/svg+xml;base64,' . base64_encode(
                 '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
-          <text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="14" fill="black">' . htmlspecialchars($qrData) . '</text>
+          <text x="100" y="100" text-anchor="middle" font-family="Arial" ' .
+                'font-size="14" fill="black">' . htmlspecialchars($qrData) . '</text>
         </svg>'
             );
         }
