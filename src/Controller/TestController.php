@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Service\OrderPdfService;
 use App\Service\TicketApiService;
+use App\Service\TicketNameService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +14,8 @@ class TestController extends AbstractController
 {
     public function __construct(
         private OrderPdfService $orderPdfService,
-        private TicketApiService $ticketApiService
+        private TicketApiService $ticketApiService,
+        private TicketNameService $ticketNameService
     ) {
     }
 
@@ -152,7 +154,7 @@ class TestController extends AbstractController
             if (isset($ticket['ticket_code'])) {
                 // Generate short ticket name for display
                 if (isset($ticket['ticket_name'])) {
-                    $ticket['short_ticket_name'] = $this->generateShortTicketName($ticket['ticket_name']);
+                    $ticket['short_ticket_name'] = $this->ticketNameService->generateShortTicketName($ticket['ticket_name']);
                 }
                 // Generate QR code
                 $ticket['qr_code'] = $this->generateMockQrCode($ticket);
@@ -198,7 +200,7 @@ class TestController extends AbstractController
             // Build QR data with ticket code and short ticket name (if available)
             $ticketCode = $ticketData['ticket_code'];
             if (isset($ticketData['ticket_name'])) {
-                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $shortTicketName = $this->ticketNameService->generateShortTicketName($ticketData['ticket_name']);
                 $qrData = $ticketCode . '|' . $shortTicketName;
             } else {
                 $qrData = $ticketCode;
@@ -220,7 +222,7 @@ class TestController extends AbstractController
 
             // Add label with short ticket name if available
             if (isset($ticketData['ticket_name'])) {
-                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $shortTicketName = $this->ticketNameService->generateShortTicketName($ticketData['ticket_name']);
                 $label = new \Endroid\QrCode\Label\Label(
                     text: $shortTicketName,
                     textColor: new \Endroid\QrCode\Color\Color(0, 0, 0)
@@ -243,33 +245,6 @@ class TestController extends AbstractController
         </svg>'
             );
         }
-    }
-
-    /**
-     * Generate a short version of the ticket name for QR code inclusion
-     * Same logic as in OrderPdfService
-     */
-    private function generateShortTicketName(string $ticketName): string
-    {
-        // Remove common words and clean up the name
-        $shortName = $ticketName;
-
-        // Remove common prefixes and suffixes
-        $shortName = preg_replace('/^(ticket|kaartje|billet|biglietto)[\s:_-]*/i', '', $shortName);
-        $shortName = preg_replace('/[\s:_-]*(ticket|kaartje|billet|biglietto)$/i', '', $shortName);
-
-        // Replace spaces, dashes, and underscores with nothing
-        $shortName = preg_replace('/[\s\-_]+/', '', $shortName);
-
-        // Limit to 20 characters to keep QR codes readable
-        if (mb_strlen($shortName) > 20) {
-            $shortName = mb_substr($shortName, 0, 20);
-        }
-
-        // Convert to uppercase for consistency
-        $shortName = mb_strtoupper($shortName);
-
-        return $shortName;
     }
 
     #[Route('/test/pdf-direct', name: 'test_pdf_direct', methods: ['GET'])]

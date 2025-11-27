@@ -24,7 +24,8 @@ class OrderPdfService
         private LoggerInterface $logger,
         private Environment $twig,
         private SecurePdfStorageService $securePdfStorageService,
-        private TicketApiService $ticketApiService
+        private TicketApiService $ticketApiService,
+        private TicketNameService $ticketNameService
     ) {
     }
 
@@ -77,7 +78,7 @@ class OrderPdfService
                 if (isset($ticket['ticket_code'])) {
                     // Generate short ticket name for display
                     if (isset($ticket['ticket_name'])) {
-                        $ticket['short_ticket_name'] = $this->generateShortTicketName($ticket['ticket_name']);
+                        $ticket['short_ticket_name'] = $this->ticketNameService->generateShortTicketName($ticket['ticket_name']);
                     }
                     // Generate QR code
                     $ticket['qr_code'] = $this->generateTicketQrCode($ticket);
@@ -113,7 +114,7 @@ class OrderPdfService
 
             // Add short ticket name to prevent fraud
             if (isset($ticketData['ticket_name'])) {
-                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $shortTicketName = $this->ticketNameService->generateShortTicketName($ticketData['ticket_name']);
                 $qrData = $ticketCode . '|' . $shortTicketName;
                 $logContext = ['ticket_code' => $ticketCode, 'short_ticket_name' => $shortTicketName];
             } else {
@@ -152,7 +153,7 @@ class OrderPdfService
 
             // Add label with short ticket name if available
             if (isset($ticketData['ticket_name'])) {
-                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $shortTicketName = $this->ticketNameService->generateShortTicketName($ticketData['ticket_name']);
                 $label = new Label(
                     text: $shortTicketName,
                     textColor: new Color(0, 0, 0)
@@ -190,32 +191,5 @@ class OrderPdfService
         </svg>'
             );
         }
-    }
-
-    /**
-     * Generate a short version of the ticket name for QR code inclusion
-     * This helps prevent fraud by making it harder to reuse QR codes across different ticket types
-     */
-    private function generateShortTicketName(string $ticketName): string
-    {
-        // Remove common words and clean up the name
-        $shortName = $ticketName;
-
-        // Remove common prefixes and suffixes
-        $shortName = preg_replace('/^(ticket|kaartje|billet|biglietto)[\s:_-]*/i', '', $shortName);
-        $shortName = preg_replace('/[\s:_-]*(ticket|kaartje|billet|biglietto)$/i', '', $shortName);
-
-        // Replace spaces, dashes, and underscores with nothing
-        $shortName = preg_replace('/[\s\-_]+/', '', $shortName);
-
-        // Limit to 20 characters to keep QR codes readable
-        if (mb_strlen($shortName) > 20) {
-            $shortName = mb_substr($shortName, 0, 20);
-        }
-
-        // Convert to uppercase for consistency
-        $shortName = mb_strtoupper($shortName);
-
-        return $shortName;
     }
 }
