@@ -21,7 +21,7 @@
                         <td class="qr-cell">
                             <div class="qr-code">
                                 {% if ticket.qr_code is defined %}
-                                    <img src="{{ ticket.qr_code }}" alt="QR Code" style="width: 150px; height: 150px;" />
+                                    <img src="{{ ticket.qr_code }}" alt="QR Code" style="width: 150px; height: auto; display: block;" />
                                 {% else %}
                                     <div class="qr-placeholder" style="width: 150px; height: 150px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center;">{{ ticket.ticket_code|default('QR') }}</div>
                                 {% endif %}

@@ -12,6 +12,7 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Color\Color;
+use Endroid\QrCode\Label\Label;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Twig\Environment;
@@ -24,25 +25,24 @@ class OrderPdfService
         private Environment $twig,
         private SecurePdfStorageService $securePdfStorageService,
         private TicketApiService $ticketApiService
-    ) {
-    }
+    ) {}
 
     public function processOrder(array $orderData): void
     {
         try {
-          // Generate secure token for PDF download
+            // Generate secure token for PDF download
             $downloadToken = $this->securePdfStorageService->generateSecureToken($orderData);
 
-          // Dispatch message to send email with PDF download link via messenger
+            // Dispatch message to send email with PDF download link via messenger
             $this->messageBus->dispatch(new SendOrderEmailMessage($orderData, $downloadToken));
 
             $this->logger->info('Order processed successfully', [
-            'order_id' => $orderData['id']
+                'order_id' => $orderData['id']
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to process order', [
-            'order_id' => $orderData['id'] ?? 'unknown',
-            'error' => $e->getMessage()
+                'order_id' => $orderData['id'] ?? 'unknown',
+                'error' => $e->getMessage()
             ]);
             throw $e;
         }
@@ -50,7 +50,7 @@ class OrderPdfService
 
     public function generateOrderPdf(array $orderData): string
     {
-      // Configure Dompdf
+        // Configure Dompdf
         $options = new Options();
         $options->set('defaultFont', 'Arial');
         $options->set('isRemoteEnabled', true);
@@ -60,38 +60,43 @@ class OrderPdfService
 
         $dompdf = new Dompdf($options);
 
-      // Fetch ticket information from the API
+        // Fetch ticket information from the API
         $orderId = $orderData['id'] ?? $orderData['number'];
         $ticketInfo = $this->ticketApiService->getTicketInformation((string) $orderId);
 
         if ($ticketInfo && $this->ticketApiService->validateTicketResponse($ticketInfo)) {
             $this->logger->info('Using ticket information from API', [
-            'order_id' => $orderId,
-            'event_name' => $ticketInfo['event_name'],
-            'ticket_count' => count($ticketInfo['tickets'])
+                'order_id' => $orderId,
+                'event_name' => $ticketInfo['event_name'],
+                'ticket_count' => count($ticketInfo['tickets'])
             ]);
 
-          // Generate individual QR codes for each ticket
+            // Generate individual QR codes for each ticket
             foreach ($ticketInfo['tickets'] as $ticketId => &$ticket) {
                 if (isset($ticket['ticket_code'])) {
-                    $ticket['qr_code'] = $this->generateTicketQrCode(['ticket_code' => $ticket['ticket_code']]);
+                    // Generate short ticket name for display
+                    if (isset($ticket['ticket_name'])) {
+                        $ticket['short_ticket_name'] = $this->generateShortTicketName($ticket['ticket_name']);
+                    }
+                    // Generate QR code
+                    $ticket['qr_code'] = $this->generateTicketQrCode($ticket);
                 }
             }
         } else {
             $this->logger->error('Failed to fetch ticket information from API', [
-            'order_id' => $orderId
+                'order_id' => $orderId
             ]);
-          // Don't fallback, let the template handle the error
+            // Don't fallback, let the template handle the error
             $ticketInfo = null;
         }
 
-      // Generate HTML content using Twig template (translations handled by Twig)
+        // Generate HTML content using Twig template (translations handled by Twig)
         $html = $this->twig->render('pdf/order.html.twig', [
-        'order' => $orderData,
-        'ticket_info' => $ticketInfo
+            'order' => $orderData,
+            'ticket_info' => $ticketInfo
         ]);
 
-      // Load HTML and generate PDF
+        // Load HTML and generate PDF
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
@@ -101,21 +106,30 @@ class OrderPdfService
 
     private function generateTicketQrCode(array $ticketData): string
     {
-      // Use ticket_code if available, otherwise fall back to order number
+        // Use ticket_code if available, otherwise fall back to order number
         if (isset($ticketData['ticket_code'])) {
-            $qrData = $ticketData['ticket_code'];
-            $logContext = ['ticket_code' => $qrData];
+            $ticketCode = $ticketData['ticket_code'];
+
+            // Add short ticket name to prevent fraud
+            if (isset($ticketData['ticket_name'])) {
+                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $qrData = $ticketCode . '|' . $shortTicketName;
+                $logContext = ['ticket_code' => $ticketCode, 'short_ticket_name' => $shortTicketName];
+            } else {
+                $qrData = $ticketCode;
+                $logContext = ['ticket_code' => $ticketCode];
+            }
         } else {
             $orderNumber = $ticketData['number'] ?? $ticketData['id'];
             $qrData = (string) $orderNumber;
             $logContext = ['order_number' => $qrData];
         }
 
-      // Log the QR data for debugging
+        // Log the QR data for debugging
         $this->logger->info('Generating QR code with data', array_merge(['qr_data' => $qrData], $logContext));
 
         try {
-          // Generate QR code with proper constructor for version 6.x
+            // Generate QR code with proper constructor for version 6.x
             $qrCode = new QrCode(
                 data: $qrData,
                 encoding: new Encoding('UTF-8'),
@@ -128,30 +142,69 @@ class OrderPdfService
             );
 
             $writer = new PngWriter();
-            $result = $writer->write($qrCode);
 
-          // Log success
+            // Add label with short ticket name if available
+            if (isset($ticketData['ticket_name'])) {
+                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $label = new Label(
+                    text: $shortTicketName,
+                    textColor: new Color(0, 0, 0)
+                );
+                $result = $writer->write($qrCode, label: $label);
+            } else {
+                $result = $writer->write($qrCode);
+            }
+
+            // Log success
             $this->logger->info('QR code generated successfully (PNG)', array_merge([
-            'data_size' => strlen($qrData)
+                'data_size' => strlen($qrData)
             ], $logContext));
 
-          // Convert to data URI for embedding in PDF (PNG works better with DomPDF than SVG)
-            return $result->getDataUri();
+            // Convert to data URI for embedding in PDF (PNG works better with DomPDF than SVG)
+            // Using explicit base64 encoding for better DomPDF compatibility
+            return 'data:image/png;base64,' . base64_encode($result->getString());
         } catch (\Exception $e) {
-          // Log the actual error and return the actual data as text fallback
+            // Log the actual error and return the actual data as text fallback
             $this->logger->error('QR code generation failed', array_merge([
-            'error' => $e->getMessage(),
-            'qr_data' => $qrData
+                'error' => $e->getMessage(),
+                'qr_data' => $qrData
             ], $logContext));
 
-          // Return the QR data as a simple text block if QR generation fails
+            // Return the QR data as a simple text block if QR generation fails
             return 'data:image/svg+xml;base64,' . base64_encode(
                 '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
           <text x="100" y="100" text-anchor="middle" font-family="Arial" ' .
-                'font-size="14" fill="black">' . htmlspecialchars($qrData) . '</text>
+                    'font-size="14" fill="black">' . htmlspecialchars($qrData) . '</text>
         </svg>'
             );
         }
+    }
+
+    /**
+     * Generate a short version of the ticket name for QR code inclusion
+     * This helps prevent fraud by making it harder to reuse QR codes across different ticket types
+     */
+    private function generateShortTicketName(string $ticketName): string
+    {
+        // Remove common words and clean up the name
+        $shortName = $ticketName;
+
+        // Remove common prefixes and suffixes
+        $shortName = preg_replace('/^(ticket|kaartje|billet|biglietto)[\s:_-]*/i', '', $shortName);
+        $shortName = preg_replace('/[\s:_-]*(ticket|kaartje|billet|biglietto)$/i', '', $shortName);
+
+        // Replace spaces, dashes, and underscores with nothing
+        $shortName = preg_replace('/[\s\-_]+/', '', $shortName);
+
+        // Limit to 20 characters to keep QR codes readable
+        if (mb_strlen($shortName) > 20) {
+            $shortName = mb_substr($shortName, 0, 20);
+        }
+
+        // Convert to uppercase for consistency
+        $shortName = mb_strtoupper($shortName);
+
+        return $shortName;
     }
 }

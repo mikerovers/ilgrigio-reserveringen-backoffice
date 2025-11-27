@@ -150,7 +150,12 @@ class TestController extends AbstractController
         // Generate individual QR codes for each ticket
         foreach ($mockTicketInfo['tickets'] as $ticketId => &$ticket) {
             if (isset($ticket['ticket_code'])) {
-                $ticket['qr_code'] = $this->generateMockQrCode($ticket['ticket_code']);
+                // Generate short ticket name for display
+                if (isset($ticket['ticket_name'])) {
+                    $ticket['short_ticket_name'] = $this->generateShortTicketName($ticket['ticket_name']);
+                }
+                // Generate QR code
+                $ticket['qr_code'] = $this->generateMockQrCode($ticket);
             }
         }
 
@@ -187,12 +192,21 @@ class TestController extends AbstractController
     /**
      * Generate a mock QR code using the same method as OrderPdfService
      */
-    private function generateMockQrCode(string $ticketCode): string
+    private function generateMockQrCode(array $ticketData): string
     {
         try {
-            // Generate QR code with the ticket code
+            // Build QR data with ticket code and short ticket name (if available)
+            $ticketCode = $ticketData['ticket_code'];
+            if (isset($ticketData['ticket_name'])) {
+                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $qrData = $ticketCode . '|' . $shortTicketName;
+            } else {
+                $qrData = $ticketCode;
+            }
+
+            // Generate QR code with the ticket data
             $qrCode = new \Endroid\QrCode\QrCode(
-                data: $ticketCode,
+                data: $qrData,
                 encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
                 errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Low,
                 size: 200,
@@ -203,12 +217,24 @@ class TestController extends AbstractController
             );
 
             $writer = new \Endroid\QrCode\Writer\PngWriter();
-            $result = $writer->write($qrCode);
+
+            // Add label with short ticket name if available
+            if (isset($ticketData['ticket_name'])) {
+                $shortTicketName = $this->generateShortTicketName($ticketData['ticket_name']);
+                $label = new \Endroid\QrCode\Label\Label(
+                    text: $shortTicketName,
+                    textColor: new \Endroid\QrCode\Color\Color(0, 0, 0)
+                );
+                $result = $writer->write($qrCode, label: $label);
+            } else {
+                $result = $writer->write($qrCode);
+            }
 
             // Convert to data URI for embedding in PDF
             return 'data:image/png;base64,' . base64_encode($result->getString());
         } catch (\Exception $e) {
             // Return a simple text fallback if QR generation fails
+            $ticketCode = $ticketData['ticket_code'] ?? 'NO-CODE';
             return 'data:image/svg+xml;base64,' . base64_encode(
                 '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
@@ -217,6 +243,33 @@ class TestController extends AbstractController
         </svg>'
             );
         }
+    }
+
+    /**
+     * Generate a short version of the ticket name for QR code inclusion
+     * Same logic as in OrderPdfService
+     */
+    private function generateShortTicketName(string $ticketName): string
+    {
+        // Remove common words and clean up the name
+        $shortName = $ticketName;
+
+        // Remove common prefixes and suffixes
+        $shortName = preg_replace('/^(ticket|kaartje|billet|biglietto)[\s:_-]*/i', '', $shortName);
+        $shortName = preg_replace('/[\s:_-]*(ticket|kaartje|billet|biglietto)$/i', '', $shortName);
+
+        // Replace spaces, dashes, and underscores with nothing
+        $shortName = preg_replace('/[\s\-_]+/', '', $shortName);
+
+        // Limit to 20 characters to keep QR codes readable
+        if (mb_strlen($shortName) > 20) {
+            $shortName = mb_substr($shortName, 0, 20);
+        }
+
+        // Convert to uppercase for consistency
+        $shortName = mb_strtoupper($shortName);
+
+        return $shortName;
     }
 
     #[Route('/test/pdf-direct', name: 'test_pdf_direct', methods: ['GET'])]
