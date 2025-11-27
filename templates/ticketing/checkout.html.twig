@@ -22,37 +22,37 @@
 				<!-- Event Information Section -->
 				{% if event %}
 					<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-						<div class="flex items-start space-x-4">
+						<div class="flex flex-col md:flex-row md:items-start space-y-4 md:space-y-0 md:space-x-4">
 							{% if event.image_url %}
-								<div class="flex-shrink-0">
-									<img src="{{ event.image_url }}" alt="{{ event.name }}" class="w-24 h-24 rounded-lg object-cover">
+								<div class="flex-shrink-0 mx-auto md:mx-0">
+									<img src="{{ event.image_url }}" alt="{{ event.name }}" class="w-32 h-32 md:w-24 md:h-24 rounded-lg object-cover">
 								</div>
 							{% endif %}
-							<div class="flex-1">
+							<div class="flex-1 text-center md:text-left">
 								<h2 class="text-2xl font-bold text-gray-800 mb-3">{{ event.name|default('Event') }}</h2>
 								<div class="space-y-2 text-gray-600">
 									{% if event.date %}
-										<div class="flex items-center">
+										<div class="flex items-center justify-center md:justify-start">
 											<i class="fas fa-calendar-alt mr-3 text-red-600 w-4"></i>
 											<span class="font-medium">{{ dutch_date(event.date) }}</span>
 										</div>
-										<div class="flex items-center">
+										<div class="flex items-center justify-center md:justify-start">
 											<i class="fas fa-clock mr-3 text-red-600 w-4"></i>
 											<span>{{ event.time|default(event.date|date('H:i')) }}</span>
 										</div>
 									{% elseif event.formatted_date %}
-										<div class="flex items-center">
+										<div class="flex items-center justify-center md:justify-start">
 											<i class="fas fa-calendar-alt mr-3 text-red-600 w-4"></i>
 											<span class="font-medium">{{ event.formatted_date }}</span>
 										</div>
 									{% endif %}
 									{% if event.location %}
-										<div class="flex items-center">
+										<div class="flex items-center justify-center md:justify-start">
 											<i class="fas fa-map-marker-alt mr-3 text-red-600 w-4"></i>
 											<span>{{ event.location }}</span>
 										</div>
 									{% else %}
-										<div class="flex items-center">
+										<div class="flex items-center justify-center md:justify-start">
 											<i class="fas fa-map-marker-alt mr-3 text-red-600 w-4"></i>
 											<span>Bossebaan 5b, 5076 NC HAAREN (NB)</span>
 										</div>

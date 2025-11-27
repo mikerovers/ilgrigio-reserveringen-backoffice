@@ -64,8 +64,6 @@ class SendOrderEmailMessageHandler
       $downloadUrl = 'https://your-domain.com/pdf/download/' . $downloadToken;
     }
 
-    $customerEmail = 'mikerovers97@gmail.com'; // For testing purposes, replace with $customerEmail
-
     // Send confirmation email to customer if email is available
     if ($customerEmail) {
       // Prepare template variables
