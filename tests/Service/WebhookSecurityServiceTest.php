@@ -158,7 +158,7 @@ class WebhookSecurityServiceTest extends TestCase
 
     public function testIsValidWooCommerceOrderWithValidStatuses(): void
     {
-        $validStatuses = ['pending', 'processing', 'on-hold', 'completed', 'cancelled', 'refunded', 'failed'];
+        $validStatuses = ['pending', 'processing', 'on-hold', 'completed', 'cancelled', 'refunded'];
 
         foreach ($validStatuses as $status) {
             $orderData = [
@@ -170,6 +170,25 @@ class WebhookSecurityServiceTest extends TestCase
 
             $this->assertTrue($result, "Status '{$status}' should be valid");
         }
+    }
+
+    public function testIsValidWooCommerceOrderWithFailedStatus(): void
+    {
+        $orderData = [
+            'id' => 123,
+            'status' => 'failed'
+        ];
+
+        $this->logger->expects($this->once())
+            ->method('info')
+            ->with('Skipping order with invalid status', [
+                'order_id' => 123,
+                'status' => 'failed'
+            ]);
+
+        $result = $this->service->isValidWooCommerceOrder($orderData);
+
+        $this->assertFalse($result);
     }
 
     public function testHashEqualsIsUsedForSignatureComparison(): void

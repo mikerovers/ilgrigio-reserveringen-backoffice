@@ -47,8 +47,13 @@ class WebhookSecurityService
             }
         }
 
-      // Skip draft orders
-        if (in_array($orderData['status'], ['draft', 'auto-draft'])) {
+        // Skip draft orders and failed payments
+        $invalidStatuses = ['draft', 'auto-draft', 'failed'];
+        if (in_array($orderData['status'], $invalidStatuses)) {
+            $this->logger->info('Skipping order with invalid status', [
+                'order_id' => $orderData['id'],
+                'status' => $orderData['status']
+            ]);
             return false;
         }
 

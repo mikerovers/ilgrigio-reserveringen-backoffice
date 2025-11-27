@@ -31,7 +31,8 @@ class TicketingController extends AbstractController
         private string $ilgrigioBaseUrl,
         private int $maxTicketsPerOrder,
         private float $taxRate
-    ) {}
+    ) {
+    }
 
     #[Route('/', name: 'app_tickets')]
     public function index(): Response
@@ -67,6 +68,12 @@ class TicketingController extends AbstractController
 
         if (!$event) {
             throw $this->createNotFoundException('Event not found');
+        }
+
+        // Check if event is sold out or has no stock
+        if ($event['stock_status'] !== 'instock' || $event['stock_quantity'] <= 0) {
+            $this->addFlash('error', 'Deze show is uitverkocht en er kunnen geen tickets meer worden besteld.');
+            return $this->redirectToRoute('app_tickets');
         }
 
         // Get product variations (ticket types)
@@ -297,6 +304,12 @@ class TicketingController extends AbstractController
         $cartItems = $session->get('cart_items', []);
         $eventData = $session->get('event_data', null);
         $appliedCoupon = $session->get('applied_coupon', null);
+
+        // Redirect to events page if cart is empty
+        if (empty($cartItems)) {
+            $this->addFlash('error', 'Je winkelwagen is leeg. Selecteer eerst tickets om af te rekenen.');
+            return $this->redirectToRoute('app_tickets');
+        }
 
         // Calculate totals (tax-inclusive pricing)
         $totalWithTax = 0;

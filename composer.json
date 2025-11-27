@@ -83,6 +83,8 @@
         "phpunit/phpunit": "^11.5",
         "squizlabs/php_codesniffer": "^3.13",
         "symfony/browser-kit": "7.3.*",
-        "symfony/css-selector": "7.3.*"
+        "symfony/css-selector": "7.3.*",
+        "symfony/stopwatch": "7.3.*",
+        "symfony/web-profiler-bundle": "7.3.*"
     }
 }

@@ -1,13 +1,25 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Bedankt voor je bestelling - Il Grigio
+{% block title %}
+	{% if payment_info and payment_info.is_failed %}
+		Betaling mislukt - Il Grigio
+	{% else %}
+		Bedankt voor je bestelling - Il Grigio
+	{% endif %}
 {% endblock %}
 
 {% block body %}
-	{{ include('components/hero.html.twig', {
-    'title': 'Bedankt voor je reservering!',
-    'subtitle': 'Je reservering is succesvol geplaatst'
-}) }}
+	{% if payment_info and payment_info.is_failed %}
+		{{ include('components/hero.html.twig', {
+			'title': 'Betaling mislukt',
+			'subtitle': 'Je betaling kon niet worden verwerkt'
+		}) }}
+	{% else %}
+		{{ include('components/hero.html.twig', {
+			'title': 'Bedankt voor je reservering!',
+			'subtitle': 'Je reservering is succesvol geplaatst'
+		}) }}
+	{% endif %}
 
 	<!-- Main Content -->
 	<div class="bg-gray-50 min-h-screen py-8">
@@ -15,13 +27,23 @@
 			<div class="max-w-4xl mx-auto">
 				<div class="bg-white rounded-lg shadow-lg p-8 text-center">
 					<div class="mb-6">
-						<i class="fas fa-check-circle text-green-600 text-6xl"></i>
+						{% if payment_info and payment_info.is_failed %}
+							<i class="fas fa-times-circle text-red-600 text-6xl"></i>
+						{% else %}
+							<i class="fas fa-check-circle text-green-600 text-6xl"></i>
+						{% endif %}
 					</div>
 
 					{% if order_id %}
-						<p class="text-xl text-gray-700 mb-6">
-							Je reservering is succesvol geplaatst.
-						</p>
+						{% if payment_info and payment_info.is_failed %}
+							<p class="text-xl text-gray-700 mb-6">
+								Je betaling kon helaas niet worden verwerkt.
+							</p>
+						{% else %}
+							<p class="text-xl text-gray-700 mb-6">
+								Je reservering is succesvol geplaatst.
+							</p>
+						{% endif %}
 						<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
 							<div class="text-blue-800">
 								<strong>Reserveringsnummer:</strong>
@@ -33,7 +55,7 @@
 							<div class="mb-6">
 								{% if payment_info.is_successful %}
 									<div class="bg-green-50 border border-green-200 rounded-lg p-4">
-										<div class="flex items-center">
+										<div class="flex items-center justify-center">
 											<i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
 											<div class="text-green-800">
 												<strong>{{ payment_info.status_message }}</strong>
@@ -42,9 +64,9 @@
 									</div>
 								{% elseif payment_info.is_pending %}
 									<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-										<div class="flex items-center">
+										<div class="flex items-center justify-center">
 											<i class="fas fa-clock text-yellow-600 text-xl mr-3"></i>
-											<div class="text-yellow-800">
+											<div class="text-yellow-800 text-left">
 												<strong>{{ payment_info.status_message }}</strong>
 												<div class="text-sm mt-1">
 													Je betaling wordt nog verwerkt. Dit kan enkele minuten duren.
@@ -54,13 +76,13 @@
 									</div>
 								{% elseif payment_info.is_failed %}
 									<div class="bg-red-50 border border-red-200 rounded-lg p-4">
-										<div class="flex items-center">
-											<i class="fas fa-times-circle text-red-600 text-xl mr-3"></i>
-											<div class="text-red-800">
+										<div class="text-red-800">
+											<div class="flex items-center justify-center mb-2">
+												<i class="fas fa-times-circle text-red-600 text-xl mr-3"></i>
 												<strong>{{ payment_info.status_message }}</strong>
-												<div class="text-sm mt-1">
-													Betaling mislukt. Neem contact op met ons als je vragen hebt over je bestelling.
-												</div>
+											</div>
+											<div class="text-sm">
+												Je betaling kon niet worden verwerkt. Probeer het opnieuw of neem contact op met ons als je vragen hebt.
 											</div>
 										</div>
 									</div>
@@ -81,54 +103,70 @@
 																                    </div>
 																                {% endif %} #}
 
-					<div class="mb-8">
-						<h3 class="text-xl font-semibold text-gray-800 mb-4">Wat gebeurt er nu?</h3>
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-							<div class="bg-gray-50 rounded-lg p-4">
-								{% if payment_info and payment_info.is_successful %}
-									<i class="fas fa-credit-card text-green-600 text-3xl mb-3"></i>
-									<p class="text-gray-700 text-sm">Je betaling is voltooid</p>
-								{% elseif payment_info and payment_info.is_failed %}
-									<i class="fas fa-credit-card text-red-600 text-3xl mb-3"></i>
-									<p class="text-gray-700 text-sm">Betaling mislukt</p>
-								{% else %}
-									<i class="fas fa-credit-card text-yellow-600 text-3xl mb-3"></i>
-									<p class="text-gray-700 text-sm">Je betaling wordt verwerkt</p>
-								{% endif %}
+					{% if payment_info and payment_info.is_failed %}
+						<!-- Failed Payment: Show retry option -->
+						<div class="mb-8">
+							<h3 class="text-xl font-semibold text-gray-800 mb-4">Wat kan je doen?</h3>
+							<div class="bg-gray-50 rounded-lg p-6 text-center">
+								<i class="fas fa-redo text-red-600 text-3xl mb-3"></i>
+								<p class="text-gray-700 mb-4">Je kunt het opnieuw proberen door terug te gaan naar de shows en een nieuwe reservering te maken.</p>
+								<p class="text-gray-600 text-sm">Als het probleem zich blijft voordoen, controleer dan je betaalmethode of neem contact met ons op.</p>
 							</div>
-							<div class="bg-gray-50 rounded-lg p-4">
-								<i class="fas fa-envelope text-blue-600 text-3xl mb-3"></i>
-								<p class="text-gray-700 text-sm">Je ontvangt een bevestigingsmail
-									{% if customer_data and customer_data.email %}op
-										<strong>
-											{{ customer_data.email }}
+						</div>
+					{% else %}
+						<!-- Successful or Pending Payment: Show email and ticket info -->
+						<div class="mb-8">
+							<h3 class="text-xl font-semibold text-gray-800 mb-4">Wat gebeurt er nu?</h3>
+							<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+								<div class="bg-gray-50 rounded-lg p-4">
+									{% if payment_info and payment_info.is_successful %}
+										<i class="fas fa-credit-card text-green-600 text-3xl mb-3"></i>
+										<p class="text-gray-700 text-sm">Je betaling is voltooid</p>
+									{% else %}
+										<i class="fas fa-credit-card text-yellow-600 text-3xl mb-3"></i>
+										<p class="text-gray-700 text-sm">Je betaling wordt verwerkt</p>
+									{% endif %}
+								</div>
+								<div class="bg-gray-50 rounded-lg p-4">
+									<i class="fas fa-envelope text-blue-600 text-3xl mb-3"></i>
+									<p class="text-gray-700 text-sm">Je ontvangt een bevestigingsmail
+										{% if customer_data and customer_data.email %}
+											op
+											<strong>{{ customer_data.email }}</strong>
 										{% endif %}
 									</p>
-								</p>
-							</div>
-							<div class="bg-gray-50 rounded-lg p-4">
-								<i class="fas fa-ticket-alt text-red-600 text-3xl mb-3"></i>
-								<p class="text-sm">Je tickets worden toegestuurd via de mail</p>
+								</div>
+								<div class="bg-gray-50 rounded-lg p-4">
+									<i class="fas fa-ticket-alt text-red-600 text-3xl mb-3"></i>
+									<p class="text-sm">Je tickets worden toegestuurd via de mail</p>
+								</div>
 							</div>
 						</div>
-					</div>
 
-					<!-- Geen Mail Ontvangen? -->
-					<div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-500 mb-8 text-left">
-						<div class="flex items-center mb-2">
-							<i class="fas fa-exclamation-triangle text-red-600 text-sm mr-2"></i>
-							<h4 class="font-semibold text-red-800">Geen Mail Ontvangen?</h4>
+						<!-- Geen Mail Ontvangen? -->
+						<div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-500 mb-8 text-left">
+							<div class="flex items-center mb-2">
+								<i class="fas fa-exclamation-triangle text-red-600 text-sm mr-2"></i>
+								<h4 class="font-semibold text-red-800">Geen Mail Ontvangen?</h4>
+							</div>
+							<p class="text-red-700 text-sm">
+								Controleer dan eerst je spam- of ongewenste map. Vergeet niet je e-tickets te downloaden.
+							</p>
 						</div>
-						<p class="text-red-700 text-sm">
-							Controleer dan eerst je spam- of ongewenste map. Vergeet niet je e-tickets te downloaden.
-						</p>
-					</div>
+					{% endif %}
 
 					<div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-						<a href="{{ path('app_tickets') }}" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
-							<i class="fas fa-arrow-left mr-2"></i>
-							Terug naar shows
-						</a>
+						{% if payment_info and payment_info.is_failed %}
+							<a href="{{ path('app_tickets') }}" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+								<i class="fas fa-redo mr-2"></i>
+								Probeer opnieuw
+							</a>
+						{% else %}
+							<a href="{{ path('app_tickets') }}" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+								<i class="fas fa-arrow-left mr-2"></i>
+								Terug naar shows
+							</a>
+						{% endif %}
 					</div>
 				</div>
 			</div>

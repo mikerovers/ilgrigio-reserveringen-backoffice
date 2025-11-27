@@ -24,3 +24,4 @@
 ###< symfony/asset-mapper ###
 
 /.vscode
+.DS_Store

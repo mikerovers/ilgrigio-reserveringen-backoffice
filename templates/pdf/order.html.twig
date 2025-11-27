@@ -33,7 +33,7 @@
 
             <!-- Date and time -->
             <div class="datetime">
-                {{ order.date_created ? order.date_created|date('d F Y H:i') : 'now'|date('d F Y H:i') }}
+                {{ 'pdf.ticket.show_start'|trans }} {{ ticket_info.event_date ?? ('now'|date('d F Y H:i')) }}
             </div>
 
             <!-- Customer info and reference -->
@@ -79,9 +79,9 @@
             </div>
 
             <!-- Seating warning -->
-            <div class="seating-warning">
+            {# <div class="seating-warning">
                 <p><strong>{{ 'pdf.ticket.seating_warning'|trans }}</strong></p>
-            </div>
+            </div> #}
 
             <!-- Footer message -->
             <div class="footer-message">
@@ -115,7 +115,7 @@
 
         <!-- Date and time -->
         <div class="datetime">
-            {{ order.date_created ? order.date_created|date('d F Y H:i') : 'now'|date('d F Y H:i') }}
+            {{ 'pdf.ticket.show_start'|trans }} {{ 'now'|date('d F Y H:i') }}
         </div>
 
         <!-- Customer info and reference -->
