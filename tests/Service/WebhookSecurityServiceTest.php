@@ -91,7 +91,7 @@ class WebhookSecurityServiceTest extends TestCase
     {
         $orderData = [
             'id' => 123,
-            'status' => 'processing',
+            'status' => 'completed',
             'total' => '99.99'
         ];
 
@@ -139,6 +139,13 @@ class WebhookSecurityServiceTest extends TestCase
             'status' => 'draft'
         ];
 
+        $this->logger->expects($this->once())
+            ->method('info')
+            ->with('Skipping order - only completed orders trigger email', [
+                'order_id' => 123,
+                'status' => 'draft'
+            ]);
+
         $result = $this->service->isValidWooCommerceOrder($orderData);
 
         $this->assertFalse($result);
@@ -151,24 +158,54 @@ class WebhookSecurityServiceTest extends TestCase
             'status' => 'auto-draft'
         ];
 
+        $this->logger->expects($this->once())
+            ->method('info')
+            ->with('Skipping order - only completed orders trigger email', [
+                'order_id' => 123,
+                'status' => 'auto-draft'
+            ]);
+
         $result = $this->service->isValidWooCommerceOrder($orderData);
 
         $this->assertFalse($result);
     }
 
-    public function testIsValidWooCommerceOrderWithValidStatuses(): void
+    public function testIsValidWooCommerceOrderOnlyAcceptsCompletedStatus(): void
     {
-        $validStatuses = ['pending', 'processing', 'on-hold', 'completed', 'cancelled', 'refunded'];
+        // Only completed status should be valid
+        $orderData = [
+            'id' => 123,
+            'status' => 'completed'
+        ];
 
-        foreach ($validStatuses as $status) {
+        $result = $this->service->isValidWooCommerceOrder($orderData);
+
+        $this->assertTrue($result);
+    }
+
+    public function testIsValidWooCommerceOrderRejectsNonCompletedStatuses(): void
+    {
+        $invalidStatuses = ['pending', 'processing', 'on-hold', 'cancelled', 'refunded', 'draft', 'failed'];
+
+        foreach ($invalidStatuses as $status) {
             $orderData = [
                 'id' => 123,
                 'status' => $status
             ];
 
+            $this->logger->expects($this->once())
+                ->method('info')
+                ->with('Skipping order - only completed orders trigger email', [
+                    'order_id' => 123,
+                    'status' => $status
+                ]);
+
             $result = $this->service->isValidWooCommerceOrder($orderData);
 
-            $this->assertTrue($result, "Status '{$status}' should be valid");
+            $this->assertFalse($result, "Status '{$status}' should not be valid");
+
+            // Reset the mock for the next iteration
+            $this->setUp();
         }
     }
 
@@ -181,7 +218,7 @@ class WebhookSecurityServiceTest extends TestCase
 
         $this->logger->expects($this->once())
             ->method('info')
-            ->with('Skipping order with invalid status', [
+            ->with('Skipping order - only completed orders trigger email', [
                 'order_id' => 123,
                 'status' => 'failed'
             ]);

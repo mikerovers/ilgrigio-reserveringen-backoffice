@@ -36,7 +36,7 @@ class WooCommerceWebhookControllerTest extends KernelTestCase
     {
         $orderData = [
             'id' => 123,
-            'status' => 'processing',
+            'status' => 'completed',
             'billing' => [
                 'first_name' => 'John',
                 'last_name' => 'Doe',
@@ -62,7 +62,7 @@ class WooCommerceWebhookControllerTest extends KernelTestCase
             ->method('info')
             ->with('WooCommerce order webhook received', [
                 'order_id' => 123,
-                'status' => 'processing',
+                'status' => 'completed',
                 'topic' => 'unknown'
             ]);
 
