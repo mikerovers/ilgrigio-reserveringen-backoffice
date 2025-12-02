@@ -109,8 +109,12 @@ class TicketingController extends AbstractController
     }
 
     #[Route('/show/{id}/bestelling', name: 'app_tickets_order', methods: ['POST'])]
-    public function processTicketOrder(int $id, array $event, TicketOrderDTO $ticketOrderDTO, Request $request): Response
-    {
+    public function processTicketOrder(
+        int $id,
+        array $event,
+        TicketOrderDTO $ticketOrderDTO,
+        Request $request
+    ): Response {
         $violations = $this->validator->validate($ticketOrderDTO);
 
         if (count($violations) > 0) {
@@ -311,6 +315,10 @@ class TicketingController extends AbstractController
             return $this->redirectToRoute('app_tickets');
         }
 
+        // Generate a unique checkout token to prevent duplicate submissions
+        $checkoutToken = bin2hex(random_bytes(32));
+        $session->set('checkout_token', $checkoutToken);
+
         // Calculate totals (tax-inclusive pricing)
         $totalWithTax = 0;
         foreach ($cartItems as $item) {
@@ -341,12 +349,32 @@ class TicketingController extends AbstractController
             'tax' => $tax,
             'total' => $total,
             'taxRate' => $this->taxRate,
+            'checkout_token' => $checkoutToken,
         ]);
     }
 
     #[Route('/afrekenen/verwerken', name: 'app_checkout_process', methods: ['POST'])]
     public function processCheckout(CheckoutDTO $checkoutDTO, Request $request): Response
     {
+        // Get session first for token validation
+        $session = $request->getSession();
+
+        // Validate checkout token to prevent duplicate submissions
+        $submittedToken = $request->request->get('checkout_token');
+        $sessionToken = $session->get('checkout_token');
+
+        if (!$submittedToken || !$sessionToken || $submittedToken !== $sessionToken) {
+            $this->logger->warning('Invalid or missing checkout token', [
+                'submitted_token' => $submittedToken,
+                'has_session_token' => !empty($sessionToken)
+            ]);
+            $this->addFlash('error', 'Deze bestelling is al verwerkt of de sessie is verlopen. Start opnieuw.');
+            return $this->redirectToRoute('app_tickets');
+        }
+
+        // Immediately invalidate the token to prevent reuse (one-time use)
+        $session->remove('checkout_token');
+
         $violations = $this->validator->validate($checkoutDTO);
 
         if (count($violations) > 0) {
@@ -357,7 +385,6 @@ class TicketingController extends AbstractController
         }
 
         // Get cart data from session
-        $session = $request->getSession();
         $cartItems = $session->get('cart_items', []);
         $eventData = $session->get('event_data', null);
         $appliedCoupon = $session->get('applied_coupon', null);
@@ -460,7 +487,9 @@ class TicketingController extends AbstractController
         $orderResult = $this->wooCommerceService->createOrder($orderData);
 
         if (!$orderResult['success']) {
-            $this->addFlash('error', 'Er is een fout opgetreden bij het aanmaken van de bestelling: ' . $orderResult['message']);
+            $errorMessage = 'Er is een fout opgetreden bij het aanmaken van de bestelling: '
+                . $orderResult['message'];
+            $this->addFlash('error', $errorMessage);
 
             return $this->redirectToRoute('app_checkout');
         }

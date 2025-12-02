@@ -108,6 +108,9 @@
 
 							<form
 								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-checkout-target="form">
+								<!-- CSRF Token for duplicate submission prevention -->
+								<input type="hidden" name="checkout_token" value="{{ checkout_token }}">
+
 								<!-- Name Fields -->
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 									<div>
@@ -271,7 +274,7 @@
 
 							<!-- Checkout Button -->
 							<div class="mt-6">
-								<button type="submit" form="checkout-form" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+								<button type="submit" form="checkout-form" data-checkout-target="submitButton" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
 									<i class="fas fa-credit-card mr-2"></i>
 									Doorgaan naar betaling
 								</button>
