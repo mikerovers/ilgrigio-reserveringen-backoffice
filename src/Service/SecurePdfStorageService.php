@@ -23,6 +23,7 @@ class SecurePdfStorageService
         private TicketApiService $ticketApiService,
         private LoggerInterface $logger,
         private TicketNameService $ticketNameService,
+        private WooCommerceService $wooCommerceService,
         private string $tokenSecret,
         private int $tokenExpirationDays = 150
     ) {
@@ -30,13 +31,19 @@ class SecurePdfStorageService
 
     /**
      * Generate a secure token for PDF access using HMAC signing
+     * Only stores order ID - full order data is fetched from WooCommerce API when needed
      */
     public function generateSecureToken(array $orderData): string
     {
+        $orderId = $orderData['id'] ?? null;
+        if (!$orderId) {
+            throw new \InvalidArgumentException('Order data must contain an ID');
+        }
+
         $expirationTime = time() + ($this->tokenExpirationDays * 24 * 60 * 60); // days to seconds
 
         $payload = [
-            'orderData' => $orderData,
+            'order_id' => $orderId,
             'iat' => time(), // issued at
             'exp' => $expirationTime, // expiration time
             'jti' => bin2hex(random_bytes(8)) // unique identifier
@@ -55,7 +62,18 @@ class SecurePdfStorageService
             return null;
         }
 
-        $orderData = $payload['orderData'];
+        $orderId = $payload['order_id'] ?? null;
+        if (!$orderId) {
+            $this->logger->error('Token payload missing order_id');
+            return null;
+        }
+
+        // Fetch fresh order data from WooCommerce
+        $orderData = $this->wooCommerceService->getOrder((int)$orderId);
+        if (!$orderData) {
+            $this->logger->error('Failed to fetch order from WooCommerce', ['order_id' => $orderId]);
+            return null;
+        }
 
         // Generate PDF on demand (not cached)
         return $this->generateOrderPdf($orderData);
@@ -71,7 +89,14 @@ class SecurePdfStorageService
             return null;
         }
 
-        return $payload['orderData'];
+        $orderId = $payload['order_id'] ?? null;
+        if (!$orderId) {
+            $this->logger->error('Token payload missing order_id');
+            return null;
+        }
+
+        // Fetch fresh order data from WooCommerce
+        return $this->wooCommerceService->getOrder((int)$orderId);
     }
 
     /**
