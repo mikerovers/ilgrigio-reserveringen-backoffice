@@ -8,31 +8,40 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudways via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude='.git*' --exclude='node_modules' --exclude='var/cache/*' --exclude='var/log/*' --exclude='.env.local'
+          path: ./
+          remote_path: /home/master/applications/wwtemsfcqh/public_html/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Run post-deployment commands
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          # The script to run on your server
           script: |
-            # 1. Navigate to project folder (Adjust 'your_app_name' below!)
+            # Navigate to project folder
             cd /home/master/applications/wwtemsfcqh/public_html
 
-            # 2. Pull latest code
-            git pull origin master
-
-            # 3. Set production environment
+            # Set production environment
             export APP_ENV=prod
 
-            # 4. Install Dependencies (Optimized for Prod)
+            # Install Dependencies (Optimized for Prod)
             composer install --no-dev --optimize-autoloader
 
-            # 5. Run Migrations (Safe for prod)
+            # Run Migrations (Safe for prod)
             # php bin/console doctrine:migrations:migrate --no-interaction
 
-            # 6. Clear and Warm Cache
+            # Clear and Warm Cache
             php bin/console cache:clear --env=prod
             php bin/console cache:warmup --env=prod
             
