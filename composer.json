@@ -11,6 +11,7 @@
         "dompdf/dompdf": "^3.1",
         "endroid/qr-code": "*",
         "mollie/mollie-api-php": "^3.4",
+        "symfony/amazon-mailer": "7.3.*",
         "symfony/amazon-sqs-messenger": "7.3.*",
         "symfony/asset": "7.3.*",
         "symfony/asset-mapper": "7.3.*",

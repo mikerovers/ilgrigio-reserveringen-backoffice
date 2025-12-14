@@ -22,6 +22,7 @@ class SendOrderEmailMessageHandler
     private TranslatorInterface $translator,
     private SecurePdfStorageService $securePdfStorageService,
     private RequestStack $requestStack,
+    private string $appBaseUrl,
     private string $fromEmail = 'noreply@example.com',
     private string $adminEmail = 'admin@example.com'
   ) {}
@@ -57,12 +58,7 @@ class SendOrderEmailMessageHandler
 
     // Generate download URL (use a default base URL since we might not have a request context)
     $request = $this->requestStack->getCurrentRequest();
-    if ($request) {
-      $downloadUrl = $this->securePdfStorageService->generateDownloadUrl($request, $downloadToken);
-    } else {
-      // Fallback URL - you might want to configure this as a parameter
-      $downloadUrl = 'https://your-domain.com/pdf/download/' . $downloadToken;
-    }
+    $downloadUrl = $this->securePdfStorageService->generateDownloadUrl($request, $downloadToken, $this->appBaseUrl);
 
     // Send confirmation email to customer if email is available
     if ($customerEmail) {

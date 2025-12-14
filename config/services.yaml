@@ -37,6 +37,7 @@ services:
     # Email message handler configuration
     App\MessageHandler\SendOrderEmailMessageHandler:
         arguments:
+            $appBaseUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
             $fromEmail: '%env(default:default_from_email:MAILER_FROM_EMAIL)%'
             $adminEmail: '%env(default:default_admin_email:ADMIN_EMAIL)%'
 

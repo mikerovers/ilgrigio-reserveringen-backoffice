@@ -108,9 +108,15 @@ class SecurePdfStorageService
     /**
      * Generate a secure download URL
      */
-    public function generateDownloadUrl(Request $request, string $token): string
+    public function generateDownloadUrl(?Request $request, string $token, ?string $fallbackBaseUrl = null): string
     {
-        $baseUrl = $request->getSchemeAndHttpHost();
+        if ($request) {
+            $baseUrl = $request->getSchemeAndHttpHost();
+        } elseif ($fallbackBaseUrl) {
+            $baseUrl = rtrim($fallbackBaseUrl, '/');
+        } else {
+            throw new \InvalidArgumentException('Either request or fallbackBaseUrl must be provided');
+        }
 
         return $baseUrl . '/pdf/download/' . $token;
     }
