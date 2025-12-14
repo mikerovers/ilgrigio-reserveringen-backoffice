@@ -1,0 +1,37 @@
+name: Deploy to Cloudways
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          # The script to run on your server
+          script: |
+            # 1. Navigate to project folder (Adjust 'your_app_name' below!)
+            cd /home/master/applications/wwtemsfcqh/public_html
+
+            # 2. Pull latest code
+            git pull origin main
+
+            # 3. Install Dependencies (Optimized for Prod)
+            composer install --no-dev --optimize-autoloader
+
+            # 4. Run Migrations (Safe for prod)
+            # php bin/console doctrine:migrations:migrate --no-interaction
+
+            # 5. Clear and Warm Cache
+            php bin/console cache:clear --env=prod
+            php bin/console cache:warmup --env=prod
+            
+            # Optional: Install Node assets if you use Webpack Encore
+            # npm install && npm run build
