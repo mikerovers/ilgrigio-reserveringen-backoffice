@@ -1,3 +1,4 @@
+bump
 # WooCommerce Webhook Integration
 
 This Symfony application receives webhooks from WooCommerce when orders are created, generates PDF invoices, and sends them via email.
