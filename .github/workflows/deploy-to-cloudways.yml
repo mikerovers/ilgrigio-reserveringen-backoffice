@@ -35,7 +35,8 @@ jobs:
             # Set production environment
             export APP_ENV=prod
 
-            # Set proper permissions for var directory
+            # Create and set permissions for var directories
+            mkdir -p var/cache var/log
             chmod -R 775 var/
 
             # Install Dependencies (Optimized for Prod)
@@ -48,7 +49,7 @@ jobs:
             php bin/console cache:clear --env=prod
             php bin/console cache:warmup --env=prod
 
-            # Ensure cache and log directories are writable
+            # Ensure cache and log directories remain writable
             chmod -R 775 var/cache var/log
 
             # Optional: Install Node assets if you use Webpack Encore
