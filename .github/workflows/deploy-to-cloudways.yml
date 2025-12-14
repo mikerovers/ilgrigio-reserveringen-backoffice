@@ -45,12 +45,12 @@ jobs:
             # Run Migrations (Safe for prod)
             # php bin/console doctrine:migrations:migrate --no-interaction
 
+            # Compile assets for production
+            php bin/console asset-map:compile --env=prod
+
             # Clear and Warm Cache
             php bin/console cache:clear --env=prod
             php bin/console cache:warmup --env=prod
 
             # Ensure cache and log directories remain writable
             chmod -R 775 var/cache var/log
-
-            # Optional: Install Node assets if you use Webpack Encore
-            # npm install && npm run build
