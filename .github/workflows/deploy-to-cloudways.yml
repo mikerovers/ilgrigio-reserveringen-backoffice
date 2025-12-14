@@ -48,6 +48,9 @@ jobs:
             # Compile assets for production
             php bin/console asset-map:compile --env=prod
 
+            # Ensure compiled assets are readable
+            chmod -R 755 public/assets
+
             # Clear and Warm Cache
             php bin/console cache:clear --env=prod
             php bin/console cache:warmup --env=prod
