@@ -2,55 +2,36 @@ name: Deploy to Cloudways
 
 on:
   push:
-    branches: [ master ]
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        
-    - name: Deploy to Cloudways
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.CLOUDWAYS_HOST }}
-        username: ${{ secrets.CLOUDWAYS_USERNAME }}
-        key: ${{ secrets.CLOUDWAYS_SSH_KEY }}
-        script: |
-          echo "🚀 Connected to Cloudways server: $(hostname)"
-          echo "📁 Current directory: $(pwd)"
-          echo "👤 Current user: $(whoami)"
-          cd ${{ secrets.CLOUDWAYS_APP_PATH }}
-          echo "📂 Deploying to: $(pwd)"
-          git pull origin master
-          composer install --no-dev --optimize-autoloader
-          echo "📝 Creating .env file..."
-          cat > .env << 'EOF'
-          APP_ENV=prod
-          APP_SECRET=${{ secrets.APP_SECRET }}
-          MAILER_DSN=${{ secrets.MAILER_DSN }}
-          MAILER_FROM_EMAIL=${{ secrets.MAILER_FROM_EMAIL }}
-          ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-          WOOCOMMERCE_CONSUMER_KEY=${{ secrets.WOOCOMMERCE_CONSUMER_KEY }}
-          WOOCOMMERCE_CONSUMER_SECRET=${{ secrets.WOOCOMMERCE_CONSUMER_SECRET }}
-          WOOCOMMERCE_WEBHOOK_SECRET=${{ secrets.WOOCOMMERCE_WEBHOOK_SECRET }}
-          ILGRIGIO_BASE_URL=${{ secrets.ILGRIGIO_BASE_URL }}
-          ILGRIGIO_BASE_API_URL=${{ secrets.ILGRIGIO_BASE_API_URL }}
-          PDF_TOKEN_SECRET=${{ secrets.PDF_TOKEN_SECRET }}
-          PDF_TOKEN_EXPIRATION_DAYS=${{ secrets.PDF_TOKEN_EXPIRATION_DAYS }}
-          ILGRIGIO_TICKET_API_URL=${{ secrets.ILGRIGIO_TICKET_API_URL }}
-          ILGRIGIO_TICKET_API_KEY=${{ secrets.ILGRIGIO_TICKET_API_KEY }}
-          MAX_TICKETS_PER_ORDER=${{ secrets.MAX_TICKETS_PER_ORDER }}
-          TAX_RATE=${{ secrets.TAX_RATE }}
-          EOF
-          bin/console cache:clear --env=prod
-          bin/console assets:install --env=prod
-          echo "✅ Deployment completed successfully!"
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          # The script to run on your server
+          script: |
+            # 1. Navigate to project folder (Adjust 'your_app_name' below!)
+            cd /home/master/applications/wwtemsfcqh/public_html
+
+            # 2. Pull latest code
+            git pull origin main
+
+            # 3. Install Dependencies (Optimized for Prod)
+            composer install --no-dev --optimize-autoloader
+
+            # 4. Run Migrations (Safe for prod)
+            # php bin/console doctrine:migrations:migrate --no-interaction
+
+            # 5. Clear and Warm Cache
+            php bin/console cache:clear --env=prod
+            php bin/console cache:warmup --env=prod
+            
+            # Optional: Install Node assets if you use Webpack Encore
+            # npm install && npm run build
