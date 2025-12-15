@@ -71,7 +71,6 @@ class WooCommerceEventsService
 
             return [];
         } catch (\Exception $e) {
-            dd($e);
             $this->logger->error('Unexpected error while fetching IlGrigio events', [
                 'error' => $e->getMessage()
             ]);

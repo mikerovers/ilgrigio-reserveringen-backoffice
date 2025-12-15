@@ -18,8 +18,7 @@ class OrderApiController extends AbstractController
         private OrderPdfService $orderPdfService,
         private WooCommerceService $wooCommerceService,
         private LoggerInterface $logger
-    ) {
-    }
+    ) {}
 
     #[Route('/orders/{orderId}/process', name: 'order_process', methods: ['POST'])]
     #[IsGranted('IS_AUTHENTICATED')]
@@ -50,7 +49,7 @@ class OrderApiController extends AbstractController
                     'error' => 'Invalid order data',
                     'message' => 'Order data is missing required fields'
                 ], Response::HTTP_BAD_REQUEST);
-        }
+            }
 
             // Process the order through OrderPdfService
             $this->orderPdfService->processOrder($orderData);
