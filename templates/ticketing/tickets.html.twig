@@ -114,6 +114,11 @@
 														<div class="flex items-center mb-2">
 															<div class="flex-1">
 																<h3 class="text-lg font-semibold text-gray-800">{{ ticketType.name }}</h3>
+																{% if ticketType.name == 'Rolstoel (alleen telefonisch)' %}
+																	<p class="text-xs text-gray-600 mt-1">Rolstoelplaatsen en begeleiders kunnen alleen telefonisch geboekt worden. Klik
+																		<a href="https://ilgrigio.nl/reserveren" target="_blank" rel="noopener noreferrer" class="text-red-600 hover:text-red-700 underline">hier</a>
+																		voor meer informatie.</p>
+																{% endif %}
 																{% if ticketType.age_range %}
 																	<p class="text-sm text-gray-600">{{ ticketType.age_range }}</p>
 																{% endif %}

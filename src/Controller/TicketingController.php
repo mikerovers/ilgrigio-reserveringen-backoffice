@@ -522,7 +522,16 @@ class TicketingController extends AbstractController
             // Redirect to WooCommerce checkout
             return $this->redirect($checkoutResult['checkout_url']);
         } else {
-            // No payment needed, redirect directly to thank you page
+            // No payment needed - mark order as completed to trigger webhook
+            $statusUpdated = $this->wooCommerceService->updateOrderStatus($orderId, 'completed');
+
+            if (!$statusUpdated) {
+                $this->logger->warning('Failed to update order status to completed for zero-value order', [
+                    'order_id' => $orderId
+                ]);
+            }
+
+            // Redirect directly to thank you page
             $this->addFlash('success', 'Je bestelling is geplaatst! Geen betaling vereist.');
             return $this->redirectToRoute('app_thank_you');
         }

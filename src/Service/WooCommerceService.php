@@ -210,6 +210,64 @@ class WooCommerceService
     }
 
     /**
+     * Update order status in WooCommerce
+     */
+    public function updateOrderStatus(int $orderId, string $status): bool
+    {
+        try {
+            $this->logger->info('Updating order status in WooCommerce', [
+                'order_id' => $orderId,
+                'new_status' => $status
+            ]);
+
+            $response = $this->httpClient->request('PUT', $this->baseUrl . "/wp-json/wc/v3/orders/{$orderId}", [
+                'json' => [
+                    'status' => $status
+                ],
+                'query' => [
+                    'consumer_key' => $this->consumerKey,
+                    'consumer_secret' => $this->consumerSecret,
+                ],
+                'timeout' => 10,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $content = $response->toArray();
+
+            if ($statusCode === 200 && isset($content['id'])) {
+                $this->logger->info('Order status updated successfully', [
+                    'order_id' => $content['id'],
+                    'status' => $content['status'] ?? 'unknown'
+                ]);
+
+                return true;
+            }
+
+            $this->logger->error('Failed to update order status in WooCommerce', [
+                'order_id' => $orderId,
+                'status_code' => $statusCode,
+                'response' => $content
+            ]);
+
+            return false;
+        } catch (HttpExceptionInterface $e) {
+            $this->logger->error('HTTP error while updating order status', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+
+            return false;
+        } catch (\Exception $e) {
+            $this->logger->error('Unexpected error while updating order status', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
      * Extract Mollie payment ID from order meta data
      */
     public function getMolliePaymentId(array $orderData): ?string
