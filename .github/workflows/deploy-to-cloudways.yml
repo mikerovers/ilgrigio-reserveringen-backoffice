@@ -35,6 +35,14 @@ jobs:
             # Set production environment
             export APP_ENV=prod
 
+            # Signal messenger workers to stop gracefully
+            echo "Signaling messenger workers to stop..."
+            php bin/console messenger:stop-workers || true
+
+            # Wait for workers to finish current jobs and stop (max 65 seconds for time-limited workers)
+            echo "Waiting for workers to stop gracefully..."
+            sleep 70
+
             # Create and set permissions for var directories
             mkdir -p var/cache var/log
             chmod -R 775 var/
@@ -57,3 +65,6 @@ jobs:
 
             # Ensure cache and log directories remain writable
             chmod -R 775 var/cache var/log
+
+            # Note: Messenger workers will be automatically restarted by the cronjob within 60 seconds
+            echo "Deployment complete. Messenger workers will restart via cronjob."
