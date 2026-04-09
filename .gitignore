@@ -26,3 +26,5 @@
 /.vscode
 .DS_Store
 .phpactor.json
+
+/.kilo
