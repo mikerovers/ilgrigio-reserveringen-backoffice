@@ -27,8 +27,7 @@ class SendOrderEmailMessageHandler
         private string $fromEmail = "noreply@example.com",
         private string $fromName = "Il Grigio",
         private string $adminEmail = "admin@example.com",
-    ) {
-    }
+    ) {}
 
     public function __invoke(SendOrderEmailMessage $message): void
     {
@@ -100,7 +99,7 @@ class SendOrderEmailMessageHandler
                 ["%order_number%" => $orderNumber],
             );
 
-            $customerConfirmation = new TemplatedEmail()
+            $customerConfirmation = (new TemplatedEmail())
                 ->from(new Address($this->fromEmail, $this->fromName))
                 ->to($customerEmail)
                 ->subject($customerSubject)
@@ -113,14 +112,14 @@ class SendOrderEmailMessageHandler
                     "application/pdf",
                 )
                 ->addPart(
-                    new DataPart(
+                    (new DataPart(
                         new File(
                             __DIR__ .
                                 "/../../assets/images/Logo-IlGrigioClown.png",
                         ),
                         "logo",
                         "image/png",
-                    )->asInline(),
+                    ))->asInline(),
                 );
 
             $this->mailer->send($customerConfirmation);
