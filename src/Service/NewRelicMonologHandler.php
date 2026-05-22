@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Service;
+
+use Monolog\Handler\AbstractProcessingHandler;
+use Monolog\Level;
+use Monolog\LogRecord;
+use Psr\Log\LoggerInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+final class NewRelicMonologHandler extends AbstractProcessingHandler
+{
+    private const NEW_RELIC_API_ENDPOINT = "/log/v1";
+
+    public function __construct(
+        private HttpClientInterface $httpClient,
+        private LoggerInterface $fallbackLogger,
+        private string $licenseKey,
+        private string $endpoint,
+        private string $appName,
+        private string $environment,
+        int|string|Level $level = Level::Debug,
+        bool $bubble = true,
+    ) {
+        parent::__construct($level, $bubble);
+    }
+
+    protected function write(LogRecord $record): void
+    {
+        try {
+            $payload = $this->formatPayload($record);
+
+            $this->httpClient->request("POST", $this->buildUrl(), [
+                "headers" => [
+                    "Content-Type" => "application/json",
+                    "Api-Key" => $this->licenseKey,
+                ],
+                "json" => $payload,
+                "timeout" => 5,
+            ]);
+        } catch (\Exception $e) {
+            $this->fallbackLogger->error("Failed to send log to New Relic", [
+                "error" => $e->getMessage(),
+                "original_message" => $record->message,
+            ]);
+        }
+    }
+
+    private function formatPayload(LogRecord $record): array
+    {
+        $logEntry = [
+            "timestamp" => $record->datetime->getTimestamp() * 1000, // New Relic expects milliseconds
+            "message" => $record->message,
+            "level" => $record->level->getName(),
+            "level_name" => $record->level->getName(),
+            "channel" => $record->channel,
+            "app.name" => $this->appName,
+            "environment" => $this->environment,
+            "hostname" => gethostname() ?: "unknown",
+        ];
+
+        // Add context data
+        if (!empty($record->context)) {
+            foreach ($record->context as $key => $value) {
+                $logEntry["context." . $key] = $this->sanitizeValue($value);
+            }
+        }
+
+        // Add extra data
+        if (!empty($record->extra)) {
+            foreach ($record->extra as $key => $value) {
+                $logEntry["extra." . $key] = $this->sanitizeValue($value);
+            }
+        }
+
+        return [
+            [
+                "logs" => [$logEntry],
+            ],
+        ];
+    }
+
+    private function sanitizeValue(mixed $value): mixed
+    {
+        if (is_scalar($value) || $value === null) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            return json_encode(
+                $value,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+            );
+        }
+
+        if (is_object($value)) {
+            if (method_exists($value, "__toString")) {
+                return (string) $value;
+            }
+            return get_class($value);
+        }
+
+        return "unsupported_type";
+    }
+
+    private function buildUrl(): string
+    {
+        return rtrim($this->endpoint, "/") . self::NEW_RELIC_API_ENDPOINT;
+    }
+}
