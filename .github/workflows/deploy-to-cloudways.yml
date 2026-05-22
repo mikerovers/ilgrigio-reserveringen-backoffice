@@ -43,11 +43,12 @@ jobs:
             echo "Waiting for workers to stop gracefully..."
             sleep 70
 
-            # Remove old cache and log files (owned by web server user)
-            echo "Removing old cache and log files..."
-            rm -rf var/cache/* var/log/* || true
+            # Attempt to remove old cache and log files
+            # NOTE: This may fail if ACLs are not configured - see CLOUDWAYS_SETUP.md
+            echo "Attempting to remove old cache and log files..."
+            rm -rf var/cache/* var/log/* 2>&1 | grep -v "Permission denied" || true
 
-            # Create fresh var directories (will be owned by deployment user)
+            # Ensure var directories exist
             mkdir -p var/cache var/log
 
             # Install Dependencies (Optimized for Prod)
@@ -66,11 +67,14 @@ jobs:
             chmod -R 755 public/assets
 
             # Clear and Warm Cache
-            php bin/console cache:clear --env=prod
-            php bin/console cache:warmup --env=prod
+            # Use cache:pool:clear for better permission handling
+            php bin/console cache:pool:clear cache.global_clearer --env=prod || true
+            php bin/console cache:clear --env=prod --no-warmup || echo "WARNING: cache:clear failed - ACLs may not be configured (see CLOUDWAYS_SETUP.md)"
+            php bin/console cache:warmup --env=prod || echo "WARNING: cache:warmup failed - may have permission issues"
 
-            # Ensure cache and log directories remain writable (ignore errors for files we don't own)
-            chmod -R 775 var/cache var/log || true
+            # Set permissions on files we can access
+            find var/cache var/log -type d -exec chmod 775 {} + 2>/dev/null || true
+            find var/cache var/log -type f -exec chmod 664 {} + 2>/dev/null || true
 
             # Note: Messenger workers will be automatically restarted by the cronjob within 60 seconds
             echo "Deployment complete. Messenger workers will restart via cronjob."
