@@ -5,7 +5,7 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session:
         cookie_path: /
-        cookie_samesite: none
+        cookie_samesite: lax
         cookie_secure: auto
 
     #esi: true

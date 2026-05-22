@@ -207,6 +207,12 @@ class TicketingController extends AbstractController
 
         // Store order data in session for checkout
         $session = $request->getSession();
+
+        // Explicitly start session if not already started (mobile browsers may not auto-start)
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
         $cartItems = [];
 
         foreach ($selectedTickets as $ticket) {
@@ -235,6 +241,7 @@ class TicketingController extends AbstractController
 
         $this->logger->info("Session saved after ticket order", [
             "session_id" => $session->getId(),
+            "is_started" => $session->isStarted(),
             "cart_count" => count($cartItems),
             "user_agent" => $request->headers->get("User-Agent"),
         ]);
