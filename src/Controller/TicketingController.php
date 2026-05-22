@@ -239,13 +239,6 @@ class TicketingController extends AbstractController
         // Force session write before redirect (prevents race condition on mobile browsers)
         $session->save();
 
-        $this->logger->info("Session saved after ticket order", [
-            "session_id" => $session->getId(),
-            "is_started" => $session->isStarted(),
-            "cart_count" => count($cartItems),
-            "user_agent" => $request->headers->get("User-Agent"),
-        ]);
-
         // Redirect to our custom checkout page instead of WooCommerce
         return $this->redirectToRoute("app_checkout");
     }
@@ -364,20 +357,6 @@ class TicketingController extends AbstractController
         $cartItems = $session->get("cart_items", []);
         $eventData = $session->get("event_data", null);
         $appliedCoupon = $session->get("applied_coupon", null);
-
-        $this->logger->info("Checkout page loaded", [
-            "session_id" => $session->getId(),
-            "cart_count" => count($cartItems),
-            "user_agent" => $request->headers->get("User-Agent"),
-            "has_cookie" => $request->cookies->has("PHPSESSID"),
-            "cookie_value" => $request->cookies->get("PHPSESSID"),
-        ]);
-
-        dd([
-            "session_id" => $session->getId(),
-            "cart_items" => $cartItems,
-            "cookie" => $request->cookies->get("PHPSESSID"),
-        ]);
 
         // Redirect to events page if cart is empty
         if (empty($cartItems)) {
