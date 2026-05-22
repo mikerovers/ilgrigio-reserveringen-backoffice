@@ -43,9 +43,12 @@ jobs:
             echo "Waiting for workers to stop gracefully..."
             sleep 70
 
-            # Create and set permissions for var directories
+            # Remove old cache and log files (owned by web server user)
+            echo "Removing old cache and log files..."
+            rm -rf var/cache/* var/log/* || true
+
+            # Create fresh var directories (will be owned by deployment user)
             mkdir -p var/cache var/log
-            chmod -R 775 var/
 
             # Install Dependencies (Optimized for Prod)
             composer install --no-dev --optimize-autoloader --no-scripts
@@ -66,8 +69,8 @@ jobs:
             php bin/console cache:clear --env=prod
             php bin/console cache:warmup --env=prod
 
-            # Ensure cache and log directories remain writable
-            chmod -R 775 var/cache var/log
+            # Ensure cache and log directories remain writable (ignore errors for files we don't own)
+            chmod -R 775 var/cache var/log || true
 
             # Note: Messenger workers will be automatically restarted by the cronjob within 60 seconds
             echo "Deployment complete. Messenger workers will restart via cronjob."
