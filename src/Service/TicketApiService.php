@@ -14,6 +14,7 @@ class TicketApiService
     public function __construct(
         private HttpClientInterface $httpClient,
         private LoggerInterface $logger,
+        private Utf8SanitizerService $utf8Sanitizer,
         private string $ticketApiUrl,
         private string $ticketApiKey
     ) {
@@ -62,6 +63,9 @@ class TicketApiService
                 ]);
                 return null;
             }
+
+            // Sanitize UTF-8 encoding in response
+            $data = $this->utf8Sanitizer->sanitizeArray($data);
 
             $this->logger->info('Successfully retrieved ticket information', [
                 'order_id' => $orderId,

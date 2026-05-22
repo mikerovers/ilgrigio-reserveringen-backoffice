@@ -11,6 +11,7 @@ class WooCommerceService
     public function __construct(
         private LoggerInterface $logger,
         private HttpClientInterface $httpClient,
+        private Utf8SanitizerService $utf8Sanitizer,
         private string $baseUrl,
         private string $consumerKey,
         private string $consumerSecret
@@ -51,6 +52,9 @@ class WooCommerceService
 
             $statusCode = $response->getStatusCode();
             $content = $response->toArray();
+
+            // Sanitize UTF-8 encoding in response
+            $content = $this->utf8Sanitizer->sanitizeArray($content);
 
             if ($statusCode === 201 && isset($content['id'])) {
                 $this->logger->info('Order created successfully in WooCommerce', [
@@ -119,6 +123,9 @@ class WooCommerceService
             $statusCode = $response->getStatusCode();
             $content = $response->toArray();
 
+            // Sanitize UTF-8 encoding in response
+            $content = $this->utf8Sanitizer->sanitizeArray($content);
+
             if ($statusCode === 200 && isset($content['checkout_url']) && isset($content['order_id'])) {
                 $this->logger->info('Checkout URL retrieved successfully', [
                     'order_id' => $content['order_id'],
@@ -175,6 +182,9 @@ class WooCommerceService
 
             $statusCode = $response->getStatusCode();
             $content = $response->toArray();
+
+            // Sanitize UTF-8 encoding in response
+            $content = $this->utf8Sanitizer->sanitizeArray($content);
 
             if ($statusCode === 200 && isset($content['id'])) {
                 $this->logger->info('Order details retrieved successfully', [
@@ -233,6 +243,9 @@ class WooCommerceService
 
             $statusCode = $response->getStatusCode();
             $content = $response->toArray();
+
+            // Sanitize UTF-8 encoding in response
+            $content = $this->utf8Sanitizer->sanitizeArray($content);
 
             if ($statusCode === 200 && isset($content['id'])) {
                 $this->logger->info('Order status updated successfully', [

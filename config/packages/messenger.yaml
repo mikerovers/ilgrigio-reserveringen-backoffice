@@ -15,6 +15,9 @@ framework:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
                     auto_setup: true
+                    # Set visibility timeout to ensure messages are not processed twice
+                    # Must be longer than the expected processing time
+                    visibility_timeout: 300
                 retry_strategy:
                     max_retries: 3
                     delay: 1000

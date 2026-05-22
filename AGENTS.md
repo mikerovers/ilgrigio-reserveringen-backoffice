@@ -173,7 +173,8 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 |---|---|
 | `APP_SECRET` | Symfony application secret |
 | `MAILER_DSN` | SMTP/SES DSN for Symfony Mailer |
-| `MAILER_FROM_EMAIL` | Sender address |
+| `MAILER_FROM_EMAIL` | Sender email address |
+| `MAILER_FROM_NAME` | Sender display name |
 | `ADMIN_EMAIL` | Admin notification address |
 | `WOOCOMMERCE_CONSUMER_KEY` | WooCommerce API key |
 | `WOOCOMMERCE_CONSUMER_SECRET` | WooCommerce API secret |
