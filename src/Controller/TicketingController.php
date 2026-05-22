@@ -201,6 +201,9 @@ class TicketingController extends AbstractController
         $session->set('applied_coupon', $ticketOrderDTO->appliedCoupon);
         $session->set('event_data', $event);
 
+        // Force session write before redirect (prevents race condition on mobile browsers)
+        $session->save();
+
         // Redirect to our custom checkout page instead of WooCommerce
         return $this->redirectToRoute('app_checkout');
     }
