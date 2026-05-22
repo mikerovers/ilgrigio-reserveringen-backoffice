@@ -48,10 +48,13 @@ jobs:
             chmod -R 775 var/
 
             # Install Dependencies (Optimized for Prod)
-            composer install --no-dev --optimize-autoloader
+            composer install --no-dev --optimize-autoloader --no-scripts
 
             # Run Migrations (Safe for prod)
             # php bin/console doctrine:migrations:migrate --no-interaction
+
+            # Install vendor assets (e.g., @hotwired/stimulus)
+            php bin/console importmap:install
 
             # Compile assets for production
             php bin/console asset-map:compile --env=prod
