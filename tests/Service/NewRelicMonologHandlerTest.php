@@ -259,4 +259,81 @@ final class NewRelicMonologHandlerTest extends TestCase
 
         $this->handler->handle($record);
     }
+
+    public function testHandleInterpolatesPsr3Placeholders(): void
+    {
+        $response = $this->createMock(ResponseInterface::class);
+
+        $this->httpClient
+            ->expects($this->once())
+            ->method('request')
+            ->with(
+                'POST',
+                'https://log-api.newrelic.com/log/v1',
+                $this->callback(function ($options) {
+                    $logEntry = $options['json'][0]['logs'][0];
+                    // Verify the message has placeholders replaced
+                    $this->assertEquals(
+                        'Worker stopped due to time limit of 60s exceeded',
+                        $logEntry['message']
+                    );
+                    // Context should still be present as separate fields
+                    $this->assertArrayHasKey('context.timeLimit', $logEntry);
+                    $this->assertEquals(60, $logEntry['context.timeLimit']);
+
+                    return true;
+                })
+            )
+            ->willReturn($response);
+
+        $record = new LogRecord(
+            datetime: new \DateTimeImmutable(),
+            channel: 'messenger',
+            level: Level::Info,
+            message: 'Worker stopped due to time limit of {timeLimit}s exceeded',
+            context: [
+                'timeLimit' => 60,
+            ],
+            extra: []
+        );
+
+        $this->handler->handle($record);
+    }
+
+    public function testHandleInterpolatesMultiplePlaceholders(): void
+    {
+        $response = $this->createMock(ResponseInterface::class);
+
+        $this->httpClient
+            ->expects($this->once())
+            ->method('request')
+            ->with(
+                'POST',
+                'https://log-api.newrelic.com/log/v1',
+                $this->callback(function ($options) {
+                    $logEntry = $options['json'][0]['logs'][0];
+                    $this->assertEquals(
+                        'User john processed order 12345',
+                        $logEntry['message']
+                    );
+
+                    return true;
+                })
+            )
+            ->willReturn($response);
+
+        $record = new LogRecord(
+            datetime: new \DateTimeImmutable(),
+            channel: 'app',
+            level: Level::Info,
+            message: 'User {username} processed order {orderId}',
+            context: [
+                'username' => 'john',
+                'orderId' => 12345,
+            ],
+            extra: []
+        );
+
+        $this->handler->handle($record);
+    }
 }

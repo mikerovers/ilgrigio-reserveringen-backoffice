@@ -50,7 +50,7 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
     {
         $logEntry = [
             "timestamp" => $record->datetime->getTimestamp() * 1000, // New Relic expects milliseconds
-            "message" => $record->message,
+            "message" => $this->interpolate($record->message, $record->context),
             "level" => $record->level->getName(),
             "level_name" => $record->level->getName(),
             "channel" => $record->channel,
@@ -106,5 +106,29 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
     private function buildUrl(): string
     {
         return rtrim($this->endpoint, "/") . self::NEW_RELIC_API_ENDPOINT;
+    }
+
+    /**
+     * Interpolates PSR-3 style placeholders in the message.
+     * Replaces {key} with the value from context array.
+     *
+     * @param string $message Message with {placeholders}
+     * @param array<string, mixed> $context Context values
+     * @return string Interpolated message
+     */
+    private function interpolate(string $message, array $context): string
+    {
+        if (strpos($message, "{") === false) {
+            return $message;
+        }
+
+        $replacements = [];
+        foreach ($context as $key => $value) {
+            if (is_null($value) || is_scalar($value) || (is_object($value) && method_exists($value, "__toString"))) {
+                $replacements["{" . $key . "}"] = $value;
+            }
+        }
+
+        return strtr($message, $replacements);
     }
 }
