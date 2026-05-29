@@ -146,6 +146,8 @@ export default class extends Controller {
         // Disable button and show loading state
         this.applyCouponButtonTarget.disabled = true
         this.applyCouponButtonTarget.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Valideren...'
+        this.submitButtonTarget.disabled = true
+        this.submitButtonTarget.classList.add('opacity-50', 'cursor-not-allowed')
 
         try {
             const response = await fetch('/api/validate-coupon', {
@@ -166,17 +168,21 @@ export default class extends Controller {
                 setTimeout(() => {
                     window.location.reload()
                 }, 1500)
+                // Keep the submit button disabled — the page reloads on success
+                return
             } else {
                 this.showCouponError(result.message || 'Kortingscode niet geldig')
             }
         } catch (error) {
             console.error('Error validating coupon:', error)
             this.showCouponError('Fout bij het valideren van kortingscode')
-        } finally {
-            // Reset button state
-            this.applyCouponButtonTarget.disabled = false
-            this.applyCouponButtonTarget.innerHTML = 'Toepassen'
         }
+
+        // Reached only when validation did not succeed — re-enable buttons
+        this.applyCouponButtonTarget.disabled = false
+        this.applyCouponButtonTarget.innerHTML = 'Toepassen'
+        this.submitButtonTarget.disabled = false
+        this.submitButtonTarget.classList.remove('opacity-50', 'cursor-not-allowed')
     }
 
     showCouponSuccess(coupon) {

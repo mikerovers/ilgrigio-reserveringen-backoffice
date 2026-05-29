@@ -197,6 +197,7 @@ export default class extends Controller {
         // Disable button and show loading state
         this.applyCouponButtonTarget.disabled = true
         this.applyCouponButtonTarget.textContent = 'Valideren...'
+        this.proceedButtonTarget.disabled = true
 
         try {
             const response = await fetch('/api/validate-coupon', {
@@ -226,6 +227,8 @@ export default class extends Controller {
             // Reset button state
             this.applyCouponButtonTarget.disabled = false
             this.applyCouponButtonTarget.textContent = 'Toepassen'
+            // Restore proceed button state based on current ticket count
+            this.updateOrderSummary()
         }
     }
 

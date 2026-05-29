@@ -26,6 +26,9 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
+        # Public storefront endpoints (called by anonymous browsers, no API key)
+        - { path: '^/api/(validate-coupon|remove-coupon|available-events)', roles: PUBLIC_ACCESS, requires_channel: https }
+        # All other /api routes require authentication (order-processing API)
         - { path: ^/api, roles: IS_AUTHENTICATED }
         # Force HTTPS on all routes (redirects HTTP to HTTPS automatically)
         - { path: ^/, requires_channel: https }
