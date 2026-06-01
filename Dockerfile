@@ -20,7 +20,6 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 
 COPY . .
 
-RUN composer dump-autoload --no-dev --optimize \
-    && php bin/console cache:warmup
+RUN composer dump-autoload --no-dev --optimize
 
 CMD ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=128M", "-vv"]
