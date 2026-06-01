@@ -24,15 +24,9 @@ COPY . .
 
 RUN composer dump-autoload --no-dev --optimize
 
-# Install JavaScript vendor assets
-RUN php bin/console importmap:install
-
-# Compile assets for production
-RUN php bin/console asset-map:compile --env=prod
-
-# Clear and warm cache for production
-RUN php bin/console cache:clear --env=prod --no-warmup || true
-RUN php bin/console cache:warmup --env=prod || true
+# Copy and setup entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Configure nginx
 RUN printf '%s\n' \
@@ -118,9 +112,8 @@ RUN mkdir -p /etc/supervisor/conf.d && \
 
 # Create necessary directories and set permissions
 RUN mkdir -p /var/log/supervisor /run/nginx /app/var/cache /app/var/log \
-    && chown -R www-data:www-data /app/var \
-    && chmod -R 755 /app/public/assets 2>/dev/null || true
+    && chown -R www-data:www-data /app/var
 
 EXPOSE 8080
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["docker-entrypoint.sh"]
