@@ -11,8 +11,7 @@ RUN apk add --no-cache \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
-    APP_ENV=prod \
-    SYMFONY_DOTENV_VARS=APP_ENV
+    APP_ENV=prod
 
 WORKDIR /app
 

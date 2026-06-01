@@ -85,6 +85,9 @@
         "symfony": {
             "allow-contrib": false,
             "require": "7.3.*"
+        },
+        "runtime": {
+            "disable_dotenv": true
         }
     },
     "require-dev": {
