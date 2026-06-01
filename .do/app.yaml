@@ -186,22 +186,6 @@ workers:
         value: ilgrigio-reserveringen-worker
         scope: RUN_AND_BUILD_TIME
 
-cors:
-  allow_origins:
-    - regex: ".*"
-  allow_methods:
-    - GET
-    - POST
-    - PUT
-    - PATCH
-    - DELETE
-    - OPTIONS
-  allow_headers:
-    - Content-Type
-    - Authorization
-    - X-API-KEY
-  max_age: 3600
-
 ingress:
   rules:
     - match:
