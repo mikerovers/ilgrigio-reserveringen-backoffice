@@ -12,6 +12,13 @@ framework:
         cookie_samesite: lax
         cookie_secure: auto
 
+    # HTTP client configuration
+    http_client:
+        scoped_clients:
+            # Dedicated client for New Relic without logging to prevent infinite loops
+            newrelic.client:
+                base_uri: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
+
     #esi: true
     #fragments: true
 
