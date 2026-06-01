@@ -10,7 +10,9 @@ RUN apk add --no-cache \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    APP_ENV=prod \
+    SYMFONY_DOTENV_VARS=APP_ENV
 
 WORKDIR /app
 
@@ -20,6 +22,6 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 COPY . .
 
 RUN composer dump-autoload --no-dev --optimize \
-    && APP_ENV=prod php bin/console cache:warmup
+    && php bin/console cache:warmup
 
 CMD ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=128M", "-vv"]
