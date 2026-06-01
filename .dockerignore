@@ -1,0 +1,17 @@
+.git
+.github
+.do
+var/cache
+var/log
+var/sessions
+node_modules
+tests
+docs
+*.md
+.env.local
+.env.dev
+.env.test
+.env.*.local
+phpcs.xml.dist
+phpunit.xml.dist
+phpunit.dist.xml

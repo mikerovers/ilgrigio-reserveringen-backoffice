@@ -1,0 +1,23 @@
+FROM php:8.2-cli-alpine
+
+RUN apk add --no-cache \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    icu-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd intl
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+COPY . .
+
+RUN APP_ENV=prod composer run-script post-install-cmd --no-dev --no-interaction 2>/dev/null || true \
+    && APP_ENV=prod php bin/console cache:warmup
+
+CMD ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=128M", "-vv"]

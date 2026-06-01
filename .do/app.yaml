@@ -1,0 +1,88 @@
+name: ilgrigio-reserveringen-messenger
+region: ams
+
+workers:
+  - name: messenger-consumer
+    github:
+      repo: mikerovers/ilgrigio-reserveringen-backoffice
+      branch: master
+      deploy_on_push: true
+    dockerfile_path: Dockerfile
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    envs:
+      - key: APP_ENV
+        value: prod
+        scope: RUN_AND_BUILD_TIME
+      - key: APP_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: APP_NAME
+        value: "Il Grigio Reserveringen"
+        scope: RUN_AND_BUILD_TIME
+      - key: MAILER_DSN
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: MAILER_FROM_EMAIL
+        value: ses@ilgrigio.nl
+        scope: RUN_AND_BUILD_TIME
+      - key: MAILER_FROM_NAME
+        value: "Il Grigio Reserveringen"
+        scope: RUN_AND_BUILD_TIME
+      - key: ADMIN_EMAIL
+        value: reserveringen@ilgrigio.nl
+        scope: RUN_AND_BUILD_TIME
+      - key: WOOCOMMERCE_CONSUMER_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: WOOCOMMERCE_CONSUMER_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: WOOCOMMERCE_WEBHOOK_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: ILGRIGIO_BASE_URL
+        value: https://backoffice.ilgrigio.nl
+        scope: RUN_AND_BUILD_TIME
+      - key: ILGRIGIO_BASE_API_URL
+        value: https://backoffice.ilgrigio.nl/wp-json
+        scope: RUN_AND_BUILD_TIME
+      - key: ILGRIGIO_RESERVERINGEN_BASE_URL
+        value: https://reserveringen.ilgrigio.nl
+        scope: RUN_AND_BUILD_TIME
+      - key: PDF_TOKEN_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: PDF_TOKEN_EXPIRATION_DAYS
+        value: "150"
+        scope: RUN_AND_BUILD_TIME
+      - key: ILGRIGIO_TICKET_API_URL
+        value: https://backoffice.ilgrigio.nl/wp-json/tc-custom-endpoint/order/get
+        scope: RUN_AND_BUILD_TIME
+      - key: ILGRIGIO_TICKET_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: MOLLIE_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: MAX_TICKETS_PER_ORDER
+        value: "25"
+        scope: RUN_AND_BUILD_TIME
+      - key: TAX_RATE
+        value: "9"
+        scope: RUN_AND_BUILD_TIME
+      - key: API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: MESSENGER_TRANSPORT_DSN
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: NEW_RELIC_LICENSE_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: NEW_RELIC_LOGS_ENDPOINT
+        value: https://log-api.eu.newrelic.com
+        scope: RUN_AND_BUILD_TIME
+      - key: NEW_RELIC_APP_NAME
+        value: ilgrigio-reserveringen-messenger
+        scope: RUN_AND_BUILD_TIME
