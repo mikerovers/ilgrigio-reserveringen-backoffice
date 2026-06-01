@@ -189,10 +189,8 @@ workers:
 domains:
   - domain: reserveringen.ilgrigio.nl
     type: PRIMARY
-    zone: ilgrigio.nl
   - domain: www.reserveringen.ilgrigio.nl
     type: ALIAS
-    zone: ilgrigio.nl
 
 ingress:
   rules:
