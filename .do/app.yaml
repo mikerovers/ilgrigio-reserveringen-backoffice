@@ -186,6 +186,14 @@ workers:
         value: ilgrigio-reserveringen-worker
         scope: RUN_AND_BUILD_TIME
 
+domains:
+  - domain: reserveringen.ilgrigio.nl
+    type: PRIMARY
+    zone: ilgrigio.nl
+  - domain: www.reserveringen.ilgrigio.nl
+    type: ALIAS
+    zone: ilgrigio.nl
+
 ingress:
   rules:
     - match:
