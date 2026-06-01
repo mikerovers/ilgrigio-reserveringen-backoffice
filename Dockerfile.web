@@ -24,9 +24,86 @@ COPY . .
 
 RUN composer dump-autoload --no-dev --optimize
 
-# Configure nginx and supervisor from copied files
-RUN cp /app/.do/nginx.conf /etc/nginx/nginx.conf && \
-    cp /app/.do/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Configure nginx
+RUN cat > /etc/nginx/nginx.conf <<'EOF'
+user www-data;
+worker_processes auto;
+pid /run/nginx/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+
+    server {
+        listen 8080;
+        server_name _;
+        root /app/public;
+
+        location / {
+            try_files $uri /index.php$is_args$args;
+        }
+
+        location ~ ^/index\.php(/|$) {
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_split_path_info ^(.+\.php)(/.*)$;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+            fastcgi_param DOCUMENT_ROOT $realpath_root;
+            internal;
+        }
+
+        location ~ \.php$ {
+            return 404;
+        }
+    }
+}
+EOF
+
+# Configure supervisor
+RUN cat > /etc/supervisor/conf.d/supervisord.conf <<'EOF'
+[supervisord]
+nodaemon=true
+user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[program:php-fpm]
+command=php-fpm --nodaemonize
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+startretries=3
+
+[program:nginx]
+command=nginx -g 'daemon off;'
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+startretries=3
+EOF
 
 # Create necessary directories
 RUN mkdir -p /var/log/supervisor /run/nginx /app/var/cache /app/var/log \
