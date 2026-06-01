@@ -24,12 +24,20 @@ security:
             lazy: true
 
     # Easy way to control access for large sections of your site
-    # Note: Only the *first* access control that matches will be used
+    # Note: Only the *first* access control that matches will be used.
+    # access_control may only be defined ONCE across all merged config files
+    # for a given environment, so all rules live here. The HTTPS requirement on
+    # non-API routes is driven by the SECURE_CHANNEL env var (https in prod,
+    # null elsewhere) so it can be enforced in production without breaking
+    # local http development.
     access_control:
         # Public storefront endpoints (called by anonymous browsers, no API key)
+        # Kept on PUBLIC_ACCESS so CORS preflight / anonymous calls work.
         - { path: '^/api/(validate-coupon|remove-coupon|available-events)', roles: PUBLIC_ACCESS }
         # All other /api routes require authentication (order-processing API)
         - { path: ^/api, roles: IS_AUTHENTICATED }
+        # Force HTTPS on non-API routes (prod only, via SECURE_CHANNEL)
+        - { path: ^/, requires_channel: '%env(default::SECURE_CHANNEL)%' }
 
 when@test:
     security:

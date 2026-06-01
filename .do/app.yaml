@@ -76,7 +76,10 @@ services:
         scope: RUN_AND_BUILD_TIME
         type: SECRET
       - key: CORS_ALLOW_ORIGIN
-        value: "*"
+        value: ^https://kassa\.ilgrigio\.nl$
+        scope: RUN_AND_BUILD_TIME
+      - key: SECURE_CHANNEL
+        value: https
         scope: RUN_AND_BUILD_TIME
       - key: MESSENGER_TRANSPORT_DSN
         scope: RUN_AND_BUILD_TIME
@@ -165,7 +168,10 @@ workers:
         scope: RUN_AND_BUILD_TIME
         type: SECRET
       - key: CORS_ALLOW_ORIGIN
-        value: "*"
+        value: ^https://kassa\.ilgrigio\.nl$
+        scope: RUN_AND_BUILD_TIME
+      - key: SECURE_CHANNEL
+        value: https
         scope: RUN_AND_BUILD_TIME
       - key: MESSENGER_TRANSPORT_DSN
         scope: RUN_AND_BUILD_TIME

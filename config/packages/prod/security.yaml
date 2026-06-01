@@ -1,8 +1,0 @@
-security:
-    access_control:
-        # Public storefront endpoints - allow HTTP for CORS preflight
-        - { path: '^/api/(validate-coupon|remove-coupon|available-events)', roles: PUBLIC_ACCESS }
-        # API routes - allow HTTP for CORS preflight, authentication still required
-        - { path: ^/api, roles: IS_AUTHENTICATED }
-        # Force HTTPS on non-API routes only
-        - { path: ^/, requires_channel: https }
