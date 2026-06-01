@@ -1,6 +1,10 @@
 name: ilgrigio-reserveringen
 region: ams
 
+alerts:
+    - rule: DEPLOYMENT_FAILED
+    - rule: DOMAIN_FAILED
+
 envs:
     - key: APP_ENV
       value: prod
@@ -91,6 +95,19 @@ services:
       instance_size_slug: basic-xxs
       instance_count: 1
       http_port: 8080
+      alerts:
+          - rule: RESTART_COUNT
+            operator: GREATER_THAN
+            value: 3
+            window: FIVE_MINUTES
+          - rule: CPU_UTILIZATION
+            operator: GREATER_THAN
+            value: 80
+            window: FIVE_MINUTES
+          - rule: MEM_UTILIZATION
+            operator: GREATER_THAN
+            value: 80
+            window: FIVE_MINUTES
       envs:
           - key: NEW_RELIC_APP_NAME
             value: ilgrigio-reserveringen-web
@@ -105,6 +122,19 @@ workers:
       dockerfile_path: Dockerfile
       instance_size_slug: basic-xxs
       instance_count: 1
+      alerts:
+          - rule: RESTART_COUNT
+            operator: GREATER_THAN
+            value: 3
+            window: FIVE_MINUTES
+          - rule: CPU_UTILIZATION
+            operator: GREATER_THAN
+            value: 80
+            window: FIVE_MINUTES
+          - rule: MEM_UTILIZATION
+            operator: GREATER_THAN
+            value: 80
+            window: FIVE_MINUTES
       envs:
           - key: NEW_RELIC_APP_NAME
             value: ilgrigio-reserveringen-worker
