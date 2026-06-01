@@ -5,7 +5,6 @@ namespace App\Service;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Level;
 use Monolog\LogRecord;
-use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class NewRelicMonologHandler extends AbstractProcessingHandler
@@ -14,7 +13,6 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
 
     public function __construct(
         private HttpClientInterface $httpClient,
-        private LoggerInterface $fallbackLogger,
         private string $licenseKey,
         private string $endpoint,
         private string $appName,
@@ -39,10 +37,7 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
                 "timeout" => 5,
             ]);
         } catch (\Exception $e) {
-            $this->fallbackLogger->error("Failed to send log to New Relic", [
-                "error" => $e->getMessage(),
-                "original_message" => $record->message,
-            ]);
+            error_log(sprintf('NewRelicMonologHandler: failed to send log: %s (original: %s)', $e->getMessage(), $record->message));
         }
     }
 

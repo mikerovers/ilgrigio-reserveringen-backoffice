@@ -106,7 +106,6 @@ services:
     App\Service\NewRelicMonologHandler:
         arguments:
             $httpClient: '@http_client'
-            $fallbackLogger: '@logger'
             $licenseKey: '%env(NEW_RELIC_LICENSE_KEY)%'
             $endpoint: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
             $appName: '%env(NEW_RELIC_APP_NAME)%'
