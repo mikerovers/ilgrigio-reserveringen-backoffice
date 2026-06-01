@@ -37,7 +37,8 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
                 "timeout" => 5,
             ]);
         } catch (\Exception $e) {
-            error_log(sprintf('NewRelicMonologHandler: failed to send log: %s (original: %s)', $e->getMessage(), $record->message));
+            // Silently fail to prevent infinite logging loops
+            // Do NOT use error_log, trigger_error, or any logging here
         }
     }
 
