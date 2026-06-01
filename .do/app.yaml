@@ -75,6 +75,9 @@ services:
       - key: API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
+      - key: CORS_ALLOW_ORIGIN
+        value: "*"
+        scope: RUN_AND_BUILD_TIME
       - key: MESSENGER_TRANSPORT_DSN
         scope: RUN_AND_BUILD_TIME
         type: SECRET
@@ -161,6 +164,9 @@ workers:
       - key: API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
+      - key: CORS_ALLOW_ORIGIN
+        value: "*"
+        scope: RUN_AND_BUILD_TIME
       - key: MESSENGER_TRANSPORT_DSN
         scope: RUN_AND_BUILD_TIME
         type: SECRET
