@@ -17,7 +17,7 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 
 COPY . .
 
-RUN APP_ENV=prod composer run-script post-install-cmd --no-dev --no-interaction 2>/dev/null || true \
+RUN composer dump-autoload --no-dev --optimize \
     && APP_ENV=prod php bin/console cache:warmup
 
 CMD ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=128M", "-vv"]
