@@ -25,7 +25,7 @@ COPY . .
 RUN composer dump-autoload --no-dev --optimize
 
 # Configure nginx
-RUN cat > /etc/nginx/nginx.conf <<'EOF'
+RUN cat > /etc/nginx/nginx.conf <<'NGINX_EOF'
 user www-data;
 worker_processes auto;
 pid /run/nginx/nginx.pid;
@@ -76,11 +76,11 @@ http {
         }
     }
 }
-EOF
+NGINX_EOF
 
 # Configure supervisor
 RUN mkdir -p /etc/supervisor/conf.d && \
-    cat > /etc/supervisor/conf.d/supervisord.conf <<'EOF'
+    cat > /etc/supervisor/conf.d/supervisord.conf <<'SUPERVISOR_EOF'
 [supervisord]
 nodaemon=true
 user=root
@@ -104,7 +104,7 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 autorestart=true
 startretries=3
-EOF
+SUPERVISOR_EOF
 
 # Create necessary directories
 RUN mkdir -p /var/log/supervisor /run/nginx /app/var/cache /app/var/log \
