@@ -22,9 +22,9 @@ Wil je op de hoogte blijven van nieuws van Il Grigio? Like onze Facebook-pagina.
 
 Wij wensen je een fijne voorstelling!
 
-[Bestelling #{{ order_number }}] ({{ order_date|date('d F Y') }})
+[Reservering #{{ order_number }}] ({{ order_date|date('d F Y') }})
 
-Bestellingsdetails:
+Reserveringsdetails:
 {% if order_data.line_items %}
 {% for item in order_data.line_items %}
 - {{ item.name }}
