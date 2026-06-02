@@ -1,6 +1,6 @@
 email:
     customer:
-        subject: "Bestellingsbevestiging #%order_number%"
+        subject: "Reserveringsbevestiging #%order_number%"
 
 pdf:
     ticket:
