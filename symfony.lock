@@ -282,5 +282,8 @@
         "files": [
             "config/routes/webhook.yaml"
         ]
+    },
+    "twig/extra-bundle": {
+        "version": "v3.24.0"
     }
 }

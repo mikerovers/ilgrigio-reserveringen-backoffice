@@ -369,6 +369,7 @@ class TestController extends AbstractController
             "number" => "TEST12345",
             "date_created" => "2025-08-08T15:30:00",
             "total" => "15.00",
+            "total_tax" => "1.24",
             "billing" => [
                 "first_name" => "Test",
                 "last_name" => "Customer",
@@ -406,6 +407,7 @@ class TestController extends AbstractController
             "customer_email" => $sampleOrderData["billing"]["email"],
             "download_url" => $downloadUrl,
             "order_total" => $sampleOrderData["total"],
+            "total_tax" => $sampleOrderData["total_tax"] ?? null,
             "order_data" => $sampleOrderData,
         ];
 

@@ -11,8 +11,6 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mime\Address;
 use Symfony\Contracts\Translation\TranslatorInterface;
-use Symfony\Component\Mime\Part\DataPart;
-use Symfony\Component\Mime\Part\File;
 
 #[AsMessageHandler]
 class SendOrderEmailMessageHandler
@@ -91,6 +89,7 @@ class SendOrderEmailMessageHandler
                 "customer_email" => $customerEmail,
                 "download_url" => $downloadUrl,
                 "order_total" => $orderData["total"] ?? null,
+                "total_tax" => $orderData["total_tax"] ?? null,
                 "order_data" => $orderData,
             ];
 
@@ -108,18 +107,8 @@ class SendOrderEmailMessageHandler
                 ->context($templateVars)
                 ->attach(
                     $pdfContent,
-                    "e-ticket-" . $orderNumber . ".pdf",
+                    "tickets-" . $orderNumber . ".pdf",
                     "application/pdf",
-                )
-                ->addPart(
-                    (new DataPart(
-                        new File(
-                            __DIR__ .
-                                "/../../assets/images/Logo-IlGrigioClown.png",
-                        ),
-                        "logo",
-                        "image/png",
-                    ))->asInline(),
                 );
 
             $this->mailer->send($customerConfirmation);
