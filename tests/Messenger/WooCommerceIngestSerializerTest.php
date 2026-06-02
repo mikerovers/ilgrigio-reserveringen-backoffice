@@ -73,14 +73,30 @@ class WooCommerceIngestSerializerTest extends TestCase
         ]);
     }
 
-    public function testEncodeIsUnsupported(): void
+    public function testEncodeDecodeRoundTripPreservesMessageAndStamps(): void
     {
-        $this->expectException(\LogicException::class);
-
-        $this->serializer->encode(
-            new \Symfony\Component\Messenger\Envelope(
-                new IncomingWooCommerceWebhookMessage('{}', null, 'order.updated')
-            )
+        $original = new \Symfony\Component\Messenger\Envelope(
+            new IncomingWooCommerceWebhookMessage(
+                '{"action":"woocommerce_order_status_completed","arg":94982}',
+                'sig123',
+                'action.woocommerce_order_status_completed',
+                'order.updated'
+            ),
+            [new \Symfony\Component\Messenger\Stamp\RedeliveryStamp(2)]
         );
+
+        // Re-queued messages (retries / DLQ) must round-trip with their retry count
+        // intact, otherwise an always-failing message would loop forever.
+        $encoded = $this->serializer->encode($original);
+        $decoded = $this->serializer->decode($encoded);
+
+        $message = $decoded->getMessage();
+        $this->assertInstanceOf(IncomingWooCommerceWebhookMessage::class, $message);
+        $this->assertSame('sig123', $message->getSignature());
+        $this->assertSame('action.woocommerce_order_status_completed', $message->getTopic());
+
+        $stamp = $decoded->last(\Symfony\Component\Messenger\Stamp\RedeliveryStamp::class);
+        $this->assertNotNull($stamp);
+        $this->assertSame(2, $stamp->getRetryCount());
     }
 }
