@@ -81,6 +81,9 @@ envs:
     - key: MESSENGER_INGEST_TRANSPORT_DSN
       scope: RUN_AND_BUILD_TIME
       type: SECRET
+    - key: MESSENGER_INGEST_DLQ_TRANSPORT_DSN
+      scope: RUN_AND_BUILD_TIME
+      type: SECRET
     - key: NEW_RELIC_LICENSE_KEY
       scope: RUN_AND_BUILD_TIME
       type: SECRET

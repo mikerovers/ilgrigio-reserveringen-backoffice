@@ -211,3 +211,4 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `API_KEY` | API key for `OrderApiController` authentication |
 | `MESSENGER_TRANSPORT_DSN` | SQS DSN for the `async` queue (internal app messages) |
 | `MESSENGER_INGEST_TRANSPORT_DSN` | SQS DSN for the `webhook_ingest` queue (raw WooCommerce webhooks via API Gateway) |
+| `MESSENGER_INGEST_DLQ_TRANSPORT_DSN` | SQS DSN for the ingest dead-letter queue; the `webhook_ingest` `failure_transport` routes app-level failures here |

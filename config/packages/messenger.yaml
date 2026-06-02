@@ -39,6 +39,22 @@ framework:
                     delay: 1000
                     multiplier: 2
                     max_delay: 0
+                # App-level failures (invalid signature/JSON/order ID, or transient
+                # errors that exhaust the retries above) are routed here instead of
+                # being dropped. This is the DLQ for failures Messenger sees; the SQS
+                # redrive policy on the ingest queue separately catches infrastructure
+                # failures (worker crash, visibility-timeout expiry).
+                failure_transport: webhook_ingest_failed
+            # Dead-letter transport for webhook_ingest. Points at the same SQS DLQ as
+            # the ingest queue's redrive policy. Uses the ingest serializer so stored
+            # failures (full Messenger envelopes with stamps) round-trip on
+            # messenger:failed:show/retry. Not consumed by the worker on purpose: it
+            # accumulates for manual inspection.
+            webhook_ingest_failed:
+                dsn: '%env(MESSENGER_INGEST_DLQ_TRANSPORT_DSN)%'
+                serializer: 'App\Messenger\WooCommerceIngestSerializer'
+                options:
+                    auto_setup: false
             # failed: 'doctrine://default?queue_name=failed'
             sync: 'sync://'
 
