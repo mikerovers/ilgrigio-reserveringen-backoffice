@@ -5,10 +5,11 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     freetype-dev \
     icu-dev \
+    libxslt-dev \
     nginx \
     supervisor \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd intl
+    && docker-php-ext-install -j$(nproc) gd intl xsl
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
