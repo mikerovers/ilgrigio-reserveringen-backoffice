@@ -68,9 +68,10 @@ src/
   DTO/                # Data Transfer Objects with validation constraints
   Message/            # Symfony Messenger message classes
   MessageHandler/     # Async message handlers
+  Messenger/          # Custom Messenger transport serializers
   Security/           # API key authenticator and user provider
   Service/            # Business logic services
-  Webhook/            # WooCommerce webhook request parser
+  Webhook/            # WooCommerce webhook request parser + order normalizer
 templates/            # Twig templates (HTML, email, PDF)
 tests/                # PHPUnit tests mirroring src/ structure
 translations/         # i18n YAML files (currently Dutch: messages.nl.yaml)
@@ -135,6 +136,24 @@ config/
 - Use Symfony Validator `#[Assert\...]` attributes on DTOs for input validation
 - Throw `$this->createNotFoundException(...)` from controllers; re-throw domain exceptions
 
+### WooCommerce webhook ingress (two interchangeable routes)
+
+Completed orders reach the app via **one of two** ingress routes, configured as the
+WooCommerce Delivery URL (only one active at a time — see
+`docs/aws-webhook-ingress.md`):
+
+- **Route A — API Gateway → SQS** (resilient; app web service off the delivery
+  path): raw webhook lands on the `webhook_ingest` queue, decoded by
+  `App\Messenger\WooCommerceIngestSerializer`, handled by
+  `IncomingWooCommerceWebhookMessageHandler` (validate signature → normalize →
+  `processOrder()`).
+- **Route B — HTTP `/webhook`** (original): `WooCommerceRequestParser` +
+  `WooCommerceWebhookController` (`#[AsRemoteEventConsumer('woocommerce')]`).
+
+Both routes share `WooCommerceOrderNormalizer` (legacy vs. `{action, arg}` payload
+formats) and converge on `OrderPdfService::processOrder()`. When adding ingress
+logic, change the shared normalizer/service — not one route only.
+
 ### Error handling and logging
 - Catch `\Exception` at integration boundaries; re-throw after logging
 - Always log errors with contextual data arrays (order ID, token prefix, etc.):
@@ -190,3 +209,5 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `MAX_TICKETS_PER_ORDER` | Ticket purchase limit per order |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |
 | `API_KEY` | API key for `OrderApiController` authentication |
+| `MESSENGER_TRANSPORT_DSN` | SQS DSN for the `async` queue (internal app messages) |
+| `MESSENGER_INGEST_TRANSPORT_DSN` | SQS DSN for the `webhook_ingest` queue (raw WooCommerce webhooks via API Gateway) |

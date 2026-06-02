@@ -24,12 +24,29 @@ framework:
                     multiplier: 2
                     max_delay: 0
                 failure_transport: sync
+            # Raw WooCommerce webhooks delivered via API Gateway -> SQS.
+            # A custom serializer wraps the raw SQS body + message attributes into an
+            # IncomingWooCommerceWebhookMessage. Dead-lettering is handled by the SQS
+            # redrive policy on the queue itself (configured on the AWS side).
+            webhook_ingest:
+                dsn: '%env(MESSENGER_INGEST_TRANSPORT_DSN)%'
+                serializer: 'App\Messenger\WooCommerceIngestSerializer'
+                options:
+                    auto_setup: false
+                    visibility_timeout: 300
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 0
             # failed: 'doctrine://default?queue_name=failed'
             sync: 'sync://'
 
         routing:
             # Route your messages to the transports
             # 'App\Message\SendOrderEmailMessage': async
+            # IncomingWooCommerceWebhookMessage is routed to webhook_ingest via its
+            # #[AsMessage('webhook_ingest')] attribute and is only ever received, not sent.
 
 # when@test:
 #    framework:

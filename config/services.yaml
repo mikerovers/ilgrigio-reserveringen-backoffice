@@ -30,6 +30,7 @@ services:
     App\Webhook\WooCommerceRequestParser:
         arguments:
             $webhookSecurityService: '@App\Service\WebhookSecurityService'
+            $orderNormalizer: '@App\Webhook\WooCommerceOrderNormalizer'
             $logger: '@logger'
         tags:
             - { name: 'webhook.request_parser', type: 'woocommerce' }

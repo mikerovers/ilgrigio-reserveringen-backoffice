@@ -33,7 +33,7 @@ RUN mkdir -p /etc/supervisor/conf.d /var/log/supervisor && \
     'pidfile=/var/run/supervisord.pid' \
     '' \
     '[program:messenger-consume]' \
-    'command=php /app/bin/console messenger:consume async --time-limit=3600 --memory-limit=128M -vv' \
+    'command=php /app/bin/console messenger:consume async webhook_ingest --time-limit=3600 --memory-limit=128M -vv' \
     'stdout_logfile=/dev/stdout' \
     'stdout_logfile_maxbytes=0' \
     'stderr_logfile=/dev/stderr' \

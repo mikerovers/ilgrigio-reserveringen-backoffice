@@ -4,6 +4,7 @@ namespace App\Tests\Webhook;
 
 use App\Service\WebhookSecurityService;
 use App\Service\WooCommerceService;
+use App\Webhook\WooCommerceOrderNormalizer;
 use App\Webhook\WooCommerceRequestParser;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
@@ -27,9 +28,17 @@ class WooCommerceRequestParserTest extends KernelTestCase
         $this->wooCommerceService = $this->createMock(WooCommerceService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
+        // The parser delegates payload normalization to a real WooCommerceOrderNormalizer
+        // built from the mocked collaborators, so the existing getOrder()/logger
+        // expectations continue to apply unchanged.
+        $normalizer = new WooCommerceOrderNormalizer(
+            $this->wooCommerceService,
+            $this->logger
+        );
+
         $this->parser = new WooCommerceRequestParser(
             $this->webhookSecurityService,
-            $this->wooCommerceService,
+            $normalizer,
             $this->logger
         );
     }

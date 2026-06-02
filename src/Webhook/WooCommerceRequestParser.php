@@ -3,7 +3,6 @@
 namespace App\Webhook;
 
 use App\Service\WebhookSecurityService;
-use App\Service\WooCommerceService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestMatcher\MethodRequestMatcher;
@@ -16,7 +15,7 @@ class WooCommerceRequestParser extends AbstractRequestParser
 {
     public function __construct(
         private WebhookSecurityService $webhookSecurityService,
-        private WooCommerceService $wooCommerceService,
+        private WooCommerceOrderNormalizer $orderNormalizer,
         private LoggerInterface $logger
     ) {}
 
@@ -52,47 +51,12 @@ class WooCommerceRequestParser extends AbstractRequestParser
             throw new RejectWebhookException(400, 'Missing webhook topic header');
         }
 
-        // Check if this is an action-based webhook (new format)
-        if (isset($webhookData['action']) && isset($webhookData['arg'])) {
-            $this->logger->info('Processing action-based webhook', [
-                'action' => $webhookData['action'],
-                'order_id' => $webhookData['arg']
-            ]);
-
-            // Fetch the full order data from WooCommerce
-            $orderId = (int) $webhookData['arg'];
-            $orderData = $this->wooCommerceService->getOrder($orderId);
-
-            if (!$orderData) {
-                $this->logger->error('Failed to fetch order from WooCommerce', [
-                    'order_id' => $orderId
-                ]);
-
-                throw new RejectWebhookException(400, 'Unable to fetch order data');
-            }
-
-            // Add webhook metadata
-            $orderData['_webhook_topic'] = $topic;
-            $orderData['_webhook_action'] = $webhookData['action'];
-
-            return new RemoteEvent(
-                'woocommerce',
-                (string) $orderData['id'],
-                $orderData
-            );
+        // Normalize both webhook formats (legacy + action-based) into a full order
+        try {
+            $orderData = $this->orderNormalizer->normalize($webhookData, $topic);
+        } catch (WooCommerceOrderNormalizationException $e) {
+            throw new RejectWebhookException(400, $e->getMessage());
         }
-
-        // Handle legacy format (order data directly in payload)
-        $orderData = $webhookData;
-
-        // Validate that order ID exists in legacy format
-        if (!isset($orderData['id'])) {
-            $this->logger->error('Missing order ID in webhook payload');
-            throw new RejectWebhookException(400, 'Missing order ID in payload');
-        }
-
-        // Add topic information to the payload
-        $orderData['_webhook_topic'] = $topic;
 
         return new RemoteEvent(
             'woocommerce',
