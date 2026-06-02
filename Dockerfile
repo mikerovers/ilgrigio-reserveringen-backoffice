@@ -21,6 +21,10 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 
 COPY . .
 
+# Provide an empty .env so Symfony runtime dotenv loading does not error in prod
+# (real config comes from DigitalOcean platform env vars; .env is gitignored/dockerignored).
+RUN touch .env
+
 RUN composer dump-autoload --no-dev --optimize
 
 # Configure supervisor to keep the messenger consumer running and restart it on exit
