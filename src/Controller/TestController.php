@@ -6,10 +6,12 @@ use App\Service\OrderPdfService;
 use App\Service\TicketApiService;
 use App\Service\TicketNameService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+#[When(env: 'dev')]
 class TestController extends AbstractController
 {
     public function __construct(
