@@ -9,6 +9,7 @@ when@dev:
                 type: service
                 id: App\Service\NewRelicMonologHandler
                 level: info
+                channels: ["!http_client"]
             main:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
@@ -40,6 +41,7 @@ when@prod:
                 type: service
                 id: App\Service\NewRelicMonologHandler
                 level: warning
+                channels: ["!http_client"]
             main:
                 type: fingers_crossed
                 action_level: error
