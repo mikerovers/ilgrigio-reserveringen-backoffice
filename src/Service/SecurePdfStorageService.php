@@ -25,7 +25,8 @@ class SecurePdfStorageService
         private WooCommerceService $wooCommerceService,
         private string $tokenSecret,
         private int $tokenExpirationDays = 150
-    ) {}
+    ) {
+    }
 
     /**
      * Generate a secure token for PDF access using HMAC signing

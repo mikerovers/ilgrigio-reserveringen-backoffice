@@ -25,7 +25,8 @@ class OrderPdfService
         private SecurePdfStorageService $securePdfStorageService,
         private TicketApiService $ticketApiService,
         private TicketNameService $ticketNameService
-    ) {}
+    ) {
+    }
 
     public function processOrder(array $orderData): void
     {

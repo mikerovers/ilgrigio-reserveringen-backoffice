@@ -17,7 +17,8 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 {
     public function __construct(
         private string $apiKey
-    ) {}
+    ) {
+    }
 
     public function supports(Request $request): ?bool
     {

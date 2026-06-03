@@ -18,7 +18,8 @@ class OrderApiController extends AbstractController
         private OrderPdfService $orderPdfService,
         private WooCommerceService $wooCommerceService,
         private LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     #[
         Route(

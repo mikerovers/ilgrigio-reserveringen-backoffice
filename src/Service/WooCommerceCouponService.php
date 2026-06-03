@@ -14,7 +14,8 @@ class WooCommerceCouponService
         private string $baseUrl,
         private string $consumerKey,
         private string $consumerSecret,
-    ) {}
+    ) {
+    }
 
     /**
      * Validate a coupon code through the WooCommerce API

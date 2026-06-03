@@ -298,7 +298,7 @@ class TicketingControllerThankYouTest extends TestCase
         foreach ($testCases as $index => $metaCase) {
             // Reset all mocks for each iteration
             $this->setUp();
-            
+
             $orderId = 100 + $index;
             $orderData = [
                 'id' => $orderId,
@@ -335,15 +335,18 @@ class TicketingControllerThankYouTest extends TestCase
             $controller = $this->createController();
             $response = $controller->thankYou($request);
 
-            $this->assertEquals(Response::HTTP_OK, $response->getStatusCode(), 
-                "Failed for meta key: {$metaCase['key']}");
+            $this->assertEquals(
+                Response::HTTP_OK,
+                $response->getStatusCode(),
+                "Failed for meta key: {$metaCase['key']}"
+            );
         }
     }
 
     public function testExtractOrderKeyMethod(): void
     {
         $controller = $this->createController();
-        
+
         // Use reflection to test private method
         $reflectionClass = new \ReflectionClass($controller);
         $method = $reflectionClass->getMethod('extractOrderKey');
@@ -389,7 +392,7 @@ class TicketingControllerThankYouTest extends TestCase
     private function createController(): TicketingController
     {
         // Create a mock controller that extends the original
-        return new class(
+        return new class (
             $this->wooCommerceEventsService,
             $this->productVariationsService,
             $this->couponService,
@@ -403,7 +406,7 @@ class TicketingControllerThankYouTest extends TestCase
             $this->twig
         ) extends TicketingController {
             private Environment $twig;
-            
+
             public function __construct(
                 WooCommerceEventsService $wooCommerceEventsService,
                 WooCommerceProductVariationsService $productVariationsService,
@@ -431,8 +434,8 @@ class TicketingControllerThankYouTest extends TestCase
                 );
                 $this->twig = $twig;
             }
-            
-            protected function render(string $view, array $parameters = [], Response $response = null): Response
+
+            protected function render(string $view, array $parameters = [], ?Response $response = null): Response
             {
                 $content = $this->twig->render($view, $parameters);
                 $response = $response ?: new Response();

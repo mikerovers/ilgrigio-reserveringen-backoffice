@@ -36,6 +36,8 @@ class PdfDownloadControllerTest extends WebTestCase
             static::getContainer()->get('twig'),
             static::getContainer()->get(\App\Service\TicketApiService::class),
             static::getContainer()->get('logger'),
+            static::getContainer()->get(\App\Service\TicketNameService::class),
+            static::getContainer()->get(\App\Service\WooCommerceService::class),
             'test-secret-key',
             150 // 150 days expiration (5 months)
         );
@@ -107,19 +109,24 @@ class PdfDownloadControllerTest extends WebTestCase
 
     public function testTokenGenerationAndValidation(): void
     {
+        $orderData = [
+            'id' => 456,
+            'number' => 'ORDER-456',
+            'billing' => ['email' => 'test2@example.com']
+        ];
+
+        $wooCommerceService = $this->createMock(\App\Service\WooCommerceService::class);
+        $wooCommerceService->method('getOrder')->with(456)->willReturn($orderData);
+
         $service = new SecurePdfStorageService(
             static::getContainer()->get('twig'),
             static::getContainer()->get(\App\Service\TicketApiService::class),
             static::getContainer()->get('logger'),
+            static::getContainer()->get(\App\Service\TicketNameService::class),
+            $wooCommerceService,
             'test-secret-key',
             150 // 150 days expiration (5 months)
         );
-
-        $orderData = [
-        'id' => 456,
-        'number' => 'ORDER-456',
-        'billing' => ['email' => 'test2@example.com']
-        ];
 
       // Generate token
         $token = $service->generateSecureToken($orderData);
@@ -127,7 +134,7 @@ class PdfDownloadControllerTest extends WebTestCase
       // Verify token is valid
         $this->assertTrue($service->isValidToken($token));
 
-      // Verify order data can be retrieved
+      // Verify order data can be retrieved (fetched from WooCommerce by order ID in token)
         $retrievedData = $service->getOrderDataByToken($token);
         $this->assertEquals($orderData, $retrievedData);
 
@@ -141,6 +148,8 @@ class PdfDownloadControllerTest extends WebTestCase
             static::getContainer()->get('twig'),
             static::getContainer()->get(\App\Service\TicketApiService::class),
             static::getContainer()->get('logger'),
+            static::getContainer()->get(\App\Service\TicketNameService::class),
+            static::getContainer()->get(\App\Service\WooCommerceService::class),
             'test-secret-key',
             0 // 0 days expiration - should expire immediately
         );
@@ -240,4 +249,3 @@ class PdfDownloadControllerTest extends WebTestCase
         );
     }
 }
-

@@ -7,24 +7,20 @@ use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class NewRelicMonologHandlerTest extends TestCase
 {
     private HttpClientInterface|MockObject $httpClient;
-    private LoggerInterface|MockObject $fallbackLogger;
     private NewRelicMonologHandler $handler;
 
     protected function setUp(): void
     {
         $this->httpClient = $this->createMock(HttpClientInterface::class);
-        $this->fallbackLogger = $this->createMock(LoggerInterface::class);
 
         $this->handler = new NewRelicMonologHandler(
             httpClient: $this->httpClient,
-            fallbackLogger: $this->fallbackLogger,
             licenseKey: 'test_license_key',
             endpoint: 'https://log-api.newrelic.com',
             appName: 'test-app',
@@ -69,10 +65,6 @@ final class NewRelicMonologHandlerTest extends TestCase
                 })
             )
             ->willReturn($response);
-
-        $this->fallbackLogger
-            ->expects($this->never())
-            ->method('error');
 
         $record = new LogRecord(
             datetime: new \DateTimeImmutable(),
@@ -165,20 +157,6 @@ final class NewRelicMonologHandlerTest extends TestCase
             ->method('request')
             ->willThrowException(new \Exception('Network error'));
 
-        $this->fallbackLogger
-            ->expects($this->once())
-            ->method('error')
-            ->with(
-                'Failed to send log to New Relic',
-                $this->callback(function ($context) {
-                    $this->assertArrayHasKey('error', $context);
-                    $this->assertArrayHasKey('original_message', $context);
-                    $this->assertEquals('Network error', $context['error']);
-
-                    return true;
-                })
-            );
-
         $record = new LogRecord(
             datetime: new \DateTimeImmutable(),
             channel: 'app',
@@ -188,6 +166,7 @@ final class NewRelicMonologHandlerTest extends TestCase
             extra: []
         );
 
+        // Handler silently swallows exceptions to avoid infinite logging loops
         $this->handler->handle($record);
     }
 
@@ -196,7 +175,6 @@ final class NewRelicMonologHandlerTest extends TestCase
         $response = $this->createMock(ResponseInterface::class);
         $handler = new NewRelicMonologHandler(
             httpClient: $this->httpClient,
-            fallbackLogger: $this->fallbackLogger,
             licenseKey: 'test_license_key',
             endpoint: 'https://log-api.newrelic.com/',
             appName: 'test-app',

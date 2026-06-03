@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class OrderApiControllerTest extends WebTestCase
 {
-    private const API_KEY = '51614179e60fdbe79271773ad044af4adaacaef13bb0206d9d73dffee75671cb';
+    private const API_KEY = '7tdBhwfUgWsZZVkC4382';
     private MockObject|OrderPdfService $orderPdfService;
     private MockObject|WooCommerceService $wooCommerceService;
     private MockObject|LoggerInterface $logger;

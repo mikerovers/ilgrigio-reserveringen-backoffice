@@ -9,7 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[When(env: 'dev')]
 class TestController extends AbstractController
@@ -18,7 +18,8 @@ class TestController extends AbstractController
         private OrderPdfService $orderPdfService,
         private TicketApiService $ticketApiService,
         private TicketNameService $ticketNameService,
-    ) {}
+    ) {
+    }
 
     #[Route("/test/order-pdf", name: "test_order_pdf", methods: ["GET"])]
     public function testOrderPdf(): Response

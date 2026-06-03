@@ -16,7 +16,8 @@ class WooCommerceWebhookController implements ConsumerInterface
         private OrderPdfService $orderPdfService,
         private WebhookSecurityService $webhookSecurityService,
         private LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     public function consume(RemoteEvent $event): void
     {

@@ -17,7 +17,8 @@ class WooCommerceRequestParser extends AbstractRequestParser
         private WebhookSecurityService $webhookSecurityService,
         private WooCommerceOrderNormalizer $orderNormalizer,
         private LoggerInterface $logger
-    ) {}
+    ) {
+    }
 
     protected function getRequestMatcher(): RequestMatcherInterface
     {
