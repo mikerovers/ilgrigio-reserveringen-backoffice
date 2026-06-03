@@ -35,6 +35,7 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
                 ],
                 "json" => $payload,
                 "timeout" => 5,
+                "buffer" => false,
             ]);
         } catch (\Exception $e) {
             // Silently fail to prevent infinite logging loops
