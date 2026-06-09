@@ -34,10 +34,21 @@ class SendOrderEmailMessageHandler
         $downloadToken = $message->getPdfDownloadToken();
 
         try {
-            // Generate PDF for attachment
+            // Generate PDF for attachment. This may fail (e.g. order temporarily
+            // unavailable in WooCommerce or a slow ticket API); when it does we
+            // still send the email and rely on the download link instead.
             $pdfContent = $this->securePdfStorageService->getPdfByToken(
                 $downloadToken,
             );
+
+            if ($pdfContent === null) {
+                $this->logger->warning(
+                    "PDF could not be generated; sending email without attachment",
+                    [
+                        "order_id" => $orderData["id"] ?? "unknown",
+                    ],
+                );
+            }
 
             $this->sendOrderNotification(
                 $orderData,
@@ -67,7 +78,7 @@ class SendOrderEmailMessageHandler
     private function sendOrderNotification(
         array $orderData,
         string $downloadToken,
-        string $pdfContent,
+        ?string $pdfContent,
     ): void {
         $orderNumber = $orderData["number"] ?? $orderData["id"];
         $customerEmail = $orderData["billing"]["email"] ?? null;
@@ -105,12 +116,17 @@ class SendOrderEmailMessageHandler
                 ->subject($customerSubject)
                 ->htmlTemplate("email/customer_order_confirmation.html.twig")
                 ->textTemplate("email/customer_order_confirmation.txt.twig")
-                ->context($templateVars)
-                ->attach(
+                ->context($templateVars);
+
+            // Attach the PDF only when it was generated; otherwise the customer
+            // relies on the download link, which regenerates it on demand.
+            if ($pdfContent !== null) {
+                $customerConfirmation->attach(
                     $pdfContent,
                     "tickets-" . $orderNumber . ".pdf",
                     "application/pdf",
                 );
+            }
 
             $this->mailer->send($customerConfirmation);
         }
@@ -119,6 +135,7 @@ class SendOrderEmailMessageHandler
             "order_id" => $orderData["id"],
             "customer_email_sent" => !empty($customerEmail),
             "customer_email" => $customerEmail,
+            "pdf_attached" => $pdfContent !== null,
         ]);
     }
 

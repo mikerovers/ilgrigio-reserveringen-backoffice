@@ -173,4 +173,64 @@ class SendOrderEmailMessageHandlerTest extends TestCase
         $this->assertEquals($fromEmail, $fromAddress->getAddress());
         $this->assertEquals($defaultFromName, $fromAddress->getName());
     }
+
+    public function testEmailIsSentWithoutAttachmentWhenPdfGenerationFails(): void
+    {
+        $handler = new SendOrderEmailMessageHandler(
+            $this->mailer,
+            $this->logger,
+            $this->translator,
+            $this->securePdfStorageService,
+            $this->requestStack,
+            'https://example.com',
+            'noreply@example.com',
+            'Il Grigio',
+            'admin@example.com'
+        );
+
+        $orderData = [
+            'id' => 99999,
+            'number' => 'ORD-99999',
+            'billing' => [
+                'first_name' => 'Sam',
+                'last_name' => 'Jones',
+                'email' => 'sam@example.com'
+            ],
+            'total' => '20.00'
+        ];
+
+        $downloadToken = 'test-token-no-pdf';
+
+        // PDF generation fails (e.g. order temporarily unavailable): returns null.
+        $this->securePdfStorageService
+            ->expects($this->once())
+            ->method('getPdfByToken')
+            ->with($downloadToken)
+            ->willReturn(null);
+
+        $this->securePdfStorageService
+            ->expects($this->once())
+            ->method('generateDownloadUrl')
+            ->willReturn('https://example.com/pdf/download?token=' . $downloadToken);
+
+        $this->translator
+            ->expects($this->once())
+            ->method('trans')
+            ->willReturn('Your order ORD-99999');
+
+        // The email should still be sent, but without any attachment.
+        $capturedEmail = null;
+        $this->mailer
+            ->expects($this->once())
+            ->method('send')
+            ->willReturnCallback(function (Email $email) use (&$capturedEmail) {
+                $capturedEmail = $email;
+            });
+
+        $message = new SendOrderEmailMessage($orderData, $downloadToken);
+        $handler($message);
+
+        $this->assertNotNull($capturedEmail, 'Email should still be sent without the PDF');
+        $this->assertCount(0, $capturedEmail->getAttachments(), 'Email should have no attachments');
+    }
 }
