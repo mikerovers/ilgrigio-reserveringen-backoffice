@@ -212,7 +212,10 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-center">{{ item.quantity }}</td>
-                                <td class="text-right">€{{ item.total }}</td>
+                                {# Use subtotal (pre-coupon line total) so the discount isn't
+                                   double-counted here; it's shown separately in the Korting row.
+                                   Fall back to total when subtotal is absent. #}
+                                <td class="text-right">€{{ item.subtotal|default(item.total) }}</td>
                             </tr>
                         {% endfor %}
                     {% endif %}

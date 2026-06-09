@@ -29,7 +29,7 @@ Reserveringsdetails:
 {% for item in order_data.line_items %}
 - {{ item.name }}
 {% if item.meta_data is defined and item.meta_data %}{% for meta in item.meta_data %}{% if meta.key is defined and meta.key == 'Type' and meta.value is defined %}  Type: {{ meta.value }}{% endif %}{% endfor %}{% endif %}
-  Aantal: {{ item.quantity }} | Prijs: €{{ item.total }}
+  Aantal: {{ item.quantity }} | Prijs: €{{ item.subtotal|default(item.total) }}
 {% endfor %}
 {% endif %}
 
