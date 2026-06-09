@@ -222,6 +222,15 @@
                             <td class="text-right"><strong>€{{ (order_total - (total_tax|default(0)))|number_format(2, '.', '') }}</strong></td>
                         </tr>
 
+                        {% if order_data.coupon_lines is defined and order_data.coupon_lines %}
+                            {% for coupon in order_data.coupon_lines %}
+                            <tr>
+                                <td colspan="2"><strong>Korting ({{ coupon.code }}):</strong></td>
+                                <td class="text-right">-€{{ ((coupon.discount|default(0)) + (coupon.discount_tax|default(0)))|number_format(2, '.', '') }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+
                         {% if total_tax %}
                         <tr>
                             <td colspan="2"><strong>BTW (9%):</strong></td>

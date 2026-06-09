@@ -371,8 +371,8 @@ class TestController extends AbstractController
             "id" => 93558,
             "number" => "TEST12345",
             "date_created" => "2025-08-08T15:30:00",
-            "total" => "15.00",
-            "total_tax" => "1.24",
+            "total" => "10.00",
+            "total_tax" => "0.83",
             "billing" => [
                 "first_name" => "Test",
                 "last_name" => "Customer",
@@ -384,6 +384,13 @@ class TestController extends AbstractController
                     "quantity" => 1,
                     "price" => "15.00",
                     "total" => "15.00",
+                ],
+            ],
+            "coupon_lines" => [
+                [
+                    "code" => "WELKOM10",
+                    "discount" => "4.59",
+                    "discount_tax" => "0.41",
                 ],
             ],
         ];
