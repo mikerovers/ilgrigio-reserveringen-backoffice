@@ -28,7 +28,7 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
         try {
             $payload = $this->formatPayload($record);
 
-            $this->httpClient->request("POST", $this->buildUrl(), [
+            $response = $this->httpClient->request("POST", $this->buildUrl(), [
                 "headers" => [
                     "Content-Type" => "application/json",
                     "Api-Key" => $this->licenseKey,
@@ -37,6 +37,7 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
                 "timeout" => 5,
                 "buffer" => false,
             ]);
+            $response->cancel();
         } catch (\Exception $e) {
             // Silently fail to prevent infinite logging loops
             // Do NOT use error_log, trigger_error, or any logging here
