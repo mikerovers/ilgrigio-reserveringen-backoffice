@@ -217,9 +217,16 @@
                         {% endfor %}
                     {% endif %}
 
+                        {% set coupon_total = 0 %}
+                        {% if order_data.coupon_lines is defined and order_data.coupon_lines %}
+                            {% for coupon in order_data.coupon_lines %}
+                                {% set coupon_total = coupon_total + (coupon.discount|default(0)) + (coupon.discount_tax|default(0)) %}
+                            {% endfor %}
+                        {% endif %}
+
                         <tr>
                             <td colspan="2"><strong>Subtotaal:</strong></td>
-                            <td class="text-right"><strong>€{{ (order_total - (total_tax|default(0)))|number_format(2, '.', '') }}</strong></td>
+                            <td class="text-right"><strong>€{{ (order_total + coupon_total)|number_format(2, '.', '') }}</strong></td>
                         </tr>
 
                         {% if order_data.coupon_lines is defined and order_data.coupon_lines %}
@@ -229,13 +236,6 @@
                                 <td class="text-right">-€{{ ((coupon.discount|default(0)) + (coupon.discount_tax|default(0)))|number_format(2, '.', '') }}</td>
                             </tr>
                             {% endfor %}
-                        {% endif %}
-
-                        {% if total_tax %}
-                        <tr>
-                            <td colspan="2"><strong>BTW (9%):</strong></td>
-                            <td class="text-right">€{{ total_tax|number_format(2, '.', '') }}</td>
-                        </tr>
                         {% endif %}
 
                         <tr>
@@ -249,6 +249,12 @@
                                 <strong>€{{ order_total }}</strong>
                             </td>
                         </tr>
+
+                        {% if total_tax %}
+                        <tr>
+                            <td colspan="3" class="text-right"><small style="color: #6c757d;">(waarvan €{{ total_tax|number_format(2, '.', '') }} BTW)</small></td>
+                        </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>

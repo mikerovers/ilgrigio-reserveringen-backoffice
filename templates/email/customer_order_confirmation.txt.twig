@@ -33,11 +33,11 @@ Reserveringsdetails:
 {% endfor %}
 {% endif %}
 
-Subtotaal: €{{ (order_total - (total_tax|default(0)))|number_format(2, '.', '') }}
+{% set coupon_total = 0 %}{% if order_data.coupon_lines is defined and order_data.coupon_lines %}{% for coupon in order_data.coupon_lines %}{% set coupon_total = coupon_total + (coupon.discount|default(0)) + (coupon.discount_tax|default(0)) %}{% endfor %}{% endif %}Subtotaal: €{{ (order_total + coupon_total)|number_format(2, '.', '') }}
 {% if order_data.coupon_lines is defined and order_data.coupon_lines %}{% for coupon in order_data.coupon_lines %}Korting ({{ coupon.code }}): -€{{ ((coupon.discount|default(0)) + (coupon.discount_tax|default(0)))|number_format(2, '.', '') }}
-{% endfor %}{% endif %}{% if total_tax %}BTW (9%): €{{ total_tax|number_format(2, '.', '') }}
-{% endif %}Betaalmethode: {{ order_data.payment_method_title|default('iDEAL') }}
+{% endfor %}{% endif %}Betaalmethode: {{ order_data.payment_method_title|default('iDEAL') }}
 Totaal: €{{ order_total }}
+{% if total_tax %}(waarvan €{{ total_tax|number_format(2, '.', '') }} BTW){% endif %}
 
 Download je e-tickets: {{ download_url }}
 
