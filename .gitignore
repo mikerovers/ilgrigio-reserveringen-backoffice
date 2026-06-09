@@ -29,3 +29,6 @@
 
 /.kilo
 .claude/
+
+# Auto-generated config reference for IDE autocompletion (not meant to be committed)
+/config/reference.php
