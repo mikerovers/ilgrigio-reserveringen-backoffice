@@ -106,7 +106,6 @@ services:
     # New Relic Monolog Handler configuration
     App\Service\NewRelicMonologHandler:
         arguments:
-            $httpClient: '@newrelic.client'
             $licenseKey: '%env(NEW_RELIC_LICENSE_KEY)%'
             $endpoint: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
             $appName: '%env(NEW_RELIC_APP_NAME)%'

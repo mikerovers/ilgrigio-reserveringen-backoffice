@@ -5,6 +5,7 @@ namespace App\Service;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Level;
 use Monolog\LogRecord;
+use Symfony\Component\HttpClient\NativeHttpClient;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class NewRelicMonologHandler extends AbstractProcessingHandler
@@ -12,13 +13,15 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
     private const NEW_RELIC_API_ENDPOINT = "/log/v1";
 
     public function __construct(
-        private HttpClientInterface $httpClient,
         private string $licenseKey,
         private string $endpoint,
         private string $appName,
         private string $environment,
         int|string|Level $level = Level::Debug,
         bool $bubble = true,
+        // Optional override, primarily for tests. In production this stays null and
+        // a dedicated standalone NativeHttpClient is created lazily (see below).
+        private ?HttpClientInterface $httpClient = null,
     ) {
         parent::__construct($level, $bubble);
     }
@@ -28,20 +31,35 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
         try {
             $payload = $this->formatPayload($record);
 
-            $response = $this->httpClient->request("POST", $this->buildUrl(), [
+            $response = $this->getHttpClient()->request("POST", $this->buildUrl(), [
                 "headers" => [
                     "Content-Type" => "application/json",
                     "Api-Key" => $this->licenseKey,
                 ],
                 "json" => $payload,
                 "timeout" => 5,
-                "buffer" => false,
             ]);
-            $response->cancel();
-        } catch (\Exception $e) {
+            // Fully resolve the request so it is dispatched before we discard it.
+            // Using a dedicated NativeHttpClient (below) keeps this off the shared
+            // async/scoped client stack, so it never interferes with an in-flight
+            // CurlResponse being consumed elsewhere (e.g. the messenger worker).
+            $response->getStatusCode();
+        } catch (\Throwable $e) {
             // Silently fail to prevent infinite logging loops
             // Do NOT use error_log, trigger_error, or any logging here
         }
+    }
+
+    /**
+     * Lazily build a standalone HTTP client that is intentionally NOT wired
+     * through the framework's scoped/decorated/async client stack. This isolates
+     * New Relic log delivery from any other HTTP response currently being
+     * streamed, avoiding "CurlResponse is already consumed and cannot be managed
+     * by AsyncResponse" failures.
+     */
+    private function getHttpClient(): HttpClientInterface
+    {
+        return $this->httpClient ??= new NativeHttpClient();
     }
 
     private function formatPayload(LogRecord $record): array
