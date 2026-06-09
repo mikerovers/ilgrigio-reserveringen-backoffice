@@ -57,7 +57,7 @@ tickets:
     invalid_quantities: "Controleer de geselecteerde aantallen. Sommige waarden zijn ongeldig."
     group_discount_info: "Groepen vanaf 25 personen kunnen in aanmerking komen voor korting mits zij van tevoren gereserveerd hebben. Voor informatie over groepskortingen ontvangen wij graag een e-mail (info@ilgrigio.nl)."
     no_tickets_selected: "Geen tickets geselecteerd"
-    each: "per stuk"
+    each: "per ticket"
     coupon_code: "Kortingscode"
     enter_coupon_code: "Voer kortingscode in"
     apply: "Toepassen"
