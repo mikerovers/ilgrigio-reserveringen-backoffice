@@ -68,6 +68,18 @@ class IncomingWooCommerceWebhookMessageHandler
                 $message->getEvent()
             );
         } catch (WooCommerceOrderNormalizationException $e) {
+            // A non-order action webhook (e.g. a ticket hook firing with a ticket id)
+            // is an expected event from the shared WooCommerce instance, not a failure:
+            // acknowledge it so it neither retries nor dead-letters.
+            if ($e->getReason() === WooCommerceOrderNormalizationException::REASON_NOT_AN_ORDER) {
+                $this->logger->info('Skipping non-order action webhook', [
+                    'topic' => $message->getTopic(),
+                    'event' => $message->getEvent(),
+                ]);
+
+                return;
+            }
+
             // A missing order ID is unrecoverable; a failed REST fetch may be transient,
             // so let it retry (and eventually dead-letter) rather than discarding it.
             if ($e->getReason() === WooCommerceOrderNormalizationException::REASON_MISSING_ID) {

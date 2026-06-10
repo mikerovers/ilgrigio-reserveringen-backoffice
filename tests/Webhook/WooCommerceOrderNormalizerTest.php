@@ -92,6 +92,26 @@ class WooCommerceOrderNormalizerTest extends TestCase
         }
     }
 
+    public function testNormalizeActionFormatSkipsNonOrderActionWithoutFetching(): void
+    {
+        // A non-order hook (e.g. a ticket action) carries a non-order id in 'arg';
+        // it must be skipped rather than fetched as an order.
+        $this->wooCommerceService->expects($this->never())->method('getOrder');
+
+        try {
+            $this->normalizer->normalize(
+                ['action' => 'il_grigio_ticket_created', 'arg' => 56074],
+                'action.il_grigio_ticket_created'
+            );
+            $this->fail('Expected WooCommerceOrderNormalizationException');
+        } catch (WooCommerceOrderNormalizationException $e) {
+            $this->assertSame(
+                WooCommerceOrderNormalizationException::REASON_NOT_AN_ORDER,
+                $e->getReason()
+            );
+        }
+    }
+
     public function testNormalizeLegacyFormatThrowsWhenOrderIdMissing(): void
     {
         try {

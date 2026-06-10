@@ -37,6 +37,21 @@ class WooCommerceOrderNormalizer
     {
         // Action-based webhook (new format): fetch the full order from WooCommerce
         if (isset($webhookData['action'], $webhookData['arg'])) {
+            // arg only holds an order id for order-status hooks. Any other action
+            // (e.g. ticket / non-order hooks) fires with a different entity id as its
+            // first argument, so skip it rather than fetching a non-existent "order".
+            if (!str_starts_with((string) $webhookData['action'], 'woocommerce_order_status_')) {
+                $this->logger->info('Ignoring non-order action webhook', [
+                    'action' => $webhookData['action'],
+                    'arg' => $webhookData['arg'],
+                ]);
+
+                throw new WooCommerceOrderNormalizationException(
+                    'Non-order action webhook ignored',
+                    WooCommerceOrderNormalizationException::REASON_NOT_AN_ORDER
+                );
+            }
+
             $this->logger->info('Processing action-based webhook', [
                 'action' => $webhookData['action'],
                 'order_id' => $webhookData['arg'],

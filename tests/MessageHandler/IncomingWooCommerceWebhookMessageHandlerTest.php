@@ -104,6 +104,29 @@ class IncomingWooCommerceWebhookMessageHandlerTest extends TestCase
         ($this->handler)($message);
     }
 
+    public function testSkipsNonOrderActionWebhook(): void
+    {
+        // A non-order action (e.g. a ticket hook) is acknowledged, not retried or
+        // dead-lettered, and never reaches the order pipeline or the REST API.
+        $payload = json_encode(['action' => 'il_grigio_ticket_created', 'arg' => 56074]);
+        $message = new IncomingWooCommerceWebhookMessage(
+            $payload,
+            'good-sig',
+            'action.il_grigio_ticket_created',
+            'il_grigio_ticket_created'
+        );
+
+        $this->webhookSecurityService
+            ->method('validateWooCommerceSignature')
+            ->willReturn(true);
+
+        $this->wooCommerceService->expects($this->never())->method('getOrder');
+        $this->orderPdfService->expects($this->never())->method('processOrder');
+
+        // No exception => the message is acknowledged (no retry / DLQ).
+        ($this->handler)($message);
+    }
+
     public function testInvalidJsonIsUnrecoverable(): void
     {
         $message = new IncomingWooCommerceWebhookMessage('not-json', 'good-sig', 'order.updated');

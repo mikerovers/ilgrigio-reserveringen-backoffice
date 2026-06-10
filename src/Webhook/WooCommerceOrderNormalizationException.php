@@ -12,6 +12,7 @@ class WooCommerceOrderNormalizationException extends \RuntimeException
 {
     public const REASON_MISSING_ID = 'missing_id';
     public const REASON_FETCH_FAILED = 'fetch_failed';
+    public const REASON_NOT_AN_ORDER = 'not_an_order';
 
     public function __construct(
         string $message,

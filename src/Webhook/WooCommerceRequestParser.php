@@ -56,6 +56,12 @@ class WooCommerceRequestParser extends AbstractRequestParser
         try {
             $orderData = $this->orderNormalizer->normalize($webhookData, $topic);
         } catch (WooCommerceOrderNormalizationException $e) {
+            // A non-order action webhook is an expected event from the shared WooCommerce
+            // instance, not an error: acknowledge it with a 2xx and process nothing.
+            if ($e->getReason() === WooCommerceOrderNormalizationException::REASON_NOT_AN_ORDER) {
+                return null;
+            }
+
             throw new RejectWebhookException(400, $e->getMessage());
         }
 
