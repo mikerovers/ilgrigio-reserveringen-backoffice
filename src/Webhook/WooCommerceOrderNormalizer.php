@@ -3,6 +3,7 @@
 namespace App\Webhook;
 
 use App\Service\WooCommerceService;
+use App\Service\WooCommerceTransientException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -58,16 +59,29 @@ class WooCommerceOrderNormalizer
             ]);
 
             $orderId = (int) $webhookData['arg'];
-            $orderData = $this->wooCommerceService->getOrder($orderId);
 
-            if (!$orderData) {
-                $this->logger->error('Failed to fetch order from WooCommerce', [
-                    'order_id' => $orderId,
-                ]);
-
+            // Tickera re-fires woocommerce_order_status_completed once per ticket, passing
+            // the ticket post id as the order id. Those ids 404 against the orders endpoint.
+            // A null result here is a definitive 404 (not an order) -> skip; a transient
+            // failure throws WooCommerceTransientException and is retried.
+            try {
+                $orderData = $this->wooCommerceService->fetchOrderOrThrowOnTransient($orderId);
+            } catch (WooCommerceTransientException $e) {
                 throw new WooCommerceOrderNormalizationException(
                     'Unable to fetch order data',
                     WooCommerceOrderNormalizationException::REASON_FETCH_FAILED
+                );
+            }
+
+            if (!$orderData) {
+                $this->logger->info('Action arg is not a WooCommerce order, skipping', [
+                    'action' => $webhookData['action'],
+                    'arg' => $orderId,
+                ]);
+
+                throw new WooCommerceOrderNormalizationException(
+                    'Action arg is not a WooCommerce order',
+                    WooCommerceOrderNormalizationException::REASON_NOT_AN_ORDER
                 );
             }
 

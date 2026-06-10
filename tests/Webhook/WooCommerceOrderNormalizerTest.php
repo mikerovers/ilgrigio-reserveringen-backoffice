@@ -3,6 +3,7 @@
 namespace App\Tests\Webhook;
 
 use App\Service\WooCommerceService;
+use App\Service\WooCommerceTransientException;
 use App\Webhook\WooCommerceOrderNormalizationException;
 use App\Webhook\WooCommerceOrderNormalizer;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -56,7 +57,7 @@ class WooCommerceOrderNormalizerTest extends TestCase
 
         $this->wooCommerceService
             ->expects($this->once())
-            ->method('getOrder')
+            ->method('fetchOrderOrThrowOnTransient')
             ->with(94870)
             ->willReturn($fullOrder);
 
@@ -70,13 +71,37 @@ class WooCommerceOrderNormalizerTest extends TestCase
         $this->assertSame('woocommerce_order_status_completed', $order['_webhook_action']);
     }
 
-    public function testNormalizeActionFormatThrowsWhenFetchFails(): void
+    public function testNormalizeActionFormatSkipsTickeraTicketIdOn404(): void
+    {
+        // Tickera re-fires the completed hook with a ticket post id; the orders endpoint
+        // 404s, surfaced here as a null return -> skip (not a fetch failure to retry).
+        $this->wooCommerceService
+            ->expects($this->once())
+            ->method('fetchOrderOrThrowOnTransient')
+            ->with(56074)
+            ->willReturn(null);
+
+        try {
+            $this->normalizer->normalize(
+                ['action' => 'woocommerce_order_status_completed', 'arg' => 56074],
+                'action.woocommerce_order_status_completed'
+            );
+            $this->fail('Expected WooCommerceOrderNormalizationException');
+        } catch (WooCommerceOrderNormalizationException $e) {
+            $this->assertSame(
+                WooCommerceOrderNormalizationException::REASON_NOT_AN_ORDER,
+                $e->getReason()
+            );
+        }
+    }
+
+    public function testNormalizeActionFormatThrowsFetchFailedOnTransientError(): void
     {
         $this->wooCommerceService
             ->expects($this->once())
-            ->method('getOrder')
+            ->method('fetchOrderOrThrowOnTransient')
             ->with(99999)
-            ->willReturn(null);
+            ->willThrowException(new WooCommerceTransientException('503'));
 
         try {
             $this->normalizer->normalize(

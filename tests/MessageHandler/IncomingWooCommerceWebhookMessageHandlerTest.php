@@ -120,10 +120,38 @@ class IncomingWooCommerceWebhookMessageHandlerTest extends TestCase
             ->method('validateWooCommerceSignature')
             ->willReturn(true);
 
-        $this->wooCommerceService->expects($this->never())->method('getOrder');
+        $this->wooCommerceService->expects($this->never())->method('fetchOrderOrThrowOnTransient');
         $this->orderPdfService->expects($this->never())->method('processOrder');
 
         // No exception => the message is acknowledged (no retry / DLQ).
+        ($this->handler)($message);
+    }
+
+    public function testSkipsTickeraTicketIdWebhook(): void
+    {
+        // Tickera re-fires woocommerce_order_status_completed with a ticket post id;
+        // the orders endpoint 404s (null), so the message is acknowledged, not retried.
+        $payload = json_encode(['action' => 'woocommerce_order_status_completed', 'arg' => 56074]);
+        $message = new IncomingWooCommerceWebhookMessage(
+            $payload,
+            'good-sig',
+            'action.woocommerce_order_status_completed',
+            'woocommerce_order_status_completed'
+        );
+
+        $this->webhookSecurityService
+            ->method('validateWooCommerceSignature')
+            ->willReturn(true);
+
+        $this->wooCommerceService
+            ->expects($this->once())
+            ->method('fetchOrderOrThrowOnTransient')
+            ->with(56074)
+            ->willReturn(null);
+
+        $this->orderPdfService->expects($this->never())->method('processOrder');
+
+        // No exception => acknowledged (no retry / DLQ).
         ($this->handler)($message);
     }
 

@@ -4,6 +4,7 @@ namespace App\Tests\Webhook;
 
 use App\Service\WebhookSecurityService;
 use App\Service\WooCommerceService;
+use App\Service\WooCommerceTransientException;
 use App\Webhook\WooCommerceOrderNormalizer;
 use App\Webhook\WooCommerceRequestParser;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -236,7 +237,7 @@ class WooCommerceRequestParserTest extends KernelTestCase
 
         $this->wooCommerceService
             ->expects($this->once())
-            ->method('getOrder')
+            ->method('fetchOrderOrThrowOnTransient')
             ->with(94870)
             ->willReturn($fullOrderData);
 
@@ -261,7 +262,49 @@ class WooCommerceRequestParserTest extends KernelTestCase
         $this->assertEquals($fullOrderData['status'], $payload['status']);
     }
 
-    public function testParseActionBasedWebhookFailedToFetchOrder(): void
+    public function testParseActionBasedWebhookSkipsTickeraTicketId(): void
+    {
+        // Tickera re-fires the completed hook with a ticket post id; the order 404s
+        // (null), so the parser acknowledges it with a no-op (null) rather than rejecting.
+        $actionData = [
+            'action' => 'woocommerce_order_status_completed',
+            'arg' => 56074
+        ];
+
+        $request = new Request(
+            [],
+            [],
+            [],
+            [],
+            [],
+            [
+                'REQUEST_METHOD' => 'POST',
+                'HTTP_X_WC_WEBHOOK_TOPIC' => 'action.woocommerce_order_status_completed',
+                'HTTP_X_WC_WEBHOOK_SIGNATURE' => 'valid-signature'
+            ],
+            json_encode($actionData)
+        );
+
+        $secret = 'test-secret';
+
+        $this->webhookSecurityService
+            ->expects($this->once())
+            ->method('validateWooCommerceSignature')
+            ->with(json_encode($actionData), 'valid-signature', $secret)
+            ->willReturn(true);
+
+        $this->wooCommerceService
+            ->expects($this->once())
+            ->method('fetchOrderOrThrowOnTransient')
+            ->with(56074)
+            ->willReturn(null);
+
+        $event = $this->parser->parse($request, $secret);
+
+        $this->assertNull($event);
+    }
+
+    public function testParseActionBasedWebhookRejectsOnTransientFailure(): void
     {
         $actionData = [
             'action' => 'woocommerce_order_status_completed',
@@ -292,24 +335,9 @@ class WooCommerceRequestParserTest extends KernelTestCase
 
         $this->wooCommerceService
             ->expects($this->once())
-            ->method('getOrder')
+            ->method('fetchOrderOrThrowOnTransient')
             ->with(99999)
-            ->willReturn(null);
-
-        $this->logger
-            ->expects($this->once())
-            ->method('info')
-            ->with('Processing action-based webhook', [
-                'action' => 'woocommerce_order_status_completed',
-                'order_id' => 99999
-            ]);
-
-        $this->logger
-            ->expects($this->once())
-            ->method('error')
-            ->with('Failed to fetch order from WooCommerce', [
-                'order_id' => 99999
-            ]);
+            ->willThrowException(new WooCommerceTransientException('503'));
 
         $this->expectException(RejectWebhookException::class);
         $this->expectExceptionMessage('Unable to fetch order data');

@@ -220,6 +220,84 @@ class WooCommerceService
     }
 
     /**
+     * Fetch an order, distinguishing a definitive "not an order" (404) from a transient
+     * failure (5xx / network / timeout).
+     *
+     * Returns the order array on success, or null when WooCommerce responds 404 — i.e. the
+     * id is not a WooCommerce order (e.g. a Tickera ticket post id re-firing the
+     * woocommerce_order_status_completed hook). Throws WooCommerceTransientException for
+     * failures that may succeed on retry, so callers can retry rather than discard.
+     *
+     * @throws WooCommerceTransientException
+     */
+    public function fetchOrderOrThrowOnTransient(int $orderId): ?array
+    {
+        try {
+            $this->logger->info('Getting order details from WooCommerce', [
+                'order_id' => $orderId
+            ]);
+
+            $response = $this->httpClient->request('GET', $this->baseUrl . "/wp-json/wc/v3/orders/{$orderId}", [
+                'query' => [
+                    'consumer_key' => $this->consumerKey,
+                    'consumer_secret' => $this->consumerSecret,
+                ],
+                'timeout' => 10,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $content = $this->utf8Sanitizer->sanitizeArray($response->toArray());
+
+            if ($statusCode === 200 && isset($content['id'])) {
+                $this->logger->info('Order details retrieved successfully', [
+                    'order_id' => $content['id'],
+                    'status' => $content['status'] ?? 'unknown'
+                ]);
+
+                return $content;
+            }
+
+            $this->logger->error('Failed to get order details from WooCommerce', [
+                'order_id' => $orderId,
+                'status_code' => $statusCode,
+                'response' => $content
+            ]);
+
+            throw new WooCommerceTransientException(
+                "Unexpected status {$statusCode} fetching order {$orderId}"
+            );
+        } catch (HttpExceptionInterface $e) {
+            $statusCode = $e->getResponse()->getStatusCode();
+
+            // 404 is definitive: this id is not a WooCommerce order, do not retry.
+            if ($statusCode === 404) {
+                $this->logger->info('Order not found in WooCommerce (not an order id)', [
+                    'order_id' => $orderId,
+                ]);
+
+                return null;
+            }
+
+            $this->logger->error('HTTP error while getting order details', [
+                'order_id' => $orderId,
+                'status_code' => $statusCode,
+                'error' => $e->getMessage()
+            ]);
+
+            throw new WooCommerceTransientException($e->getMessage(), 0, $e);
+        } catch (WooCommerceTransientException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            $this->logger->error('Unexpected error while getting order details', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+
+            throw new WooCommerceTransientException($e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
      * Update order status in WooCommerce
      */
     public function updateOrderStatus(int $orderId, string $status): bool
