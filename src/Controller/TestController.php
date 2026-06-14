@@ -141,6 +141,7 @@ class TestController extends AbstractController
         $mockTicketInfo = [
             "event_name" => "Bombolini - dinsdag 15 juli - ochtend",
             "event_date" => "27 November 2025 21:44",
+            "event_time" => "14:00",
             "tickets" => [
                 "93436" => [
                     "ticket_code" => "fie56073",
@@ -309,6 +310,11 @@ class TestController extends AbstractController
                     "price" => "15.00",
                     "total" => "15.00",
                 ],
+            ],
+            "meta_data" => [
+                ["key" => "_event_name", "value" => "Bombolini - dinsdag 15 juli - ochtend"],
+                ["key" => "_event_date", "value" => "2025-07-15"],
+                ["key" => "_event_time", "value" => "14:00"],
             ],
         ];
 

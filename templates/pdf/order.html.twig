@@ -19,6 +19,9 @@
 									{% if ticket.ticket_name %}
 										<br><small>{{ ticket.ticket_name }}</small>
 									{% endif %}
+									{% if ticket_info.event_time is defined and ticket_info.event_time %}
+										<br><small>Aanvang show: {{ ticket_info.event_time }}</small>
+									{% endif %}
 								</div>
 							</td>
 							<td class="qr-cell">

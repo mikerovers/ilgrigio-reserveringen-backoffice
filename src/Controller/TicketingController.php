@@ -508,6 +508,10 @@ class TicketingController extends AbstractController
                     "key" => "_event_date",
                     "value" => $eventData["date"] ?? "",
                 ],
+                [
+                    "key" => "_event_time",
+                    "value" => $eventData["time"] ?? "",
+                ],
             ],
         ];
 

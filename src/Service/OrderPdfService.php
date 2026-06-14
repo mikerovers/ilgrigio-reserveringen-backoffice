@@ -72,6 +72,16 @@ class OrderPdfService
                 'ticket_count' => count($ticketInfo['tickets'])
             ]);
 
+            // Inject event_time from order meta if the API did not provide it
+            if (empty($ticketInfo['event_time'])) {
+                foreach ($orderData['meta_data'] ?? [] as $meta) {
+                    if (($meta['key'] ?? '') === '_event_time' && !empty($meta['value'])) {
+                        $ticketInfo['event_time'] = $meta['value'];
+                        break;
+                    }
+                }
+            }
+
             // Generate individual QR codes for each ticket
             foreach ($ticketInfo['tickets'] as $ticketId => &$ticket) {
                 if (isset($ticket['ticket_code'])) {
