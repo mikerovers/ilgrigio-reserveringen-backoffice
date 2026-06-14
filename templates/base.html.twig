@@ -36,6 +36,54 @@
             {% block body %}{% endblock %}
         </main>
 
+        <!-- Algemene Voorwaarden Modal -->
+        <div id="termsModal" class="fixed inset-0 z-50 flex items-center justify-center hidden" aria-modal="true" role="dialog">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-black bg-opacity-60" onclick="closeTermsModal()"></div>
+            <!-- Modal panel -->
+            <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col">
+                <!-- Header -->
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800">Algemene Voorwaarden</h2>
+                    <button type="button" onclick="closeTermsModal()" class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Sluiten">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <!-- Body -->
+                <div class="overflow-y-auto px-6 py-6 text-gray-700 leading-relaxed text-sm space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Algemene voorwaarden JeugdCircus Il Grigio</h3>
+                    <p>
+                        Jeugdcircus Il Grigio gebruikt Mollie voor de verwerking van alle online transacties.
+                        Uw persoonsgegevens worden in dit kader gedeeld met Mollie en aan haar gelieerde ondernemingen.
+                        Wanneer u via onze website uw kaarten reserveert, dan geeft u, direct of indirect, toestemming
+                        aan Jeugdcircus Il Grigio, Mollie en aan haar gelieerde ondernemingen, alle vereiste
+                        (uitdrukkelijke) toestemmingen als bedoeld in de toepasselijke gegevensbeschermingswetgeving
+                        te verwerken.
+                    </p>
+                </div>
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-gray-200 text-right">
+                    <button type="button" onclick="closeTermsModal()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-5 rounded-lg transition duration-300">
+                        Sluiten
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function openTermsModal() {
+                document.getElementById('termsModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeTermsModal() {
+                document.getElementById('termsModal').classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeTermsModal();
+            });
+        </script>
+
         <!-- Disable pinch-zoom on iOS Safari, which ignores the viewport scale settings -->
         <script>
             document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
@@ -58,7 +106,7 @@
                     <p>BTW: NL006137155B01</p>
                     <p>KvK: 41081727</p>
                     <p>Website: <a href="http://www.ilgrigio.nl" target="_blank" class="text-blue-400 hover:text-blue-300">www.ilgrigio.nl</a></p>
-                    <p><a href="{{ path('app_terms_conditions') }}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">Algemene Voorwaarden: klik hier</a></p>
+                    <p><button type="button" onclick="openTermsModal()" class="text-blue-400 hover:text-blue-300 underline bg-transparent border-none cursor-pointer text-sm p-0">Algemene Voorwaarden: klik hier</button></p>
                 </div>
                 
                 <!-- Back to Main Website Link -->
