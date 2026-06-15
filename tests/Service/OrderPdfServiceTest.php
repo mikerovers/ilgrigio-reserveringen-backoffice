@@ -45,7 +45,7 @@ class OrderPdfServiceTest extends TestCase
         );
     }
 
-    public function testEventDateTimeIsUsedAsEventTime(): void
+    public function testEventDateTimeIsPassedToTemplate(): void
     {
         $apiResponse = [
             'event_name' => 'Bombolini',
@@ -66,35 +66,10 @@ class OrderPdfServiceTest extends TestCase
 
         $this->service->generateOrderPdf($this->minimalOrderData);
 
-        $this->assertSame('20:00', $capturedVars['ticket_info']['event_time']);
+        $this->assertSame('20:00', $capturedVars['ticket_info']['event_date_time']);
     }
 
-    public function testExplicitEventTimeIsNotOverwritten(): void
-    {
-        $apiResponse = [
-            'event_name' => 'Bombolini',
-            'event_time' => '19:00',
-            'event_date_time' => '20:00',
-            'tickets' => ['1' => $this->minimalTicket],
-        ];
-
-        $this->ticketApiService->method('getTicketInformation')->willReturn($apiResponse);
-        $this->ticketApiService->method('validateTicketResponse')->willReturn(true);
-
-        $capturedVars = null;
-        $this->twig->method('render')->willReturnCallback(
-            function (string $template, array $vars) use (&$capturedVars): string {
-                $capturedVars = $vars;
-                return '';
-            }
-        );
-
-        $this->service->generateOrderPdf($this->minimalOrderData);
-
-        $this->assertSame('19:00', $capturedVars['ticket_info']['event_time']);
-    }
-
-    public function testNoTimeFieldsResultsInNullEventTime(): void
+    public function testMissingEventDateTimeResultsInAbsentField(): void
     {
         $apiResponse = [
             'event_name' => 'Bombolini',
@@ -114,6 +89,6 @@ class OrderPdfServiceTest extends TestCase
 
         $this->service->generateOrderPdf($this->minimalOrderData);
 
-        $this->assertNull($capturedVars['ticket_info']['event_time']);
+        $this->assertArrayNotHasKey('event_date_time', $capturedVars['ticket_info']);
     }
 }
