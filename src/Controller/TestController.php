@@ -141,7 +141,7 @@ class TestController extends AbstractController
         $mockTicketInfo = [
             "event_name" => "Bombolini - dinsdag 15 juli - ochtend",
             "event_date" => "27 November 2025 21:44",
-            "event_time" => "14:00",
+            "event_date_time" => "14:00",
             "tickets" => [
                 "93436" => [
                     "ticket_code" => "fie56073",
