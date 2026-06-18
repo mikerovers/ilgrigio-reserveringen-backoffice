@@ -2,29 +2,26 @@
 
 declare(strict_types=1);
 
-namespace App\MessageHandler;
+namespace App\EventListener;
 
-use App\Message\OrderCompleted;
+use App\Event\OrderCompletedEvent;
 use App\Message\SendOrderEmailMessage;
-use App\Repository\OrderRepository;
 use App\Service\SecurePdfStorageService;
 use App\Service\TicketIssuanceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * Fulfilment fan-out for a completed order: issue tickets, then queue the
- * confirmation email/PDF. Idempotent — ticket issuance no-ops if already done,
- * so a redelivered message is safe.
+ * Handles fulfilment when an order is completed: issues tickets then queues the
+ * confirmation email. Idempotent — ticket issuance is a no-op if tickets already exist.
  */
-#[AsMessageHandler]
-final class OrderCompletedHandler
+#[AsEventListener(event: OrderCompletedEvent::class)]
+final class OrderFulfilmentListener
 {
     public function __construct(
-        private OrderRepository $orderRepository,
         private TicketIssuanceService $ticketIssuanceService,
         private SecurePdfStorageService $pdfStorageService,
         private MessageBusInterface $messageBus,
@@ -34,23 +31,15 @@ final class OrderCompletedHandler
     ) {
     }
 
-    public function __invoke(OrderCompleted $message): void
+    public function __invoke(OrderCompletedEvent $event): void
     {
-        $order = $this->orderRepository->find($message->orderId);
-
-        if ($order === null) {
-            $this->logger->error('OrderCompleted for unknown order', [
-                'order_id' => $message->orderId,
-            ]);
-
-            return;
-        }
+        $order = $event->order;
 
         $this->ticketIssuanceService->issueForOrder($order, $this->clock->now());
         $this->entityManager->flush();
 
         $token = $this->pdfStorageService->generateSecureTokenForOrder($order->orderNumber);
-        $this->messageBus->dispatch(new SendOrderEmailMessage($message->orderId, $token));
+        $this->messageBus->dispatch(new SendOrderEmailMessage((string) $order->id, $token));
 
         $this->logger->info('Order fulfilment dispatched', [
             'order_number' => $order->orderNumber,

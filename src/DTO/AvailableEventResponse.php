@@ -41,8 +41,8 @@ final class AvailableEventResponse
             name: $event->name,
             startsAt: $event->startsAt->format(\DateTimeInterface::ATOM),
             location: $event->location,
-            stockStatus: $event->stockStatus,
-            stockQuantity: $event->stockQuantity,
+            stockStatus: $event->stockStatus(),
+            stockQuantity: $event->stockQuantity(),
             lowestPriceCents: $lowest,
         );
     }

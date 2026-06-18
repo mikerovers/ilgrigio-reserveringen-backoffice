@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20260618112914 extends AbstractMigration
+final class Version20260618125014 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -45,6 +45,7 @@ final class Version20260618112914 extends AbstractMigration
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6D28840D8D9F6D38 ON payment (order_id)');
         $this->addSql('CREATE INDEX idx_payment_status ON payment (status)');
         $this->addSql('CREATE UNIQUE INDEX uniq_payment_mollie_id ON payment (mollie_payment_id)');
+        $this->addSql('CREATE TABLE shared_stock (id UUID NOT NULL, name VARCHAR(255) NOT NULL, stock_quantity INT DEFAULT NULL, stock_status VARCHAR(255) DEFAULT \'instock\' NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE TABLE ticket (id UUID NOT NULL, ticket_code VARCHAR(64) NOT NULL, ticket_name VARCHAR(255) NOT NULL, event_name_snapshot VARCHAR(255) NOT NULL, event_datetime_snapshot TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, status VARCHAR(255) NOT NULL, checked_in_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, checked_in_by VARCHAR(255) DEFAULT NULL, issued_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, order_id UUID NOT NULL, line_item_id UUID NOT NULL, ticket_type_id UUID NOT NULL, event_id UUID NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_97A0ADA3A7CBD339 ON ticket (line_item_id)');
         $this->addSql('CREATE INDEX IDX_97A0ADA3C980D5C1 ON ticket (ticket_type_id)');
@@ -53,9 +54,9 @@ final class Version20260618112914 extends AbstractMigration
         $this->addSql('CREATE INDEX idx_ticket_order ON ticket (order_id)');
         $this->addSql('CREATE INDEX idx_ticket_status ON ticket (status)');
         $this->addSql('CREATE UNIQUE INDEX uniq_ticket_code ON ticket (ticket_code)');
-        $this->addSql('CREATE TABLE ticket_type (id UUID NOT NULL, name VARCHAR(255) NOT NULL, description TEXT DEFAULT NULL, age_range VARCHAR(50) DEFAULT NULL, requirements JSON NOT NULL, price_cents INT NOT NULL, regular_price_cents INT DEFAULT NULL, sale_price_cents INT DEFAULT NULL, sku VARCHAR(100) DEFAULT NULL, manage_stock BOOLEAN NOT NULL, stock_quantity INT DEFAULT NULL, stock_status VARCHAR(255) DEFAULT \'instock\' NOT NULL, image_url VARCHAR(1024) DEFAULT NULL, sort_order INT DEFAULT 0 NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, event_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE ticket_type (id UUID NOT NULL, name VARCHAR(255) NOT NULL, description TEXT DEFAULT NULL, price_cents INT NOT NULL, manage_stock BOOLEAN NOT NULL, stock_quantity INT DEFAULT NULL, stock_status VARCHAR(255) DEFAULT \'instock\' NOT NULL, sort_order INT DEFAULT 0 NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, event_id UUID NOT NULL, shared_stock_id UUID DEFAULT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_BE05421158E99033 ON ticket_type (shared_stock_id)');
         $this->addSql('CREATE INDEX idx_ticket_type_event ON ticket_type (event_id)');
-        $this->addSql('CREATE UNIQUE INDEX uniq_ticket_type_sku ON ticket_type (sku)');
         $this->addSql('ALTER TABLE customer_order ADD CONSTRAINT FK_3B1CE6A39395C3F3 FOREIGN KEY (customer_id) REFERENCES customer (id) NOT DEFERRABLE');
         $this->addSql('ALTER TABLE customer_order ADD CONSTRAINT FK_3B1CE6A366C5951B FOREIGN KEY (coupon_id) REFERENCES coupon (id) NOT DEFERRABLE');
         $this->addSql('ALTER TABLE event_event_category ADD CONSTRAINT FK_9FE4466271F7E88B FOREIGN KEY (event_id) REFERENCES event (id) ON DELETE CASCADE');
@@ -68,6 +69,7 @@ final class Version20260618112914 extends AbstractMigration
         $this->addSql('ALTER TABLE ticket ADD CONSTRAINT FK_97A0ADA3C980D5C1 FOREIGN KEY (ticket_type_id) REFERENCES ticket_type (id) NOT DEFERRABLE');
         $this->addSql('ALTER TABLE ticket ADD CONSTRAINT FK_97A0ADA371F7E88B FOREIGN KEY (event_id) REFERENCES event (id) NOT DEFERRABLE');
         $this->addSql('ALTER TABLE ticket_type ADD CONSTRAINT FK_BE05421171F7E88B FOREIGN KEY (event_id) REFERENCES event (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE ticket_type ADD CONSTRAINT FK_BE05421158E99033 FOREIGN KEY (shared_stock_id) REFERENCES shared_stock (id) ON DELETE SET NULL NOT DEFERRABLE');
     }
 
     public function down(Schema $schema): void
@@ -85,6 +87,7 @@ final class Version20260618112914 extends AbstractMigration
         $this->addSql('ALTER TABLE ticket DROP CONSTRAINT FK_97A0ADA3C980D5C1');
         $this->addSql('ALTER TABLE ticket DROP CONSTRAINT FK_97A0ADA371F7E88B');
         $this->addSql('ALTER TABLE ticket_type DROP CONSTRAINT FK_BE05421171F7E88B');
+        $this->addSql('ALTER TABLE ticket_type DROP CONSTRAINT FK_BE05421158E99033');
         $this->addSql('DROP TABLE coupon');
         $this->addSql('DROP TABLE customer');
         $this->addSql('DROP TABLE customer_order');
@@ -93,6 +96,7 @@ final class Version20260618112914 extends AbstractMigration
         $this->addSql('DROP TABLE event_category');
         $this->addSql('DROP TABLE order_line_item');
         $this->addSql('DROP TABLE payment');
+        $this->addSql('DROP TABLE shared_stock');
         $this->addSql('DROP TABLE ticket');
         $this->addSql('DROP TABLE ticket_type');
     }

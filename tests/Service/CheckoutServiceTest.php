@@ -17,6 +17,7 @@ use App\Service\OrderNumberGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class CheckoutServiceTest extends TestCase
 {
@@ -31,6 +32,7 @@ class CheckoutServiceTest extends TestCase
             $moneyService,
             new DiscountCalculator($moneyService),
             new OrderNumberGenerator(),
+            $this->createMock(EventDispatcherInterface::class),
             9.0,
         );
     }

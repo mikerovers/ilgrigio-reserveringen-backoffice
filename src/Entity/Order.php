@@ -119,6 +119,17 @@ class Order
     ]
     public Collection $tickets;
 
+    /** @var Collection<int, OrderNote> */
+    #[
+        ORM\OneToMany(
+            targetEntity: OrderNote::class,
+            mappedBy: "order",
+            cascade: ["persist", "remove"],
+            orphanRemoval: true,
+        ),
+    ]
+    public Collection $notes;
+
     #[
         ORM\OneToOne(
             targetEntity: Payment::class,
@@ -146,6 +157,7 @@ class Order
         $this->totalGross = Money::EUR(0);
         $this->lineItems = new ArrayCollection();
         $this->tickets = new ArrayCollection();
+        $this->notes = new ArrayCollection();
     }
 
     /**

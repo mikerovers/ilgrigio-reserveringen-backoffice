@@ -8,8 +8,10 @@ use App\DTO\CheckoutRequest;
 use App\DTO\TicketOrderRequest;
 use App\Entity\Event;
 use App\Entity\TicketType;
+use App\Enum\PaymentStatus;
 use App\Enum\StockStatus;
-use App\Message\OrderCompleted;
+use App\Event\OrderCompletedEvent;
+use App\Event\PaymentStatusChangedEvent;
 use App\Payment\PaymentInitiatorInterface;
 use App\Repository\CouponRepository;
 use App\Repository\EventRepository;
@@ -22,10 +24,10 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -39,7 +41,7 @@ final class TicketingController extends AbstractController
         private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
         private PaymentInitiatorInterface $paymentInitiator,
-        private MessageBusInterface $messageBus,
+        private EventDispatcherInterface $eventDispatcher,
         private ValidatorInterface $validator,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -66,7 +68,7 @@ final class TicketingController extends AbstractController
         #[MapEntity(mapping: ['slug' => 'slug'])] Event $event,
         Request $request,
     ): Response {
-        if ($event->stockStatus !== StockStatus::IN_STOCK || ($event->stockQuantity ?? 0) <= 0) {
+        if ($event->stockStatus() !== StockStatus::IN_STOCK || ($event->stockQuantity() ?? 0) <= 0) {
             $this->addFlash('error', 'Deze show is uitverkocht en er kunnen geen tickets meer worden besteld.');
 
             return $this->redirectToRoute('app_tickets');
@@ -88,8 +90,8 @@ final class TicketingController extends AbstractController
             'existingQuantities' => $existingQuantities,
             'appliedCoupon' => $session->get('applied_coupon'),
             'taxRate' => $this->taxRate,
-            'sharedStock' => $event->stockQuantity,
-            'stockStatus' => $event->stockStatus->value,
+            'sharedStock' => $event->stockQuantity(),
+            'stockStatus' => $event->stockStatus()->value,
         ]);
     }
 
@@ -123,7 +125,7 @@ final class TicketingController extends AbstractController
             }
 
             $ticketType = $ticketTypesById[(string) $ticketTypeId] ?? null;
-            if ($ticketType === null) {
+            if ($ticketType === null || $ticketType->disabled) {
                 continue;
             }
 
@@ -302,7 +304,7 @@ final class TicketingController extends AbstractController
         if ($order->totalGross->isZero()) {
             $order->completeNow($this->clock->now());
             $this->checkoutService->save($order);
-            $this->messageBus->dispatch(new OrderCompleted((string) $order->id));
+            $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
 
             $this->addFlash('success', 'Je bestelling is geplaatst! Geen betaling vereist.');
 
@@ -312,6 +314,9 @@ final class TicketingController extends AbstractController
         // Paid path: hand off to the payment provider (Omnipay, pending).
         $this->checkoutService->save($order);
         $redirectUrl = $this->paymentInitiator->initiate($order);
+
+        // Record payment initiation in the order history.
+        $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($order, null, PaymentStatus::OPEN));
 
         return $this->redirect($redirectUrl);
     }
@@ -410,9 +415,8 @@ final class TicketingController extends AbstractController
             'location' => $event->location,
             'image_url' => $event->imageUrl,
             'permalink' => $event->permalink,
-            'stock_status' => $event->stockStatus->value,
-            'stock_quantity' => $event->stockQuantity,
-            'low_stock_amount' => $event->lowStockAmount,
+            'stock_status' => $event->stockStatus()->value,
+            'stock_quantity' => $event->stockQuantity(),
         ];
     }
 
@@ -425,8 +429,12 @@ final class TicketingController extends AbstractController
             'id' => (string) $ticketType->id,
             'name' => $ticketType->name,
             'price' => $this->moneyService->toFloat($ticketType->price),
-            'stock_status' => $ticketType->stockStatus->value,
             'type' => $ticketType->name,
+            'disabled' => $ticketType->disabled,
+            'disabled_reason' => $ticketType->disabledReason,
+            'shared_stock_id' => $ticketType->sharedStock !== null ? (string) $ticketType->sharedStock->id : null,
+            'shared_stock_quantity' => $ticketType->sharedStock?->stockQuantity,
+            'shared_stock_status' => $ticketType->sharedStock?->stockStatus->value,
         ];
     }
 }

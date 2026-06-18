@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\OrderProcessResponse;
-use App\Message\OrderCompleted;
+use App\Event\OrderCompletedEvent;
 use App\Repository\OrderRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -20,7 +20,7 @@ final class OrderApiController extends AbstractController
 {
     public function __construct(
         private OrderRepository $orderRepository,
-        private MessageBusInterface $messageBus,
+        private EventDispatcherInterface $eventDispatcher,
         private LoggerInterface $logger,
     ) {
     }
@@ -50,7 +50,7 @@ final class OrderApiController extends AbstractController
             );
         }
 
-        $this->messageBus->dispatch(new OrderCompleted((string) $order->id));
+        $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
 
         return $this->json(new OrderProcessResponse(
             success: true,

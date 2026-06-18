@@ -48,15 +48,6 @@ class Event
     #[ORM\Column(length: 1024, nullable: true)]
     public ?string $permalink = null;
 
-    #[ORM\Column(type: 'integer', nullable: true)]
-    public ?int $stockQuantity = null;
-
-    #[ORM\Column(enumType: StockStatus::class, options: ['default' => 'instock'])]
-    public StockStatus $stockStatus = StockStatus::IN_STOCK;
-
-    #[ORM\Column(type: 'integer', nullable: true)]
-    public ?int $lowStockAmount = null;
-
     #[ORM\Column(type: 'datetime_immutable')]
     #[Gedmo\Timestampable(on: 'create')]
     public ?\DateTimeImmutable $createdAt = null;
@@ -67,6 +58,7 @@ class Event
 
     /** @var Collection<int, TicketType> */
     #[ORM\OneToMany(targetEntity: TicketType::class, mappedBy: 'event', cascade: ['persist'])]
+    #[ORM\OrderBy(['sortOrder' => 'ASC'])]
     public Collection $ticketTypes;
 
     /** @var Collection<int, EventCategory> */
@@ -83,16 +75,58 @@ class Event
         $this->categories = new ArrayCollection();
     }
 
-    public function decrementStock(int $qty): void
+    /**
+     * Derived from ticket types: IN_STOCK if any type has stock available, OUT_OF_STOCK otherwise.
+     * Shared-stock pools are deduplicated so a pool shared by multiple types counts once.
+     */
+    /**
+     * Derived from shared stock pools: IN_STOCK if any pool has stock available.
+     */
+    public function stockStatus(): StockStatus
     {
-        if ($this->stockQuantity === null) {
-            return;
+        $checkedPools = [];
+
+        foreach ($this->ticketTypes as $ticketType) {
+            if ($ticketType->sharedStock === null) {
+                continue;
+            }
+            $poolId = (string) $ticketType->sharedStock->id;
+            if (isset($checkedPools[$poolId])) {
+                continue;
+            }
+            $checkedPools[$poolId] = true;
+            if ($ticketType->sharedStock->stockStatus === StockStatus::IN_STOCK) {
+                return StockStatus::IN_STOCK;
+            }
         }
 
-        $this->stockQuantity = max(0, $this->stockQuantity - $qty);
+        return StockStatus::OUT_OF_STOCK;
+    }
 
-        if ($this->stockQuantity <= 0) {
-            $this->stockStatus = StockStatus::OUT_OF_STOCK;
+    /**
+     * Minimum remaining quantity across all shared stock pools for this event.
+     * Returns null if no pool tracks quantity.
+     */
+    public function stockQuantity(): ?int
+    {
+        $min = null;
+        $checkedPools = [];
+
+        foreach ($this->ticketTypes as $ticketType) {
+            if ($ticketType->sharedStock === null) {
+                continue;
+            }
+            $poolId = (string) $ticketType->sharedStock->id;
+            if (isset($checkedPools[$poolId])) {
+                continue;
+            }
+            $checkedPools[$poolId] = true;
+            $qty = $ticketType->sharedStock->stockQuantity;
+            if ($qty !== null) {
+                $min = $min === null ? $qty : min($min, $qty);
+            }
         }
+
+        return $min;
     }
 }

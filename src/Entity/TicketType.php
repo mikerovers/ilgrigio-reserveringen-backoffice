@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Enum\StockStatus;
 use App\Repository\TicketTypeRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -23,6 +22,7 @@ class TicketType
 
     #[ORM\ManyToOne(targetEntity: Event::class, inversedBy: 'ticketTypes')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[Gedmo\SortableGroup]
     public Event $event;
 
     #[ORM\Column(length: 255)]
@@ -34,16 +34,18 @@ class TicketType
     #[ORM\Column(name: 'price_cents', type: 'money')]
     public Money $price;
 
-    #[ORM\Column(type: 'boolean')]
-    public bool $manageStock = false;
+    #[ORM\ManyToOne(targetEntity: SharedStock::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public ?SharedStock $sharedStock = null;
 
-    #[ORM\Column(type: 'integer', nullable: true)]
-    public ?int $stockQuantity = null;
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    public bool $disabled = false;
 
-    #[ORM\Column(enumType: StockStatus::class, options: ['default' => 'instock'])]
-    public StockStatus $stockStatus = StockStatus::IN_STOCK;
+    #[ORM\Column(type: 'text', nullable: true)]
+    public ?string $disabledReason = null;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    #[Gedmo\SortablePosition]
     public int $sortOrder = 0;
 
     #[ORM\Column(type: 'datetime_immutable')]
@@ -62,16 +64,5 @@ class TicketType
         $this->price = $price;
     }
 
-    public function decrementStock(int $qty): void
-    {
-        if (!$this->manageStock || $this->stockQuantity === null) {
-            return;
-        }
 
-        $this->stockQuantity = max(0, $this->stockQuantity - $qty);
-
-        if ($this->stockQuantity <= 0) {
-            $this->stockStatus = StockStatus::OUT_OF_STOCK;
-        }
-    }
 }

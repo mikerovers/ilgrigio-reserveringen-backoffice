@@ -10,9 +10,11 @@ use App\Entity\Order;
 use App\Entity\OrderLineItem;
 use App\Entity\TicketType;
 use App\Enum\StockStatus;
+use App\Event\OrderCreatedEvent;
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Money\Money;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Assembles a persisted local Order from a validated cart, replacing the
@@ -27,6 +29,7 @@ final class CheckoutService
         private MoneyService $moneyService,
         private DiscountCalculator $discountCalculator,
         private OrderNumberGenerator $orderNumberGenerator,
+        private EventDispatcherInterface $eventDispatcher,
         private float $taxRatePercent,
     ) {
     }
@@ -52,27 +55,52 @@ final class CheckoutService
         $totalTickets = 0;
 
         // Validate stock before any mutation.
+        // Accumulate demand per shared pool so cross-type totals are checked together.
+        /** @var array<string, int> $sharedDemand keyed by SharedStock id string */
+        $sharedDemand = [];
+
         foreach ($cart as $row) {
             $ticketType = $row['ticketType'];
             $quantity = $row['quantity'];
 
-            if ($ticketType->stockStatus === StockStatus::OUT_OF_STOCK) {
-                throw new \RuntimeException(sprintf('Ticket type "%s" is out of stock.', $ticketType->name));
+            if ($ticketType->disabled) {
+                throw new \RuntimeException(sprintf('Ticket type "%s" is not available for purchase.', $ticketType->name));
             }
 
-            if ($ticketType->manageStock && $ticketType->stockQuantity !== null && $ticketType->stockQuantity < $quantity) {
+            if ($ticketType->sharedStock !== null) {
+                $poolId = (string) $ticketType->sharedStock->id;
+                $sharedDemand[$poolId] = ($sharedDemand[$poolId] ?? 0) + $quantity;
+            }
+        }
+
+        // Validate shared pool totals.
+        foreach ($cart as $row) {
+            $sharedStock = $row['ticketType']->sharedStock;
+            if ($sharedStock === null) {
+                continue;
+            }
+
+            $poolId = (string) $sharedStock->id;
+            if ($sharedStock->stockStatus === StockStatus::OUT_OF_STOCK) {
+                throw new \RuntimeException(sprintf('Shared stock pool "%s" is out of stock.', $sharedStock->name));
+            }
+
+            if ($sharedStock->stockQuantity !== null && $sharedStock->stockQuantity < ($sharedDemand[$poolId] ?? 0)) {
                 throw new \RuntimeException(sprintf(
-                    'Only %d ticket(s) remaining for "%s".',
-                    $ticketType->stockQuantity,
-                    $ticketType->name,
+                    'Only %d ticket(s) remaining in pool "%s".',
+                    $sharedStock->stockQuantity,
+                    $sharedStock->name,
                 ));
             }
         }
 
         $event = $cart[0]['ticketType']->event ?? null;
-        if ($event !== null && $event->stockStatus === StockStatus::OUT_OF_STOCK) {
+        if ($event !== null && $event->stockStatus() === StockStatus::OUT_OF_STOCK) {
             throw new \RuntimeException('This event is sold out.');
         }
+
+        /** @var array<string, true> $decrementedPools tracks which SharedStock pools have been decremented */
+        $decrementedPools = [];
 
         foreach ($cart as $row) {
             $ticketType = $row['ticketType'];
@@ -95,7 +123,14 @@ final class CheckoutService
                 $lineGross,
             ));
 
-            $ticketType->decrementStock($quantity);
+            if ($ticketType->sharedStock !== null) {
+                $poolId = (string) $ticketType->sharedStock->id;
+                if (!isset($decrementedPools[$poolId])) {
+                    $ticketType->sharedStock->decrementStock($sharedDemand[$poolId]);
+                    $decrementedPools[$poolId] = true;
+                }
+            }
+
             $totalTickets += $quantity;
 
             $grossSubtotal = $grossSubtotal->add($lineGross);
@@ -103,9 +138,6 @@ final class CheckoutService
             $taxSubtotal = $taxSubtotal->add($lineTax);
         }
 
-        if ($event !== null) {
-            $event->decrementStock($totalTickets);
-        }
 
         $discountGross = Money::EUR(0);
         $discountNet = Money::EUR(0);
@@ -129,6 +161,10 @@ final class CheckoutService
         $order->totalGross = $grossSubtotal->subtract($discountGross);
 
         $this->entityManager->persist($order);
+
+        // Dispatch before flush so the history listener's note is included in the same flush.
+        $this->eventDispatcher->dispatch(new OrderCreatedEvent($order));
+
         $this->entityManager->flush();
 
         return $order;

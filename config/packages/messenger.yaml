@@ -24,7 +24,6 @@ framework:
             sync: 'sync://'
 
         routing:
-            'App\Message\OrderCompleted': async
             'App\Message\SendOrderEmailMessage': async
 
 when@test:

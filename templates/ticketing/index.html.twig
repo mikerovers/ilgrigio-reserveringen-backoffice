@@ -67,9 +67,9 @@
 
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
 					{% for event in events %}
-						{% set in_stock = event.stock_status == 'instock' and event.stock_quantity > 0 %}
+						{% set in_stock = event.stock_status == 'instock' and (event.stock_quantity is null or event.stock_quantity > 0) %}
 						{% if in_stock %}
-							<a href="{{ path('app_event_tickets', {'id': event.id}) }}"
+							<a href="{{ path('app_event_tickets', {'slug': event.slug}) }}"
 								class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col group">
 						{% else %}
 							<div class="bg-white rounded-lg shadow-lg overflow-hidden flex flex-col opacity-75">
@@ -101,17 +101,10 @@
 								<!-- Stock Status -->
 								<div class="mb-4">
 									{% if in_stock %}
-										{% if event.stock_quantity < event.low_stock_amount %}
-											<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
-												<i class="fas fa-exclamation-triangle mr-1"></i>
-												{{ 'events.limited_tickets'|trans() }}
-											</span>
-										{% else %}
-											<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-												<i class="fas fa-check-circle mr-1"></i>
-												{{ 'events.available'|trans }}
-											</span>
-										{% endif %}
+										<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+											<i class="fas fa-check-circle mr-1"></i>
+											{{ 'events.available'|trans }}
+										</span>
 									{% else %}
 										<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
 											<i class="fas fa-times-circle mr-1"></i>
