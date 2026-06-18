@@ -1,855 +1,432 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
-use App\DTO\CheckoutDTO;
-use App\DTO\TicketOrderDTO;
+use App\DTO\CheckoutRequest;
+use App\DTO\TicketOrderRequest;
+use App\Entity\Event;
+use App\Entity\TicketType;
+use App\Enum\StockStatus;
+use App\Message\OrderCompleted;
+use App\Payment\PaymentInitiatorInterface;
+use App\Repository\CouponRepository;
+use App\Repository\EventRepository;
+use App\Repository\OrderRepository;
+use App\Service\CheckoutService;
+use App\Service\DiscountCalculator;
 use App\Service\MoneyService;
-use App\Service\WooCommerceEventsService;
-use App\Service\WooCommerceProductVariationsService;
-use App\Service\WooCommerceCouponService;
-use App\Service\WooCommerceService;
-use App\Service\MollieService;
+use Money\Money;
+use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Psr\Log\LoggerInterface;
 
-class TicketingController extends AbstractController
+final class TicketingController extends AbstractController
 {
     public function __construct(
-        private WooCommerceEventsService $wooCommerceEventsService,
-        private WooCommerceProductVariationsService $productVariationsService,
-        private WooCommerceCouponService $couponService,
-        private WooCommerceService $wooCommerceService,
-        private MollieService $mollieService,
+        private EventRepository $eventRepository,
+        private OrderRepository $orderRepository,
+        private CouponRepository $couponRepository,
+        private CheckoutService $checkoutService,
+        private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
+        private PaymentInitiatorInterface $paymentInitiator,
+        private MessageBusInterface $messageBus,
         private ValidatorInterface $validator,
+        private ClockInterface $clock,
         private LoggerInterface $logger,
-        private string $ilgrigioBaseUrl,
         private int $maxTicketsPerOrder,
         private float $taxRate,
     ) {
     }
 
-    #[Route("/", name: "app_tickets")]
+    #[Route('/', name: 'app_tickets')]
     public function index(): Response
     {
-        $events = $this->wooCommerceEventsService->getEvents();
+        $events = array_map(
+            fn (Event $e) => $this->eventView($e),
+            $this->eventRepository->findUpcoming($this->clock->now()),
+        );
 
-        return $this->render("ticketing/index.html.twig", [
-            "events" => $events,
+        return $this->render('ticketing/index.html.twig', [
+            'events' => $events,
         ]);
     }
 
-    #[Route("/show/{id}", name: "app_event_details")]
-    public function eventDetails(int $id): Response
-    {
-        // This would redirect to the WooCommerce product page
-        // For now, just redirect to the WooCommerce site
-        return $this->redirect(
-            "{$this->ilgrigioBaseUrl}/product/bombolini-event-{$id}/",
-        );
-    }
-
-    #[Route("/show/{id}/tickets", name: "app_event_tickets")]
-    public function eventTickets(int $id, Request $request): Response
-    {
-        // Get event details
-        $events = $this->wooCommerceEventsService->getEvents();
-        $event = null;
-
-        foreach ($events as $e) {
-            if ($e["id"] == $id) {
-                $event = $e;
-                break;
-            }
-        }
-
-        if (!$event) {
-            throw $this->createNotFoundException("Event not found");
-        }
-
-        // Check if event is sold out or has no stock
-        if (
-            $event["stock_status"] !== "instock" ||
-            $event["stock_quantity"] <= 0
-        ) {
-            $this->addFlash(
-                "error",
-                "Deze show is uitverkocht en er kunnen geen tickets meer worden besteld.",
-            );
-            return $this->redirectToRoute("app_tickets");
-        }
-
-        // Get product variations (ticket types)
-        $ticketTypes = $this->productVariationsService->getProductVariations(
-            $id,
-        );
-
-        // Get existing cart data from session to pre-fill quantities
-        $session = $request->getSession();
-        $cartItems = $session->get("cart_items", []);
-        $existingQuantities = [];
-        $appliedCoupon = $session->get("applied_coupon");
-
-        // Extract quantities for this event from cart
-        foreach ($cartItems as $item) {
-            if (isset($item["event_id"]) && $item["event_id"] == $id) {
-                $existingQuantities[$item["id"]] = $item["quantity"];
-            }
-        }
-
-        // Get shared stock from event (stock is shared across all ticket types)
-        $sharedStock = $event["stock_quantity"] ?? null;
-        $stockStatus = $event["stock_status"] ?? "instock";
-
-        return $this->render("ticketing/tickets.html.twig", [
-            "event" => $event,
-            "ticketTypes" => $ticketTypes,
-            "maxTicketsPerOrder" => $this->maxTicketsPerOrder,
-            "existingQuantities" => $existingQuantities,
-            "appliedCoupon" => $appliedCoupon,
-            "taxRate" => $this->taxRate,
-            "sharedStock" => $sharedStock,
-            "stockStatus" => $stockStatus,
-        ]);
-    }
-
-    #[
-        Route(
-            "/show/{id}/bestelling",
-            name: "app_tickets_order",
-            methods: ["POST"],
-        ),
-    ]
-    public function processTicketOrder(
-        int $id,
-        array $event,
-        TicketOrderDTO $ticketOrderDTO,
+    #[Route('/show/{slug}/tickets', name: 'app_event_tickets')]
+    public function eventTickets(
+        #[MapEntity(mapping: ['slug' => 'slug'])] Event $event,
         Request $request,
     ): Response {
-        $violations = $this->validator->validate($ticketOrderDTO);
+        if ($event->stockStatus !== StockStatus::IN_STOCK || ($event->stockQuantity ?? 0) <= 0) {
+            $this->addFlash('error', 'Deze show is uitverkocht en er kunnen geen tickets meer worden besteld.');
 
+            return $this->redirectToRoute('app_tickets');
+        }
+
+        $session = $request->getSession();
+        $cartItems = $session->get('cart_items', []);
+        $existingQuantities = [];
+        foreach ($cartItems as $item) {
+            if (($item['event_id'] ?? null) === (string) $event->id) {
+                $existingQuantities[$item['id']] = $item['quantity'];
+            }
+        }
+
+        return $this->render('ticketing/tickets.html.twig', [
+            'event' => $this->eventView($event),
+            'ticketTypes' => array_map(fn (TicketType $t) => $this->ticketTypeView($t), $event->ticketTypes->toArray()),
+            'maxTicketsPerOrder' => $this->maxTicketsPerOrder,
+            'existingQuantities' => $existingQuantities,
+            'appliedCoupon' => $session->get('applied_coupon'),
+            'taxRate' => $this->taxRate,
+            'sharedStock' => $event->stockQuantity,
+            'stockStatus' => $event->stockStatus->value,
+        ]);
+    }
+
+    #[Route('/show/{slug}/bestelling', name: 'app_tickets_order', methods: ['POST'])]
+    public function processTicketOrder(
+        #[MapEntity(mapping: ['slug' => 'slug'])] Event $event,
+        #[MapRequestPayload] TicketOrderRequest $ticketOrder,
+        Request $request,
+    ): Response {
+        $violations = $this->validator->validate($ticketOrder);
         if (count($violations) > 0) {
             foreach ($violations as $violation) {
-                $this->addFlash("error", $violation->getMessage());
+                $this->addFlash('error', $violation->getMessage());
             }
 
-            return $this->redirectToRoute("app_event_tickets", ["id" => $id]);
+            return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
         }
 
-        $selectedTickets = [];
-        $totalAmount = 0;
-
-        // Validate and process ticket selections
-        foreach ($ticketOrderDTO->tickets as $ticketId => $data) {
-            $quantity = (int) ($data["quantity"] ?? 0);
-
-            if ($quantity > 0) {
-                $selectedTickets[] = [
-                    "id" => $ticketId,
-                    "name" => $data["name"] ?? "",
-                    "price" => (float) ($data["price"] ?? 0),
-                    "quantity" => $quantity,
-                    "total" => $quantity * (float) ($data["price"] ?? 0),
-                ];
-                $totalAmount += $quantity * (float) ($data["price"] ?? 0);
-            }
-        }
-
-        // Calculate totals with tax-inclusive pricing
-        $totalAmount = 0;
-        foreach ($selectedTickets as $ticket) {
-            $totalAmount += $ticket["total"];
-        }
-
-        // Apply discount to the total (which includes tax)
-        $totalAfterDiscount = $totalAmount;
-        if (
-            $ticketOrderDTO->appliedCoupon &&
-            $ticketOrderDTO->discountAmount > 0
-        ) {
-            // Validate the discount amount by recalculating it
-            $calculatedDiscount = $this->couponService->calculateDiscount(
-                $ticketOrderDTO->appliedCoupon,
-                $totalAmount,
-            );
-
-            // Use the calculated discount if it matches the submitted one (with small tolerance for floating point)
-            if (
-                abs($calculatedDiscount - $ticketOrderDTO->discountAmount) <
-                0.01
-            ) {
-                $totalAfterDiscount =
-                    $totalAmount - $ticketOrderDTO->discountAmount;
-            }
-        }
-
-        // Calculate tax components in cents (tax is included in the total) so
-        // the session values match the WooCommerce order built in processCheckout.
-        $gross = $this->moneyService->eurosToMoney($totalAfterDiscount);
-        [$net, $taxMoney] = $this->moneyService->splitGross($gross, $this->taxRate);
-        $taxAmount = $this->moneyService->toFloat($taxMoney);
-        $subtotalWithoutTax = $this->moneyService->toFloat($net);
-
-        $finalTotal = $totalAfterDiscount;
-
-        // Validate that at least one ticket is selected
-        if (empty($selectedTickets)) {
-            $this->addFlash(
-                "error",
-                "Selecteer minimaal één ticket om door te gaan.",
-            );
-
-            return $this->redirectToRoute("app_event_tickets", ["id" => $id]);
-        }
-
-        // Store order data in session for checkout
-        $session = $request->getSession();
-
-        // Explicitly start session if not already started (mobile browsers may not auto-start)
-        if (!$session->isStarted()) {
-            $session->start();
+        // Map selected ticket types to a cart, pricing from entities only.
+        $ticketTypesById = [];
+        foreach ($event->ticketTypes as $ticketType) {
+            $ticketTypesById[(string) $ticketType->id] = $ticketType;
         }
 
         $cartItems = [];
+        $grossTotal = Money::EUR(0);
+        foreach ($ticketOrder->tickets as $ticketTypeId => $data) {
+            $quantity = (int) ($data['quantity'] ?? 0);
+            if ($quantity <= 0) {
+                continue;
+            }
 
-        foreach ($selectedTickets as $ticket) {
+            $ticketType = $ticketTypesById[(string) $ticketTypeId] ?? null;
+            if ($ticketType === null) {
+                continue;
+            }
+
+            $lineGross = $ticketType->price->multiply($quantity);
+            $grossTotal = $grossTotal->add($lineGross);
             $cartItems[] = [
-                "id" => $ticket["id"],
-                "name" => $ticket["name"],
-                "price" => $ticket["price"],
-                "quantity" => $ticket["quantity"],
-                "total" => $ticket["total"],
-                "event_id" => $id,
-                "event_name" => $event["title"] ?? "Event",
-                "date" => $event["date"] ?? null,
+                'id' => (string) $ticketType->id,
+                'name' => $ticketType->name,
+                'price' => $this->moneyService->toFloat($ticketType->price),
+                'quantity' => $quantity,
+                'total' => $this->moneyService->toFloat($lineGross),
+                'event_id' => (string) $event->id,
+                'event_name' => $event->name,
+                'date' => $event->startsAt->format('d-m-Y'),
             ];
         }
 
-        $session->set("cart_items", $cartItems);
-        $session->set("subtotal", $totalAmount);
-        $session->set("discount", $ticketOrderDTO->discountAmount);
-        $session->set("tax", $taxAmount);
-        $session->set("total", $finalTotal);
-        $session->set("applied_coupon", $ticketOrderDTO->appliedCoupon);
-        $session->set("event_data", $event);
+        if ($cartItems === []) {
+            $this->addFlash('error', 'Selecteer minimaal één ticket om door te gaan.');
 
-        // Force session write before redirect (prevents race condition on mobile browsers)
+            return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
+        }
+
+        [$discountGross] = $this->resolveCoupon($ticketOrder->appliedCouponCode, $grossTotal);
+
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+        $session->set('cart_items', $cartItems);
+        $session->set('event_slug', $event->slug);
+        $session->set('applied_coupon_code', $ticketOrder->appliedCouponCode);
+        $session->set('applied_coupon', $ticketOrder->appliedCouponCode ? ['code' => $ticketOrder->appliedCouponCode] : null);
+        $session->set('discount', $this->moneyService->toFloat($discountGross));
+        $session->set('event_data', $this->eventView($event));
         $session->save();
 
-        // Redirect to our custom checkout page instead of WooCommerce
-        return $this->redirectToRoute("app_checkout");
+        return $this->redirectToRoute('app_checkout');
     }
 
-    #[Route("/api/available-events", name: "app_available_events")]
-    public function availableEvents(): JsonResponse
-    {
-        $events = $this->wooCommerceEventsService->getAvailableEvents();
-
-        return $this->json($events);
-    }
-
-    #[
-        Route(
-            "/api/validate-coupon",
-            name: "app_validate_coupon",
-            methods: ["POST"],
-        ),
-    ]
-    public function validateCoupon(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-        $couponCode = $data["code"] ?? "";
-
-        if (empty($couponCode)) {
-            return $this->json(
-                [
-                    "valid" => false,
-                    "message" => "Coupon code is required",
-                ],
-                400,
-            );
-        }
-
-        $validationResult = $this->couponService->validateCoupon($couponCode);
-
-        // If coupon is valid, store it in session
-        if ($validationResult["valid"]) {
-            $session = $request->getSession();
-            $session->set("applied_coupon", $validationResult);
-
-            // Recalculate totals with the discount
-            $cartItems = $session->get("cart_items", []);
-            $subtotal = 0;
-            foreach ($cartItems as $item) {
-                $subtotal += $item["total"] ?? 0;
-            }
-
-            // Calculate discount on the total (which includes tax)
-            $discountAmount = 0;
-            if ($validationResult["discount_type"] === "percentage") {
-                $discountAmount =
-                    ($subtotal * $validationResult["amount"]) / 100;
-            } else {
-                $discountAmount = $validationResult["amount"];
-            }
-            $discountAmount = min($discountAmount, $subtotal);
-
-            $totalAfterDiscount = $subtotal - $discountAmount;
-
-            // Calculate tax components in cents (tax is included in the total).
-            $gross = $this->moneyService->eurosToMoney($totalAfterDiscount);
-            [$net, $taxMoney] = $this->moneyService->splitGross(
-                $gross,
-                $this->taxRate,
-            );
-            $taxAmount = $this->moneyService->toFloat($taxMoney);
-            $subtotalWithoutTax = $this->moneyService->toFloat($net);
-
-            $total = $totalAfterDiscount;
-
-            // Update session with new totals
-            $session->set("discount", $discountAmount);
-            $session->set("tax", $taxAmount);
-            $session->set("subtotal_without_tax", $subtotalWithoutTax);
-            $session->set("total", $total);
-        }
-
-        return $this->json($validationResult);
-    }
-
-    #[Route("/api/remove-coupon", name: "app_remove_coupon", methods: ["POST"])]
-    public function removeCoupon(Request $request): JsonResponse
-    {
-        $session = $request->getSession();
-
-        // Remove coupon from session
-        $session->remove("applied_coupon");
-
-        // Recalculate totals without discount (but still tax-inclusive)
-        $cartItems = $session->get("cart_items", []);
-        $subtotal = 0;
-        foreach ($cartItems as $item) {
-            $subtotal += $item["total"] ?? 0;
-        }
-
-        // Calculate tax components in cents (tax is included in the total).
-        $gross = $this->moneyService->eurosToMoney($subtotal);
-        [$net, $taxMoney] = $this->moneyService->splitGross($gross, $this->taxRate);
-        $taxAmount = $this->moneyService->toFloat($taxMoney);
-        $subtotalWithoutTax = $this->moneyService->toFloat($net);
-
-        // Reset discount and update totals
-        $session->set("discount", 0);
-        $session->set("tax", $taxAmount);
-        $session->set("subtotal_without_tax", $subtotalWithoutTax);
-        $session->set("total", $subtotal);
-
-        return $this->json([
-            "success" => true,
-            "message" => "Coupon removed successfully",
-        ]);
-    }
-
-    #[Route("/afrekenen", name: "app_checkout")]
+    #[Route('/afrekenen', name: 'app_checkout')]
     public function checkout(Request $request): Response
     {
-        // Get cart data from session or request
         $session = $request->getSession();
-        $cartItems = $session->get("cart_items", []);
-        $eventData = $session->get("event_data", null);
-        $appliedCoupon = $session->get("applied_coupon", null);
+        $cartItems = $session->get('cart_items', []);
+        if ($cartItems === []) {
+            $this->addFlash('error', 'Je winkelwagen is leeg. Selecteer eerst tickets om af te rekenen.');
 
-        // Redirect to events page if cart is empty
-        if (empty($cartItems)) {
-            $this->addFlash(
-                "error",
-                "Je winkelwagen is leeg. Selecteer eerst tickets om af te rekenen.",
-            );
-            return $this->redirectToRoute("app_tickets");
+            return $this->redirectToRoute('app_tickets');
         }
 
-        // Generate a unique checkout token to prevent duplicate submissions
         $checkoutToken = bin2hex(random_bytes(32));
-        $session->set("checkout_token", $checkoutToken);
+        $session->set('checkout_token', $checkoutToken);
 
-        // Calculate totals (tax-inclusive pricing)
-        $totalWithTax = 0;
-        foreach ($cartItems as $item) {
-            $totalWithTax += $item["total"] ?? 0;
+        $cartGross = $this->cartGross($cartItems);
+        $couponCode = $session->get('applied_coupon_code');
+        $discountGross = Money::EUR(0);
+        if ($couponCode !== null) {
+            [$discountGross] = $this->resolveCoupon($couponCode, $cartGross);
         }
 
-        $discount = $session->get("discount", 0);
-        $tax = $session->get("tax", 0);
-        $total = $session->get("total", $totalWithTax);
+        $totalGross = $cartGross->subtract($discountGross);
+        [$net, $tax] = $this->moneyService->splitGross($totalGross, $this->taxRate);
 
-        // If tax is not in session, calculate it in cents (tax-inclusive).
-        if ($tax === 0) {
-            $totalAfterDiscount = $totalWithTax - $discount;
-            $gross = $this->moneyService->eurosToMoney($totalAfterDiscount);
-            [, $taxMoney] = $this->moneyService->splitGross(
-                $gross,
-                $this->taxRate,
-            );
-            $tax = $this->moneyService->toFloat($taxMoney);
-            $total = $totalAfterDiscount;
-        }
-
-        // Calculate subtotal without tax
-        $subtotal = $total - $tax;
-
-        return $this->render("ticketing/checkout.html.twig", [
-            "cart_items" => $cartItems,
-            "event" => $eventData,
-            "applied_coupon" => $appliedCoupon,
-            "subtotal" => $subtotal,
-            "discount" => $discount,
-            "tax" => $tax,
-            "total" => $total,
-            "taxRate" => $this->taxRate,
-            "checkout_token" => $checkoutToken,
+        return $this->render('ticketing/checkout.html.twig', [
+            'cart_items' => $cartItems,
+            'event' => $session->get('event_data'),
+            'applied_coupon' => $session->get('applied_coupon'),
+            'subtotal' => $this->moneyService->toFloat($net),
+            'discount' => $this->moneyService->toFloat($discountGross),
+            'tax' => $this->moneyService->toFloat($tax),
+            'total' => $this->moneyService->toFloat($totalGross),
+            'taxRate' => $this->taxRate,
+            'checkout_token' => $checkoutToken,
         ]);
     }
 
-    #[
-        Route(
-            "/afrekenen/verwerken",
-            name: "app_checkout_process",
-            methods: ["POST"],
-        ),
-    ]
+    #[Route('/afrekenen/verwerken', name: 'app_checkout_process', methods: ['POST'])]
     public function processCheckout(
-        CheckoutDTO $checkoutDTO,
+        #[MapRequestPayload] CheckoutRequest $checkout,
         Request $request,
     ): Response {
-        // Get session first for token validation
         $session = $request->getSession();
 
-        // Validate checkout token to prevent duplicate submissions
-        $submittedToken = $request->request->get("checkout_token");
-        $sessionToken = $session->get("checkout_token");
-
-        if (
-            !$submittedToken ||
-            !$sessionToken ||
-            $submittedToken !== $sessionToken
-        ) {
-            $this->logger->warning("Invalid or missing checkout token", [
-                "submitted_token" => $submittedToken,
-                "has_session_token" => !empty($sessionToken),
+        // Checkout-token dedup (one-time use), unchanged.
+        $sessionToken = $session->get('checkout_token');
+        if (!$checkout->checkoutToken || !$sessionToken || $checkout->checkoutToken !== $sessionToken) {
+            $this->logger->warning('Invalid or missing checkout token', [
+                'has_session_token' => !empty($sessionToken),
             ]);
-            $this->addFlash(
-                "error",
-                "Deze bestelling is al verwerkt of de sessie is verlopen. Start opnieuw.",
-            );
-            return $this->redirectToRoute("app_tickets");
+            $this->addFlash('error', 'Deze bestelling is al verwerkt of de sessie is verlopen. Start opnieuw.');
+
+            return $this->redirectToRoute('app_checkout');
         }
+        $session->remove('checkout_token');
 
-        // Immediately invalidate the token to prevent reuse (one-time use)
-        $session->remove("checkout_token");
-
-        $violations = $this->validator->validate($checkoutDTO);
-
+        $violations = $this->validator->validate($checkout);
         if (count($violations) > 0) {
             foreach ($violations as $violation) {
-                $this->addFlash("error", $violation->getMessage());
+                $this->addFlash('error', $violation->getMessage());
             }
-            return $this->redirectToRoute("app_checkout");
+
+            return $this->redirectToRoute('app_checkout');
         }
 
-        // Get cart data from session
-        $cartItems = $session->get("cart_items", []);
-        $eventData = $session->get("event_data", null);
-        $appliedCoupon = $session->get("applied_coupon", null);
-        $total = $session->get("total", 0);
-        $discount = $session->get("discount", 0);
+        $cartItems = $session->get('cart_items', []);
+        if ($cartItems === []) {
+            $this->addFlash('error', 'Geen items in winkelwagen gevonden.');
 
-        if (empty($cartItems)) {
-            $this->addFlash("error", "Geen items in winkelwagen gevonden.");
-            return $this->redirectToRoute("app_tickets");
+            return $this->redirectToRoute('app_tickets');
         }
 
-        // Compute all monetary values in integer cents, anchored on the
-        // tax-inclusive cart total the customer agreed to. Summing first and
-        // splitting gross into net/tax via Money::allocate guarantees the order
-        // reconciles to the cent (no per-unit rounding drift).
-        $taxRatePercent = $this->taxRate;
-        $grossTotal = $this->moneyService->eurosToMoney(0);
-        $taxTotal = $this->moneyService->eurosToMoney(0);
+        // Rebuild the cart against current entities (authoritative prices/stock).
+        $eventSlug = $session->get('event_slug');
+        $event = $eventSlug ? $this->eventRepository->findOneBySlug($eventSlug) : null;
+        if ($event === null) {
+            $this->addFlash('error', 'De show kon niet worden gevonden.');
 
-        // Prepare order data for WooCommerce
-        $orderData = [
-            "payment_method" => "mollie_wc_gateway_ideal",
-            "payment_method_title" => "iDEAL",
-            "set_paid" => false,
-            "status" => "pending",
-            "currency" => "EUR",
-            // We send net (tax-exclusive) line totals plus explicit tax, so tell
-            // WooCommerce not to treat the prices as tax-inclusive.
-            "prices_include_tax" => false,
-            "billing" => [
-                "first_name" => $checkoutDTO->firstName,
-                "last_name" => $checkoutDTO->lastName,
-                "company" => $checkoutDTO->companyName,
-                "city" => $checkoutDTO->city,
-                "phone" => $checkoutDTO->phoneNumber,
-                "email" => $checkoutDTO->email,
-            ],
-            "shipping" => [
-                "first_name" => $checkoutDTO->firstName,
-                "last_name" => $checkoutDTO->lastName,
-                "company" => $checkoutDTO->companyName,
-                "city" => $checkoutDTO->city,
-            ],
-            "line_items" => [],
-            "coupon_lines" => [],
-            "shipping_lines" => [],
-            "fee_lines" => [],
-            // tax_lines[0].tax_total is filled in after summing the line taxes.
-            "tax_lines" => [
-                [
-                    "rate_code" => "NL-VAT-" . $this->taxRate,
-                    "rate_id" => "1",
-                    "label" => "BTW",
-                    "compound" => false,
-                    "tax_total" => "0.00",
-                    "shipping_tax_total" => "0.00",
-                ],
-            ],
-            "meta_data" => [
-                [
-                    "key" => "_event_name",
-                    "value" => $eventData["title"] ?? "Event",
-                ],
-                [
-                    "key" => "_event_date",
-                    "value" => $eventData["date"] ?? "",
-                ],
-                [
-                    "key" => "_event_time",
-                    "value" => $eventData["time"] ?? "",
-                ],
-            ],
-        ];
+            return $this->redirectToRoute('app_tickets');
+        }
 
-        // Add line items. Each line's tax-inclusive total is split into net/tax
-        // in cents; we omit "price" (read-only/derived) so WooCommerce computes
-        // it from our consistent net "total" instead of re-deriving an inflated
-        // gross from a separately-rounded per-unit price.
+        $ticketTypesById = [];
+        foreach ($event->ticketTypes as $ticketType) {
+            $ticketTypesById[(string) $ticketType->id] = $ticketType;
+        }
+
+        $cart = [];
         foreach ($cartItems as $item) {
-            $grossLine = $this->moneyService->eurosToMoney((float) $item["total"]);
-            [$netLine, $taxLine] = $this->moneyService->splitGross(
-                $grossLine,
-                $taxRatePercent,
-            );
-
-            $grossTotal = $grossTotal->add($grossLine);
-            $taxTotal = $taxTotal->add($taxLine);
-
-            $netLineFormatted = $this->moneyService->format($netLine);
-            $taxLineFormatted = $this->moneyService->format($taxLine);
-
-            $orderData["line_items"][] = [
-                "product_id" => $item["id"],
-                "quantity" => $item["quantity"],
-                "name" => $item["name"],
-                "subtotal" => $netLineFormatted,
-                "total" => $netLineFormatted,
-                "total_tax" => $taxLineFormatted,
-                "taxes" => [
-                    [
-                        "id" => 1,
-                        "total" => $taxLineFormatted,
-                        "subtotal" => $taxLineFormatted,
-                    ],
-                ],
-            ];
-        }
-
-        // Add coupon if applied. The discount applies to the tax-inclusive
-        // total, so split it into net/tax in cents and remove its gross + tax
-        // from the order totals so they stay reconciled to the cent.
-        if ($appliedCoupon && $discount > 0) {
-            $discountGross = $this->moneyService->eurosToMoney((float) $discount);
-            [$discountNet, $discountTax] = $this->moneyService->splitGross(
-                $discountGross,
-                $taxRatePercent,
-            );
-
-            $grossTotal = $grossTotal->subtract($discountGross);
-            $taxTotal = $taxTotal->subtract($discountTax);
-
-            $orderData["coupon_lines"][] = [
-                "code" => $appliedCoupon["code"],
-                "discount" => $this->moneyService->format($discountNet),
-                "discount_tax" => $this->moneyService->format($discountTax),
-            ];
-        }
-
-        // Set reconciled order-level totals from the summed cents (round once).
-        $taxTotalFormatted = $this->moneyService->format($taxTotal);
-        $orderData["tax_lines"][0]["tax_total"] = $taxTotalFormatted;
-        $orderData["cart_tax"] = $taxTotalFormatted;
-        $orderData["total_tax"] = $taxTotalFormatted;
-        $orderData["total"] = $this->moneyService->format($grossTotal);
-
-        // Create order in WooCommerce
-        $orderResult = $this->wooCommerceService->createOrder($orderData);
-
-        if (!$orderResult["success"]) {
-            $errorMessage =
-                "Er is een fout opgetreden bij het aanmaken van de bestelling: " .
-                $orderResult["message"];
-            $this->addFlash("error", $errorMessage);
-
-            return $this->redirectToRoute("app_checkout");
-        }
-
-        $order = $orderResult["order"];
-        $orderId = $order["id"];
-
-        // Store order ID in session for thank you page
-        $session->set("order_id", $orderId);
-        $session->set("customer_data", [
-            "firstName" => $checkoutDTO->firstName,
-            "lastName" => $checkoutDTO->lastName,
-            "companyName" => $checkoutDTO->companyName,
-            "city" => $checkoutDTO->city,
-            "phoneNumber" => $checkoutDTO->phoneNumber,
-            "email" => $checkoutDTO->email,
-        ]);
-
-        // Check if payment is needed (total > 0)
-        if ($total > 0) {
-            // Get payment URL
-            $returnUrl = $this->generateUrl(
-                "app_thank_you",
-                [],
-                UrlGeneratorInterface::ABSOLUTE_URL,
-            );
-            $checkoutResult = $this->wooCommerceService->getCheckoutUrl(
-                $orderId,
-                $returnUrl,
-            );
-
-            if (!$checkoutResult || !isset($checkoutResult["checkout_url"])) {
-                $this->addFlash(
-                    "error",
-                    "Er is een fout opgetreden bij het aanmaken van de betaallink.",
-                );
-                return $this->redirectToRoute("app_checkout");
+            $ticketType = $ticketTypesById[(string) $item['id']] ?? null;
+            if ($ticketType !== null) {
+                $cart[] = ['ticketType' => $ticketType, 'quantity' => (int) $item['quantity']];
             }
-
-            // Redirect to WooCommerce checkout
-            return $this->redirect($checkoutResult["checkout_url"]);
-        } else {
-            // No payment needed - mark order as completed to trigger webhook
-            $statusUpdated = $this->wooCommerceService->updateOrderStatus(
-                $orderId,
-                "completed",
-            );
-
-            if (!$statusUpdated) {
-                $this->logger->warning(
-                    "Failed to update order status to completed for zero-value order",
-                    [
-                        "order_id" => $orderId,
-                    ],
-                );
-            }
-
-            // Redirect directly to thank you page
-            $this->addFlash(
-                "success",
-                "Je bestelling is geplaatst! Geen betaling vereist.",
-            );
-            return $this->redirectToRoute("app_thank_you");
         }
+
+        $coupon = null;
+        $couponCode = $session->get('applied_coupon_code');
+        if ($couponCode !== null) {
+            $candidate = $this->couponRepository->findOneByCode($couponCode);
+            if ($candidate !== null && $this->discountCalculator->isApplicable($candidate, $this->clock->now())) {
+                $coupon = $candidate;
+            }
+        }
+
+        $customer = $this->checkoutService->resolveCustomer(
+            $checkout->email,
+            $checkout->firstName,
+            $checkout->lastName,
+            $checkout->companyName ?: null,
+            $checkout->city ?: null,
+            $checkout->phoneNumber ?: null,
+        );
+
+        try {
+            $order = $this->checkoutService->createOrder($cart, $customer, $coupon, $this->clock->now());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+
+            return $this->redirectToRoute('app_tickets');
+        }
+
+        // Snapshot billing/shipping on the order.
+        $order->billing->firstName = $checkout->firstName;
+        $order->billing->lastName = $checkout->lastName;
+        $order->billing->companyName = $checkout->companyName ?: null;
+        $order->billing->city = $checkout->city;
+        $order->billing->phoneNumber = $checkout->phoneNumber ?: null;
+        $order->billing->email = $checkout->email;
+        $order->shipping->firstName = $checkout->firstName;
+        $order->shipping->lastName = $checkout->lastName;
+        $order->shipping->companyName = $checkout->companyName ?: null;
+        $order->shipping->city = $checkout->city;
+
+        $session->set('order_number', $order->orderNumber);
+
+        // Zero-total bypass: complete immediately and fan out fulfilment.
+        if ($order->totalGross->isZero()) {
+            $order->completeNow($this->clock->now());
+            $this->checkoutService->save($order);
+            $this->messageBus->dispatch(new OrderCompleted((string) $order->id));
+
+            $this->addFlash('success', 'Je bestelling is geplaatst! Geen betaling vereist.');
+
+            return $this->redirectToRoute('app_thank_you', ['order' => $order->orderNumber]);
+        }
+
+        // Paid path: hand off to the payment provider (Omnipay, pending).
+        $this->checkoutService->save($order);
+        $redirectUrl = $this->paymentInitiator->initiate($order);
+
+        return $this->redirect($redirectUrl);
     }
 
-    #[Route("/algemene-voorwaarden/", name: "app_terms_conditions")]
+    #[Route('/algemene-voorwaarden/', name: 'app_terms_conditions')]
     public function termsConditions(): Response
     {
-        return $this->render("ticketing/terms-conditions.html.twig");
+        return $this->render('ticketing/terms-conditions.html.twig');
     }
 
-    #[Route("/bedankt", name: "app_thank_you")]
+    #[Route('/bedankt', name: 'app_thank_you')]
     public function thankYou(Request $request): Response
     {
         $session = $request->getSession();
-        $orderId = $session->get("order_id");
-        $customerData = $session->get("customer_data");
+        $orderNumber = $request->query->get('order') ?? $session->get('order_number');
 
-        // Get order_id and key from query parameters if provided by Mollie redirect
-        $mollieOrderId = $request->query->get("order_id");
-        $orderKey = $request->query->get("key");
-
-        if ($mollieOrderId) {
-            $orderId = $mollieOrderId;
-        }
-
-        // If we have order_id from query params, we must validate the order key
-        if ($mollieOrderId && !$orderKey) {
-            return $this->handleAccessError(
-                "missing_key",
-                "Order key is required",
-            );
-        }
+        $order = $orderNumber ? $this->orderRepository->findOneByOrderNumber((string) $orderNumber) : null;
 
         $paymentStatus = null;
         $paymentInfo = null;
-        $orderData = null;
+        $customerData = null;
 
-        // If we have an order ID, try to get payment status
-        if ($orderId) {
-            // Get order details from WooCommerce
-            $orderData = $this->wooCommerceService->getOrder((int) $orderId);
-
-            if (!$orderData) {
-                return $this->handleAccessError(
-                    "order_not_found",
-                    "Order not found",
-                );
-            }
-
-            // Validate order key if provided via query parameters
-            if ($mollieOrderId && $orderKey) {
-                $expectedOrderKey = $this->extractOrderKey($orderData);
-
-                if (!$expectedOrderKey || $orderKey !== $expectedOrderKey) {
-                    return $this->handleAccessError(
-                        "invalid_key",
-                        "Invalid order key",
-                    );
-                }
-            }
-
-            // Extract Mollie payment ID from order
-            $molliePaymentId = $this->wooCommerceService->getMolliePaymentId(
-                $orderData,
-            );
-
-            if ($molliePaymentId) {
-                // Get payment status from Mollie
-                $paymentResult = $this->mollieService->getPaymentStatus(
-                    $molliePaymentId,
-                );
-
-                if ($paymentResult["success"]) {
-                    $paymentStatus = $paymentResult["status"];
-                    $paymentInfo = [
-                        "amount" => $paymentResult["amount"],
-                        "method" => $paymentResult["method"],
-                        "paid_at" => $paymentResult["paid_at"],
-                        "status_message" => $this->mollieService->getStatusMessage(
-                            $paymentStatus,
-                        ),
-                        "is_successful" => $this->mollieService->isPaymentSuccessful(
-                            $paymentStatus,
-                        ),
-                        "is_pending" => $this->mollieService->isPaymentPending(
-                            $paymentStatus,
-                        ),
-                        "is_failed" => $this->mollieService->isPaymentFailed(
-                            $paymentStatus,
-                        ),
-                    ];
-                }
+        if ($order !== null) {
+            $customerData = [
+                'firstName' => $order->billing->firstName,
+                'lastName' => $order->billing->lastName,
+                'email' => $order->billing->email,
+            ];
+            if ($order->payment !== null) {
+                $paymentStatus = $order->payment->status->value;
+                $paymentInfo = [
+                    'status_message' => $order->payment->status->value,
+                    'is_successful' => $order->payment->status->isSuccessful(),
+                    'is_pending' => $order->payment->status->isPending(),
+                    'is_failed' => $order->payment->status->isFailed(),
+                ];
             }
         }
 
-        // Clear cart and order data from session after successful completion
-        $session->remove("cart_items");
-        $session->remove("order_id");
-        $session->remove("event_data");
-        $session->remove("applied_coupon");
-        $session->remove("subtotal");
-        $session->remove("discount");
-        $session->remove("tax");
-        $session->remove("total");
-        $session->remove("customer_data");
+        // Clear checkout session state.
+        foreach (['cart_items', 'order_number', 'event_data', 'event_slug', 'applied_coupon', 'applied_coupon_code', 'discount'] as $key) {
+            $session->remove($key);
+        }
 
-        return $this->render("ticketing/thank-you.html.twig", [
-            "order_id" => $orderId,
-            "customer_data" => $customerData,
-            "payment_status" => $paymentStatus,
-            "payment_info" => $paymentInfo,
+        return $this->render('ticketing/thank-you.html.twig', [
+            'order_id' => $orderNumber,
+            'customer_data' => $customerData,
+            'payment_status' => $paymentStatus,
+            'payment_info' => $paymentInfo,
         ]);
     }
 
     /**
-     * Extract order key from WooCommerce order data
+     * @return array{0: Money} the gross discount for a coupon code against a cart total
      */
-    private function extractOrderKey(array $orderData): ?string
+    private function resolveCoupon(?string $couponCode, Money $cartGross): array
     {
-        // Check direct order_key field first
-        if (isset($orderData["order_key"]) && !empty($orderData["order_key"])) {
-            return $orderData["order_key"];
+        if ($couponCode === null) {
+            return [Money::EUR(0)];
         }
 
-        // Check in meta_data for order key
-        $metaData = $orderData["meta_data"] ?? [];
-        foreach ($metaData as $meta) {
-            if (
-                isset($meta["key"], $meta["value"]) &&
-                in_array($meta["key"], [
-                    "_order_key",
-                    "order_key",
-                    "_woocommerce_order_key",
-                ])
-            ) {
-                return $meta["value"];
-            }
+        $coupon = $this->couponRepository->findOneByCode($couponCode);
+        if ($coupon === null || !$this->discountCalculator->isApplicable($coupon, $this->clock->now())) {
+            return [Money::EUR(0)];
         }
 
-        return null;
+        return [$this->discountCalculator->discountGross($coupon, $cartGross)];
     }
 
     /**
-     * Handle access errors with configurable error pages
+     * @param array<array{total?: float|int}> $cartItems
      */
-    private function handleAccessError(
-        string $errorCode,
-        string $message,
-        int $statusCode = 403,
-    ): Response {
-        $this->logger->warning("Access denied to thank you page", [
-            "error_code" => $errorCode,
-            "message" => $message,
-            "request_uri" => $_SERVER["REQUEST_URI"] ?? "unknown",
-        ]);
-
-        // Different error handling based on error code
-        switch ($errorCode) {
-            case "missing_key":
-            case "invalid_key":
-            case "order_not_found":
-                return $this->render(
-                    "error/access_denied.html.twig",
-                    [
-                        "error_code" => $errorCode,
-                        "message" => $message,
-                        "title" => "Toegang Geweigerd",
-                    ],
-                    new Response("", $statusCode),
-                );
-
-            default:
-                return $this->render(
-                    "error/general_error.html.twig",
-                    [
-                        "error_code" => $errorCode,
-                        "message" => $message,
-                        "title" => "Er is een fout opgetreden",
-                    ],
-                    new Response("", 500),
-                );
+    private function cartGross(array $cartItems): Money
+    {
+        $total = Money::EUR(0);
+        foreach ($cartItems as $item) {
+            $total = $total->add($this->moneyService->eurosToMoney((float) ($item['total'] ?? 0)));
         }
+
+        return $total;
+    }
+
+    /**
+     * Reshape an Event entity into the array shape the Twig templates expect.
+     */
+    private function eventView(Event $event): array
+    {
+        return [
+            'id' => (string) $event->id,
+            'slug' => $event->slug,
+            'name' => $event->name,
+            'description' => $event->description,
+            'date' => $event->startsAt->format('d-m-Y'),
+            'time' => $event->startsAt->format('H:i'),
+            'formatted_date' => $event->startsAt->format('d M'),
+            'location' => $event->location,
+            'image_url' => $event->imageUrl,
+            'permalink' => $event->permalink,
+            'stock_status' => $event->stockStatus->value,
+            'stock_quantity' => $event->stockQuantity,
+            'low_stock_amount' => $event->lowStockAmount,
+        ];
+    }
+
+    /**
+     * Reshape a TicketType entity into the array shape the Twig templates expect.
+     */
+    private function ticketTypeView(TicketType $ticketType): array
+    {
+        return [
+            'id' => (string) $ticketType->id,
+            'name' => $ticketType->name,
+            'price' => $this->moneyService->toFloat($ticketType->price),
+            'stock_status' => $ticketType->stockStatus->value,
+            'type' => $ticketType->name,
+        ];
     }
 }

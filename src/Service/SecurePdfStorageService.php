@@ -13,89 +13,79 @@ use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\ErrorCorrectionLevel;
+use App\Entity\Order;
+use App\Repository\OrderRepository;
 use Symfony\Component\HttpFoundation\Request;
 
 class SecurePdfStorageService
 {
     public function __construct(
         private Environment $twig,
-        private TicketApiService $ticketApiService,
         private LoggerInterface $logger,
         private TicketNameService $ticketNameService,
-        private WooCommerceService $wooCommerceService,
+        private OrderRepository $orderRepository,
         private string $tokenSecret,
         private int $tokenExpirationDays = 150
     ) {
     }
 
     /**
-     * Generate a secure token for PDF access using HMAC signing
-     * Only stores order ID - full order data is fetched from WooCommerce API when needed
+     * Generate a secure HMAC token for PDF access. The token only carries the
+     * order number; the order is read fresh from the database when used.
      */
-    public function generateSecureToken(array $orderData): string
+    public function generateSecureTokenForOrder(string $orderNumber): string
     {
-        $orderId = $orderData['id'] ?? null;
-        if (!$orderId) {
-            throw new \InvalidArgumentException('Order data must contain an ID');
-        }
-
-        $expirationTime = time() + ($this->tokenExpirationDays * 24 * 60 * 60); // days to seconds
-
         $payload = [
-            'order_id' => $orderId,
-            'iat' => time(), // issued at
-            'exp' => $expirationTime, // expiration time
-            'jti' => bin2hex(random_bytes(8)) // unique identifier
+            'order_id' => $orderNumber,
+            'iat' => time(),
+            'exp' => time() + ($this->tokenExpirationDays * 24 * 60 * 60),
+            'jti' => bin2hex(random_bytes(8)),
         ];
 
         return $this->encodeToken($payload);
     }
 
     /**
-     * Retrieve order data by token and generate PDF on demand
+     * Retrieve the order by token and generate its PDF on demand.
      */
     public function getPdfByToken(string $token): ?string
     {
-        $payload = $this->decodeToken($token);
-        if (!$payload) {
+        $order = $this->orderByToken($token);
+        if (!$order) {
             return null;
         }
 
-        $orderId = $payload['order_id'] ?? null;
-        if (!$orderId) {
-            $this->logger->error('Token payload missing order_id');
-            return null;
-        }
-
-        // Fetch fresh order data from WooCommerce
-        $orderData = $this->wooCommerceService->getOrder((int)$orderId);
-        if (!$orderData) {
-            $this->logger->error('Failed to fetch order from WooCommerce', ['order_id' => $orderId]);
-            return null;
-        }
-
-        // Generate PDF on demand (not cached)
-        return $this->generateOrderPdf($orderData);
+        return $this->generateOrderPdf($order);
     }
 
     /**
-     * Get order data by token (for filename generation)
+     * Get the order by token (e.g. for filename generation).
      */
-    public function getOrderDataByToken(string $token): ?array
+    public function getOrderByToken(string $token): ?Order
+    {
+        return $this->orderByToken($token);
+    }
+
+    private function orderByToken(string $token): ?Order
     {
         $payload = $this->decodeToken($token);
         if (!$payload) {
             return null;
         }
 
-        $orderId = $payload['order_id'] ?? null;
-        if (!$orderId) {
+        $orderNumber = $payload['order_id'] ?? null;
+        if (!$orderNumber) {
             $this->logger->error('Token payload missing order_id');
             return null;
         }
 
-        // Fetch fresh order data from WooCommerce
-        return $this->wooCommerceService->getOrder((int)$orderId);
+        $order = $this->orderRepository->findOneByOrderNumber((string) $orderNumber);
+        if (!$order) {
+            $this->logger->error('Order not found for PDF token', ['order_number' => $orderNumber]);
+            return null;
+        }
+
+        return $order;
     }
 
     /**
@@ -123,11 +113,10 @@ class SecurePdfStorageService
     }
 
     /**
-     * Generate PDF from order data
+     * Generate the order's ticket PDF from local entities.
      */
-    private function generateOrderPdf(array $orderData): string
+    private function generateOrderPdf(Order $order): string
     {
-        // Configure Dompdf
         $options = new Options();
         $options->set('defaultFont', 'Arial');
         $options->set('isRemoteEnabled', true);
@@ -137,43 +126,47 @@ class SecurePdfStorageService
 
         $dompdf = new Dompdf($options);
 
-        // Fetch ticket information from the API
-        $orderId = $orderData['id'] ?? $orderData['number'];
-        $ticketInfo = $this->ticketApiService->getTicketInformation((string) $orderId);
+        // Build the view model the template expects (mirrors the old ticket-API
+        // shape) directly from the order's issued tickets.
+        $tickets = [];
+        $eventDateTime = null;
+        $eventName = null;
 
-        if ($ticketInfo && $this->ticketApiService->validateTicketResponse($ticketInfo)) {
-            $this->logger->info('Using ticket information from API', [
-                'order_id' => $orderId,
-                'event_name' => $ticketInfo['event_name'],
-                'ticket_count' => count($ticketInfo['tickets'])
-            ]);
+        foreach ($order->tickets as $ticket) {
+            $eventName ??= $ticket->eventNameSnapshot;
+            $eventDateTime ??= $ticket->eventDateTimeSnapshot->format('d-m-Y H:i');
 
-            // Generate individual QR codes for each ticket
-            foreach ($ticketInfo['tickets'] as $ticketId => &$ticket) {
-                if (isset($ticket['ticket_code'])) {
-                    // Generate short ticket name for display
-                    if (isset($ticket['ticket_name'])) {
-                        $ticket['short_ticket_name'] = $this->ticketNameService->generateShortTicketName($ticket['ticket_name']);
-                    }
-                    // Generate QR code with full ticket data
-                    $ticket['qr_code'] = $this->generateTicketQrCode($ticket);
-                }
-            }
-        } else {
-            $this->logger->error('Failed to fetch ticket information from API', [
-                'order_id' => $orderId
-            ]);
-            // Don't fallback, let the template handle the error
-            $ticketInfo = null;
+            $tickets[] = [
+                'ticket_code' => $ticket->ticketCode,
+                'ticket_name' => $ticket->ticketName,
+                'short_ticket_name' => $this->ticketNameService->generateShortTicketName($ticket->ticketName),
+                'qr_code' => $this->generateTicketQrCode(['ticket_code' => $ticket->ticketCode]),
+            ];
         }
 
-        // Generate HTML content using Twig template (translations handled by Twig)
+        $ticketInfo = $tickets === [] ? null : [
+            'event_name' => $eventName,
+            'event_date_time' => $eventDateTime,
+            'tickets' => $tickets,
+        ];
+
+        if ($ticketInfo === null) {
+            $this->logger->error('No tickets issued for order PDF', [
+                'order_number' => $order->orderNumber,
+            ]);
+        }
+
         $html = $this->twig->render('pdf/order.html.twig', [
-            'order' => $orderData,
-            'ticket_info' => $ticketInfo
+            'order' => [
+                'number' => $order->orderNumber,
+                'billing' => [
+                    'first_name' => $order->billing->firstName,
+                    'last_name' => $order->billing->lastName,
+                ],
+            ],
+            'ticket_info' => $ticketInfo,
         ]);
 
-        // Load HTML and generate PDF
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();

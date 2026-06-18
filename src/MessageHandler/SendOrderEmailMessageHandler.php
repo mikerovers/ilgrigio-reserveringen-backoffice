@@ -1,89 +1,92 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\MessageHandler;
 
+use App\Entity\Order;
 use App\Message\SendOrderEmailMessage;
+use App\Repository\OrderRepository;
+use App\Service\MoneyService;
 use App\Service\SecurePdfStorageService;
 use Psr\Log\LoggerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mime\Address;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
-class SendOrderEmailMessageHandler
+final class SendOrderEmailMessageHandler
 {
     public function __construct(
         private MailerInterface $mailer,
         private LoggerInterface $logger,
         private TranslatorInterface $translator,
         private SecurePdfStorageService $securePdfStorageService,
+        private OrderRepository $orderRepository,
+        private MoneyService $moneyService,
         private RequestStack $requestStack,
         private string $appBaseUrl,
-        private string $fromEmail = "noreply@example.com",
-        private string $fromName = "Il Grigio",
-        private string $adminEmail = "admin@example.com",
+        private string $fromEmail = 'noreply@example.com',
+        private string $fromName = 'Il Grigio',
+        private string $adminEmail = 'admin@example.com',
     ) {
     }
 
     public function __invoke(SendOrderEmailMessage $message): void
     {
-        $orderData = $message->getOrderData();
-        $downloadToken = $message->getPdfDownloadToken();
+        $order = $this->orderRepository->find($message->orderId);
+
+        if ($order === null) {
+            $this->logger->error('SendOrderEmail for unknown order', [
+                'order_id' => $message->orderId,
+            ]);
+
+            return;
+        }
+
+        $downloadToken = $message->pdfDownloadToken;
 
         try {
-            // Generate PDF for attachment. This may fail (e.g. order temporarily
-            // unavailable in WooCommerce or a slow ticket API); when it does we
-            // still send the email and rely on the download link instead.
-            $pdfContent = $this->securePdfStorageService->getPdfByToken(
-                $downloadToken,
-            );
+            // The PDF may fail to render; when it does we still send the email
+            // and rely on the (regenerating) download link instead.
+            $pdfContent = $this->securePdfStorageService->getPdfByToken($downloadToken);
 
             if ($pdfContent === null) {
-                $this->logger->warning(
-                    "PDF could not be generated; sending email without attachment",
-                    [
-                        "order_id" => $orderData["id"] ?? "unknown",
-                    ],
-                );
+                $this->logger->warning('PDF could not be generated; sending email without attachment', [
+                    'order_number' => $order->orderNumber,
+                ]);
             }
 
-            $this->sendOrderNotification(
-                $orderData,
-                $downloadToken,
-                $pdfContent,
-            );
+            $this->sendOrderNotification($order, $downloadToken, $pdfContent);
 
-            $this->logger->info(
-                "Order notification emails sent via messenger",
-                [
-                    "order_id" => $orderData["id"],
-                ],
-            );
+            $this->logger->info('Order notification email sent', [
+                'order_number' => $order->orderNumber,
+            ]);
         } catch (\Exception $e) {
-            $this->logger->error(
-                "Failed to send order notification emails via messenger",
-                [
-                    "order_id" => $orderData["id"] ?? "unknown",
-                    "error" => $e->getMessage(),
-                ],
-            );
+            $this->logger->error('Failed to send order notification email', [
+                'order_number' => $order->orderNumber,
+                'error' => $e->getMessage(),
+            ]);
 
             throw $e;
         }
     }
 
-    private function sendOrderNotification(
-        array $orderData,
-        string $downloadToken,
-        ?string $pdfContent,
-    ): void {
-        $orderNumber = $orderData["number"] ?? $orderData["id"];
-        $customerEmail = $orderData["billing"]["email"] ?? null;
+    private function sendOrderNotification(Order $order, string $downloadToken, ?string $pdfContent): void
+    {
+        $customerEmail = $order->billing->email;
 
-        // Generate download URL (use a default base URL since we might not have a request context)
+        if (!$customerEmail) {
+            $this->logger->warning('Order has no billing email; skipping confirmation', [
+                'order_number' => $order->orderNumber,
+            ]);
+
+            return;
+        }
+
         $request = $this->requestStack->getCurrentRequest();
         $downloadUrl = $this->securePdfStorageService->generateDownloadUrl(
             $request,
@@ -91,75 +94,63 @@ class SendOrderEmailMessageHandler
             $this->appBaseUrl,
         );
 
-        // Send confirmation email to customer if email is available
-        if ($customerEmail) {
-            // Prepare template variables
-            $templateVars = [
-                "order_number" => $orderNumber,
-                "order_date" => new \DateTime(),
-                "customer_name" => $this->getCustomerName($orderData),
-                "customer_email" => $customerEmail,
-                "download_url" => $downloadUrl,
-                "order_total" => $orderData["total"] ?? null,
-                "total_tax" => $orderData["total_tax"] ?? null,
-                "order_data" => $orderData,
-            ];
+        $templateVars = [
+            'order_number' => $order->orderNumber,
+            'order_date' => $order->createdAt ?? new \DateTimeImmutable(),
+            'customer_name' => trim($order->billing->firstName . ' ' . $order->billing->lastName),
+            'customer_email' => $customerEmail,
+            'download_url' => $downloadUrl,
+            'order_total' => $this->moneyService->format($order->totalGross),
+            'total_tax' => $this->moneyService->format($order->tax),
+            'order_data' => $this->buildOrderView($order),
+        ];
 
-            $customerSubject = $this->translator->trans(
-                "email.customer.subject",
-                ["%order_number%" => $orderNumber],
-            );
+        $customerSubject = $this->translator->trans(
+            'email.customer.subject',
+            ['%order_number%' => $order->orderNumber],
+        );
 
-            $customerConfirmation = (new TemplatedEmail())
-                ->from(new Address($this->fromEmail, $this->fromName))
-                ->to($customerEmail)
-                ->subject($customerSubject)
-                ->htmlTemplate("email/customer_order_confirmation.html.twig")
-                ->textTemplate("email/customer_order_confirmation.txt.twig")
-                ->context($templateVars);
+        $email = (new TemplatedEmail())
+            ->from(new Address($this->fromEmail, $this->fromName))
+            ->to($customerEmail)
+            ->subject($customerSubject)
+            ->htmlTemplate('email/customer_order_confirmation.html.twig')
+            ->textTemplate('email/customer_order_confirmation.txt.twig')
+            ->context($templateVars);
 
-            // Attach the PDF only when it was generated; otherwise the customer
-            // relies on the download link, which regenerates it on demand.
-            if ($pdfContent !== null) {
-                $customerConfirmation->attach(
-                    $pdfContent,
-                    "tickets-" . $orderNumber . ".pdf",
-                    "application/pdf",
-                );
-            }
-
-            $this->mailer->send($customerConfirmation);
+        if ($pdfContent !== null) {
+            $email->attach($pdfContent, 'tickets-' . $order->orderNumber . '.pdf', 'application/pdf');
         }
 
-        $this->logger->info("Order notification emails sent", [
-            "order_id" => $orderData["id"],
-            "customer_email_sent" => !empty($customerEmail),
-            "customer_email" => $customerEmail,
-            "pdf_attached" => $pdfContent !== null,
-        ]);
+        $this->mailer->send($email);
     }
 
-    private function getCustomerName(array $orderData): ?string
+    /**
+     * View model matching the keys the email templates read off `order_data`.
+     */
+    private function buildOrderView(Order $order): array
     {
-        // Try to get customer name from billing information
-        $billing = $orderData["billing"] ?? [];
-
-        $firstName = $billing["first_name"] ?? "";
-        $lastName = $billing["last_name"] ?? "";
-
-        if (!empty($firstName) || !empty($lastName)) {
-            return trim($firstName . " " . $lastName);
+        $lineItems = [];
+        foreach ($order->lineItems as $lineItem) {
+            $lineItems[] = [
+                'name' => $lineItem->name,
+                'quantity' => $lineItem->quantity,
+                'total' => $this->moneyService->format($lineItem->lineGross),
+            ];
         }
 
-        // Fallback to shipping information if billing is not available
-        $shipping = $orderData["shipping"] ?? [];
-        $firstName = $shipping["first_name"] ?? "";
-        $lastName = $shipping["last_name"] ?? "";
-
-        if (!empty($firstName) || !empty($lastName)) {
-            return trim($firstName . " " . $lastName);
+        $couponLines = [];
+        if ($order->couponCode !== null && !$order->discountGross->isZero()) {
+            $couponLines[] = [
+                'code' => $order->couponCode,
+                'discount' => $this->moneyService->format($order->discountGross),
+            ];
         }
 
-        return null;
+        return [
+            'line_items' => $lineItems,
+            'coupon_lines' => $couponLines,
+            'payment_method_title' => $order->payment?->method ?? 'iDEAL',
+        ];
     }
 }

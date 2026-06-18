@@ -18,22 +18,22 @@ services:
     App\:
         resource: '../src/'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    App\Payment\PaymentInitiatorInterface: '@App\Payment\OmnipayMolliePaymentInitiator'
 
-    # Webhook services
-    App\Service\WebhookSecurityService:
+    App\Payment\OmnipayMolliePaymentInitiator:
         arguments:
-            $logger: '@logger'
-            $webhookSecret: '%env(WOOCOMMERCE_WEBHOOK_SECRET)%'
+            $mollieApiKey: '%env(MOLLIE_API_KEY)%'
+            $returnUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%/bedankt'
+            $webhookUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%/webhook/mollie'
 
-    App\Webhook\WooCommerceRequestParser:
+    App\Webhook\MollieWebhookConsumer:
         arguments:
-            $webhookSecurityService: '@App\Service\WebhookSecurityService'
-            $orderNormalizer: '@App\Webhook\WooCommerceOrderNormalizer'
-            $logger: '@logger'
+            $mollieApiKey: '%env(MOLLIE_API_KEY)%'
+
+    App\Webhook\MollieRequestParser:
         tags:
-            - { name: 'webhook.request_parser', type: 'woocommerce' }
+            - name: webhook.request_parser
+              type: mollie
 
     # Email message handler configuration
     App\MessageHandler\SendOrderEmailMessageHandler:
@@ -49,52 +49,14 @@ services:
             $tokenSecret: '%env(PDF_TOKEN_SECRET)%'
             $tokenExpirationDays: '%env(int:PDF_TOKEN_EXPIRATION_DAYS)%'
 
-    # Ticket API Service configuration
-    App\Service\TicketApiService:
+    # Checkout order assembly
+    App\Service\CheckoutService:
         arguments:
-            $ticketApiUrl: '%env(ILGRIGIO_TICKET_API_URL)%'
-            $ticketApiKey: '%env(ILGRIGIO_TICKET_API_KEY)%'
-
-    # WooCommerce Events Service configuration
-    App\Service\WooCommerceEventsService:
-        arguments:
-            $ilgrigioBaseApiUrl: '%env(ILGRIGIO_BASE_API_URL)%'
-            $woocommerceConsumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
-            $woocommerceConsumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
-
-    # WooCommerce Product Variations Service configuration
-    App\Service\WooCommerceProductVariationsService:
-        arguments:
-            $ilgrigioBaseApiUrl: '%env(ILGRIGIO_BASE_API_URL)%'
-            $woocommerceConsumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
-            $woocommerceConsumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
-
-    # WooCommerce Coupon Service configuration
-    App\Service\WooCommerceCouponService:
-        arguments:
-            $baseUrl: '%env(ILGRIGIO_BASE_URL)%'
-            $consumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
-            $consumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
-
-    # WooCommerce Service configuration
-    App\Service\WooCommerceService:
-        arguments:
-            $baseUrl: '%env(ILGRIGIO_BASE_URL)%'
-            $consumerKey: '%env(WOOCOMMERCE_CONSUMER_KEY)%'
-            $consumerSecret: '%env(WOOCOMMERCE_CONSUMER_SECRET)%'
-
-    # Mollie Service configuration
-    App\Service\MollieService:
-        arguments:
-            $mollieApiKey: '%env(MOLLIE_API_KEY)%'
-
-    # Remote event consumers
-    # Note: WooCommerceWebhookController uses AsRemoteEventConsumer attribute for auto-configuration
+            $taxRatePercent: '%env(float:TAX_RATE)%'
 
     # Ticketing Controller configuration
     App\Controller\TicketingController:
         arguments:
-            $ilgrigioBaseUrl: '%env(ILGRIGIO_BASE_URL)%'
             $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
             $taxRate: '%env(float:TAX_RATE)%'
 
@@ -115,3 +77,14 @@ services:
             $endpoint: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
             $appName: '%env(NEW_RELIC_APP_NAME)%'
             $environment: '%kernel.environment%'
+
+    # Dedicated CurlHttpClient for the SQS transport. Injects directly into
+    # AmazonSqsTransportFactory so async-aws never wraps it in AsyncResponse.
+    # Without AsyncResponse in the chain, AsyncAws\Core\Response.__destruct()
+    # cannot crash during PHP shutdown when the worker restarts on --time-limit.
+    sqs.http_client:
+        class: Symfony\Component\HttpClient\CurlHttpClient
+
+    Symfony\Component\Messenger\Bridge\AmazonSqs\Transport\AmazonSqsTransportFactory:
+        arguments:
+            $httpClient: '@sqs.http_client'

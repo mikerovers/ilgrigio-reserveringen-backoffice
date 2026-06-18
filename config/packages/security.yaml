@@ -34,6 +34,8 @@ security:
         # Public storefront endpoints (called by anonymous browsers, no API key)
         # Kept on PUBLIC_ACCESS so CORS preflight / anonymous calls work.
         - { path: '^/api/(validate-coupon|remove-coupon|available-events)', roles: PUBLIC_ACCESS }
+        # Mollie webhook — server-to-server, no API key; security via re-fetching from Mollie API
+        - { path: '^/webhook/mollie', roles: PUBLIC_ACCESS }
         # All other /api routes require authentication (order-processing API)
         - { path: ^/api, roles: IS_AUTHENTICATED }
         # Force HTTPS on non-API routes (prod only, via SECURE_CHANNEL)

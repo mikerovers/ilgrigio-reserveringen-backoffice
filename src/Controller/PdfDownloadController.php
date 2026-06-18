@@ -31,11 +31,9 @@ class PdfDownloadController extends AbstractController
                 );
             }
 
-            // Get order data for filename
-            $orderData = $this->securePdfStorageService->getOrderDataByToken(
-                $token,
-            );
-            if (!$orderData) {
+            // Get order for filename
+            $order = $this->securePdfStorageService->getOrderByToken($token);
+            if (!$order) {
                 throw $this->createNotFoundException("Order data not found");
             }
 
@@ -46,7 +44,7 @@ class PdfDownloadController extends AbstractController
             }
 
             // Create filename
-            $orderNumber = $orderData["number"] ?? $orderData["id"];
+            $orderNumber = $order->orderNumber;
             $filename = "order-confirmation-" . $orderNumber . ".pdf";
 
             // Create response with PDF content
@@ -61,7 +59,7 @@ class PdfDownloadController extends AbstractController
             );
 
             $this->logger->info("PDF viewed successfully", [
-                "order_id" => $orderData["id"],
+                "order_number" => $order->orderNumber,
                 "token" => substr($token, 0, 8) . "...",
             ]);
 
