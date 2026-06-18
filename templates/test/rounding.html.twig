@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+	<meta charset="UTF-8">
+	<title>Rounding test — order {{ order_id }}</title>
+	<style>
+		body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2937; }
+		h1 { font-size: 1.25rem; }
+		.meta { color: #6b7280; margin-bottom: 1.5rem; }
+		table { border-collapse: collapse; width: 100%; max-width: 720px; }
+		th, td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: right; }
+		th:first-child, td:first-child { text-align: left; }
+		thead th { background: #f9fafb; }
+		tfoot td { font-weight: 600; background: #f9fafb; }
+		.badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+		.ok { background: #dcfce7; color: #166534; }
+		.bad { background: #fee2e2; color: #991b1b; }
+		.hint { margin-top: 1.5rem; color: #6b7280; font-size: 0.85rem; }
+		code { background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 4px; }
+	</style>
+</head>
+<body>
+	<h1>Rounding test — order {{ order_id }}</h1>
+	<p class="meta">Mock cart data, run through the cents-based logic from <code>processCheckout()</code>. BTW {{ tax_rate }}%. All prices are tax-inclusive (gross).</p>
+
+	<table>
+		<thead>
+			<tr>
+				<th>Item</th>
+				<th>Aantal</th>
+				<th>Gross (incl.)</th>
+				<th>Net (excl.)</th>
+				<th>BTW</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for line in lines %}
+				<tr>
+					<td>{{ line.name }}</td>
+					<td>{{ line.quantity }}</td>
+					<td>€{{ line.gross }}</td>
+					<td>€{{ line.net }}</td>
+					<td>€{{ line.tax }}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+		<tfoot>
+			<tr>
+				<td colspan="2">Totaal</td>
+				<td>€{{ gross_total }}</td>
+				<td>€{{ net_total }}</td>
+				<td>€{{ tax_total }}</td>
+			</tr>
+		</tfoot>
+	</table>
+
+	<p style="margin-top:1rem;">
+		Reconciliation (net + BTW = gross):
+		{% if reconciles %}
+			<span class="badge ok">OK — €{{ net_total }} + €{{ tax_total }} = €{{ gross_total }}</span>
+		{% else %}
+			<span class="badge bad">MISMATCH</span>
+		{% endif %}
+	</p>
+
+	<p class="hint">
+		Change the order id in the URL: <code>/test/rounding/12345</code> (bug case, €82.00) or
+		<code>/test/rounding/999</code> (single odd-priced line). Unknown ids fall back to 12345.
+	</p>
+</body>
+</html>

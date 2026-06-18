@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\DTO\CheckoutDTO;
 use App\DTO\TicketOrderDTO;
+use App\Service\MoneyService;
 use App\Service\WooCommerceEventsService;
 use App\Service\WooCommerceProductVariationsService;
 use App\Service\WooCommerceCouponService;
@@ -26,6 +27,7 @@ class TicketingController extends AbstractController
         private WooCommerceCouponService $couponService,
         private WooCommerceService $wooCommerceService,
         private MollieService $mollieService,
+        private MoneyService $moneyService,
         private ValidatorInterface $validator,
         private LoggerInterface $logger,
         private string $ilgrigioBaseUrl,
@@ -188,10 +190,12 @@ class TicketingController extends AbstractController
             }
         }
 
-        // Calculate tax components (tax is included in the total)
-        $taxRate = $this->taxRate / 100; // Convert percentage to decimal
-        $taxAmount = $totalAfterDiscount - $totalAfterDiscount / (1 + $taxRate);
-        $subtotalWithoutTax = $totalAfterDiscount - $taxAmount;
+        // Calculate tax components in cents (tax is included in the total) so
+        // the session values match the WooCommerce order built in processCheckout.
+        $gross = $this->moneyService->eurosToMoney($totalAfterDiscount);
+        [$net, $taxMoney] = $this->moneyService->splitGross($gross, $this->taxRate);
+        $taxAmount = $this->moneyService->toFloat($taxMoney);
+        $subtotalWithoutTax = $this->moneyService->toFloat($net);
 
         $finalTotal = $totalAfterDiscount;
 
@@ -299,11 +303,14 @@ class TicketingController extends AbstractController
 
             $totalAfterDiscount = $subtotal - $discountAmount;
 
-            // Calculate tax components (tax is included in the total)
-            $taxRate = $this->taxRate / 100; // Convert percentage to decimal
-            $taxAmount =
-                $totalAfterDiscount - $totalAfterDiscount / (1 + $taxRate);
-            $subtotalWithoutTax = $totalAfterDiscount - $taxAmount;
+            // Calculate tax components in cents (tax is included in the total).
+            $gross = $this->moneyService->eurosToMoney($totalAfterDiscount);
+            [$net, $taxMoney] = $this->moneyService->splitGross(
+                $gross,
+                $this->taxRate,
+            );
+            $taxAmount = $this->moneyService->toFloat($taxMoney);
+            $subtotalWithoutTax = $this->moneyService->toFloat($net);
 
             $total = $totalAfterDiscount;
 
@@ -332,10 +339,11 @@ class TicketingController extends AbstractController
             $subtotal += $item["total"] ?? 0;
         }
 
-        // Calculate tax components (tax is included in the total)
-        $taxRate = $this->taxRate / 100; // Convert percentage to decimal
-        $taxAmount = $subtotal - $subtotal / (1 + $taxRate);
-        $subtotalWithoutTax = $subtotal - $taxAmount;
+        // Calculate tax components in cents (tax is included in the total).
+        $gross = $this->moneyService->eurosToMoney($subtotal);
+        [$net, $taxMoney] = $this->moneyService->splitGross($gross, $this->taxRate);
+        $taxAmount = $this->moneyService->toFloat($taxMoney);
+        $subtotalWithoutTax = $this->moneyService->toFloat($net);
 
         // Reset discount and update totals
         $session->set("discount", 0);
@@ -381,11 +389,15 @@ class TicketingController extends AbstractController
         $tax = $session->get("tax", 0);
         $total = $session->get("total", $totalWithTax);
 
-        // If tax is not in session, calculate it (tax-inclusive)
+        // If tax is not in session, calculate it in cents (tax-inclusive).
         if ($tax === 0) {
             $totalAfterDiscount = $totalWithTax - $discount;
-            $taxRate = $this->taxRate / 100; // Convert percentage to decimal
-            $tax = $totalAfterDiscount - $totalAfterDiscount / (1 + $taxRate);
+            $gross = $this->moneyService->eurosToMoney($totalAfterDiscount);
+            [, $taxMoney] = $this->moneyService->splitGross(
+                $gross,
+                $this->taxRate,
+            );
+            $tax = $this->moneyService->toFloat($taxMoney);
             $total = $totalAfterDiscount;
         }
 
@@ -454,15 +466,22 @@ class TicketingController extends AbstractController
         // Get cart data from session
         $cartItems = $session->get("cart_items", []);
         $eventData = $session->get("event_data", null);
-        $appliedCoupon = $session->get("applied_coupon", null);
+        $appliedCoupon = $session->get("axpplied_coupon", null);
         $total = $session->get("total", 0);
         $discount = $session->get("discount", 0);
-        $tax = $session->get("tax", 0);
 
         if (empty($cartItems)) {
             $this->addFlash("error", "Geen items in winkelwagen gevonden.");
             return $this->redirectToRoute("app_tickets");
         }
+
+        // Compute all monetary values in integer cents, anchored on the
+        // tax-inclusive cart total the customer agreed to. Summing first and
+        // splitting gross into net/tax via Money::allocate guarantees the order
+        // reconciles to the cent (no per-unit rounding drift).
+        $taxRatePercent = $this->taxRate;
+        $grossTotal = $this->moneyService->eurosToMoney(0);
+        $taxTotal = $this->moneyService->eurosToMoney(0);
 
         // Prepare order data for WooCommerce
         $orderData = [
@@ -471,6 +490,9 @@ class TicketingController extends AbstractController
             "set_paid" => false,
             "status" => "pending",
             "currency" => "EUR",
+            // We send net (tax-exclusive) line totals plus explicit tax, so tell
+            // WooCommerce not to treat the prices as tax-inclusive.
+            "prices_include_tax" => false,
             "billing" => [
                 "first_name" => $checkoutDTO->firstName,
                 "last_name" => $checkoutDTO->lastName,
@@ -489,13 +511,14 @@ class TicketingController extends AbstractController
             "coupon_lines" => [],
             "shipping_lines" => [],
             "fee_lines" => [],
+            // tax_lines[0].tax_total is filled in after summing the line taxes.
             "tax_lines" => [
                 [
                     "rate_code" => "NL-VAT-" . $this->taxRate,
                     "rate_id" => "1",
                     "label" => "BTW",
                     "compound" => false,
-                    "tax_total" => (string) number_format($tax, 2, ".", ""),
+                    "tax_total" => "0.00",
                     "shipping_tax_total" => "0.00",
                 ],
             ],
@@ -515,79 +538,66 @@ class TicketingController extends AbstractController
             ],
         ];
 
-        // Add line items
+        // Add line items. Each line's tax-inclusive total is split into net/tax
+        // in cents; we omit "price" (read-only/derived) so WooCommerce computes
+        // it from our consistent net "total" instead of re-deriving an inflated
+        // gross from a separately-rounded per-unit price.
         foreach ($cartItems as $item) {
-            // Calculate net price and tax per item (since prices are tax-inclusive)
-            $taxRate = $this->taxRate / 100;
-            $itemTotalWithTax = $item["total"];
-            $itemTotalWithoutTax = $itemTotalWithTax / (1 + $taxRate);
-            $itemTaxAmount = $itemTotalWithTax - $itemTotalWithoutTax;
+            $grossLine = $this->moneyService->eurosToMoney((float) $item["total"]);
+            [$netLine, $taxLine] = $this->moneyService->splitGross(
+                $grossLine,
+                $taxRatePercent,
+            );
+
+            $grossTotal = $grossTotal->add($grossLine);
+            $taxTotal = $taxTotal->add($taxLine);
+
+            $netLineFormatted = $this->moneyService->format($netLine);
+            $taxLineFormatted = $this->moneyService->format($taxLine);
 
             $orderData["line_items"][] = [
                 "product_id" => $item["id"],
                 "quantity" => $item["quantity"],
                 "name" => $item["name"],
-                "price" => number_format(
-                    $itemTotalWithoutTax / $item["quantity"],
-                    2,
-                    ".",
-                    "",
-                ),
-                "total" => (string) number_format(
-                    $itemTotalWithoutTax,
-                    2,
-                    ".",
-                    "",
-                ),
-                "total_tax" => (string) number_format(
-                    $itemTaxAmount,
-                    2,
-                    ".",
-                    "",
-                ),
+                "subtotal" => $netLineFormatted,
+                "total" => $netLineFormatted,
+                "total_tax" => $taxLineFormatted,
                 "taxes" => [
                     [
                         "id" => 1,
-                        "total" => (string) number_format(
-                            $itemTaxAmount,
-                            2,
-                            ".",
-                            "",
-                        ),
-                        "subtotal" => (string) number_format(
-                            $itemTaxAmount,
-                            2,
-                            ".",
-                            "",
-                        ),
+                        "total" => $taxLineFormatted,
+                        "subtotal" => $taxLineFormatted,
                     ],
                 ],
             ];
         }
 
-        // Add coupon if applied
+        // Add coupon if applied. The discount applies to the tax-inclusive
+        // total, so split it into net/tax in cents and remove its gross + tax
+        // from the order totals so they stay reconciled to the cent.
         if ($appliedCoupon && $discount > 0) {
-            // Calculate discount tax (since discount is applied to tax-inclusive amount)
-            $taxRate = $this->taxRate / 100;
-            $discountWithoutTax = $discount / (1 + $taxRate);
-            $discountTax = $discount - $discountWithoutTax;
+            $discountGross = $this->moneyService->eurosToMoney((float) $discount);
+            [$discountNet, $discountTax] = $this->moneyService->splitGross(
+                $discountGross,
+                $taxRatePercent,
+            );
+
+            $grossTotal = $grossTotal->subtract($discountGross);
+            $taxTotal = $taxTotal->subtract($discountTax);
 
             $orderData["coupon_lines"][] = [
                 "code" => $appliedCoupon["code"],
-                "discount" => (string) number_format(
-                    $discountWithoutTax,
-                    2,
-                    ".",
-                    "",
-                ),
-                "discount_tax" => (string) number_format(
-                    $discountTax,
-                    2,
-                    ".",
-                    "",
-                ),
+                "discount" => $this->moneyService->format($discountNet),
+                "discount_tax" => $this->moneyService->format($discountTax),
             ];
         }
+
+        // Set reconciled order-level totals from the summed cents (round once).
+        $taxTotalFormatted = $this->moneyService->format($taxTotal);
+        $orderData["tax_lines"][0]["tax_total"] = $taxTotalFormatted;
+        $orderData["cart_tax"] = $taxTotalFormatted;
+        $orderData["total_tax"] = $taxTotalFormatted;
+        $orderData["total"] = $this->moneyService->format($grossTotal);
 
         // Create order in WooCommerce
         $orderResult = $this->wooCommerceService->createOrder($orderData);

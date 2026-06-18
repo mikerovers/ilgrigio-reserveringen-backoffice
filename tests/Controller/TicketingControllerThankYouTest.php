@@ -3,6 +3,7 @@
 namespace App\Tests\Controller;
 
 use App\Controller\TicketingController;
+use App\Service\MoneyService;
 use App\Service\WooCommerceEventsService;
 use App\Service\WooCommerceProductVariationsService;
 use App\Service\WooCommerceCouponService;
@@ -398,6 +399,7 @@ class TicketingControllerThankYouTest extends TestCase
             $this->couponService,
             $this->wooCommerceService,
             $this->mollieService,
+            new MoneyService(),
             $this->validator,
             $this->logger,
             'https://example.com',
@@ -413,6 +415,7 @@ class TicketingControllerThankYouTest extends TestCase
                 WooCommerceCouponService $couponService,
                 WooCommerceService $wooCommerceService,
                 MollieService $mollieService,
+                MoneyService $moneyService,
                 ValidatorInterface $validator,
                 LoggerInterface $logger,
                 string $ilgrigioBaseUrl,
@@ -426,6 +429,7 @@ class TicketingControllerThankYouTest extends TestCase
                     $couponService,
                     $wooCommerceService,
                     $mollieService,
+                    $moneyService,
                     $validator,
                     $logger,
                     $ilgrigioBaseUrl,

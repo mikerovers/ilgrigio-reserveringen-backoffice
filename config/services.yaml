@@ -98,6 +98,11 @@ services:
             $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
             $taxRate: '%env(float:TAX_RATE)%'
 
+    # Dev-only test controller configuration
+    App\Controller\TestController:
+        arguments:
+            $taxRate: '%env(float:TAX_RATE)%'
+
     # API Key Authenticator configuration
     App\Security\ApiKeyAuthenticator:
         arguments:

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\MoneyService;
 use App\Service\OrderPdfService;
 use App\Service\TicketApiService;
 use App\Service\TicketNameService;
@@ -18,6 +19,8 @@ class TestController extends AbstractController
         private OrderPdfService $orderPdfService,
         private TicketApiService $ticketApiService,
         private TicketNameService $ticketNameService,
+        private MoneyService $moneyService,
+        private float $taxRate,
     ) {
     }
 
@@ -432,5 +435,85 @@ class TestController extends AbstractController
             "email/customer_order_confirmation.html.twig",
             $templateVars,
         );
+    }
+
+    /**
+     * Visualise the cents-based tax/total logic from
+     * TicketingController::processCheckout(). Order data is mocked (no
+     * WooCommerce call): set an order id in the URL to load a predefined mock
+     * cart and see the reconciled net/tax/total breakdown.
+     */
+    #[
+        Route(
+            "/test/rounding/{orderId}",
+            name: "test_rounding",
+            requirements: ["orderId" => "\\d+"],
+            methods: ["GET"],
+        ),
+    ]
+    public function testRounding(int $orderId): Response
+    {
+        $cartItems = $this->mockCartForOrder($orderId);
+
+        // Mirror the cents-based logic from processCheckout().
+        $grossTotal = $this->moneyService->eurosToMoney(0);
+        $taxTotal = $this->moneyService->eurosToMoney(0);
+        $lines = [];
+
+        foreach ($cartItems as $item) {
+            $grossLine = $this->moneyService->eurosToMoney((float) $item["total"]);
+            [$netLine, $taxLine] = $this->moneyService->splitGross(
+                $grossLine,
+                $this->taxRate,
+            );
+
+            $grossTotal = $grossTotal->add($grossLine);
+            $taxTotal = $taxTotal->add($taxLine);
+
+            $lines[] = [
+                "name" => $item["name"],
+                "quantity" => $item["quantity"],
+                "gross" => $this->moneyService->format($grossLine),
+                "net" => $this->moneyService->format($netLine),
+                "tax" => $this->moneyService->format($taxLine),
+            ];
+        }
+
+        $netTotal = $grossTotal->subtract($taxTotal);
+
+        return $this->render("test/rounding.html.twig", [
+            "order_id" => $orderId,
+            "tax_rate" => $this->taxRate,
+            "lines" => $lines,
+            "net_total" => $this->moneyService->format($netTotal),
+            "tax_total" => $this->moneyService->format($taxTotal),
+            "gross_total" => $this->moneyService->format($grossTotal),
+            // Reconciliation check: net + tax must equal gross to the cent.
+            "reconciles" => $netTotal->add($taxTotal)->equals($grossTotal),
+        ]);
+    }
+
+    /**
+     * Mock cart data keyed by order id. Tax-inclusive line totals, mirroring the
+     * cart_items shape consumed by processCheckout(). Unknown ids fall back to
+     * the reported bug case (1x €10.00 + 6x €12.00 = €82.00).
+     *
+     * @return list<array{id: int, name: string, quantity: int, total: float}>
+     */
+    private function mockCartForOrder(int $orderId): array
+    {
+        $orders = [
+            // The reported bug case.
+            12345 => [
+                ["id" => 1, "name" => "3 t/m 12 jaar", "quantity" => 1, "total" => 10.00],
+                ["id" => 2, "name" => "vanaf 13 jaar (incl. volwassenen)", "quantity" => 6, "total" => 72.00],
+            ],
+            // A single odd-priced line to show remainder distribution.
+            999 => [
+                ["id" => 3, "name" => "Los ticket", "quantity" => 3, "total" => 29.99],
+            ],
+        ];
+
+        return $orders[$orderId] ?? $orders[12345];
     }
 }
