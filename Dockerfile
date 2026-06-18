@@ -8,7 +8,7 @@ RUN apk add --no-cache \
     libxslt-dev \
     supervisor \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd intl xsl
+    && docker-php-ext-install -j$(nproc) gd intl xsl bcmath
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
