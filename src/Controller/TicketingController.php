@@ -466,7 +466,7 @@ class TicketingController extends AbstractController
         // Get cart data from session
         $cartItems = $session->get("cart_items", []);
         $eventData = $session->get("event_data", null);
-        $appliedCoupon = $session->get("axpplied_coupon", null);
+        $appliedCoupon = $session->get("applied_coupon", null);
         $total = $session->get("total", 0);
         $discount = $session->get("discount", 0);
 
