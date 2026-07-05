@@ -2,8 +2,11 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Trust all proxies in containerized environment (DigitalOcean App Platform)
-    trusted_proxies: '127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+    # Trust the DigitalOcean App Platform edge proxy. The container is never
+    # reachable directly (only via the platform's edge/load balancer), and the
+    # edge's source IP is not a fixed or private range, so it must be trusted
+    # unconditionally here; trusted_headers below limits what is actually read.
+    trusted_proxies: '0.0.0.0/0,::/0'
     trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port']
 
     # Note that the session will be started ONLY if you read or write from it.
