@@ -204,7 +204,7 @@
 
 									<!-- Coupon Status -->
 									<div
-										data-ticket-selection-target="couponStatus" class="hidden"><!-- Dynamic coupon status will be shown here -->
+										data-ticket-selection-target="couponStatus" class="hidden" role="status" aria-live="polite"><!-- Dynamic coupon status will be shown here -->
 									</div>
 								</div>
 
@@ -239,7 +239,7 @@
 									</div>
 
 									<!-- Maximum tickets warning -->
-									<div data-ticket-selection-target="maxTicketsWarning" class="text-xs text-gray-500 mt-2 p-2 bg-gray-50 rounded hidden">
+									<div data-ticket-selection-target="maxTicketsWarning" class="text-xs text-gray-500 mt-2 p-2 bg-gray-50 rounded hidden" role="status" aria-live="polite">
 										<i class="fas fa-info-circle mr-1"></i>
 										Maximum
 										{{ maxTicketsPerOrder }}

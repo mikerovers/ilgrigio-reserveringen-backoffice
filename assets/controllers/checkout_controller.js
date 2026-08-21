@@ -1,4 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
+import {
+    renderCouponError,
+    renderCouponSuccess,
+    validateCoupon,
+    removeCoupon as removeCouponRequest,
+} from "../coupon.js"
 
 // Connects to data-controller="checkout"
 export default class extends Controller {
@@ -150,15 +156,7 @@ export default class extends Controller {
         this.submitButtonTarget.classList.add('opacity-50', 'cursor-not-allowed')
 
         try {
-            const response = await fetch('/api/validate-coupon', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code: couponCode })
-            })
-
-            const result = await response.json()
+            const result = await validateCoupon(couponCode)
 
             if (result.valid) {
                 this.appliedCoupon = result
@@ -186,50 +184,24 @@ export default class extends Controller {
     }
 
     showCouponSuccess(coupon) {
-        this.couponStatusTarget.innerHTML = `
-            <div class="flex items-center justify-between bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded text-sm mt-2">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span>Kortingscode toegepast: <strong>${coupon.code}</strong></span>
-                </div>
-                <button type="button" class="text-green-600 hover:text-green-800" data-action="click->checkout#removeCoupon">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `
-        this.couponStatusTarget.classList.remove('hidden')
+        renderCouponSuccess(this.couponStatusTarget, coupon, 'checkout')
         this.couponInputTarget.disabled = true
         this.applyCouponButtonTarget.disabled = true
     }
 
     showCouponError(message) {
-        this.couponStatusTarget.innerHTML = `
-            <div class="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm mt-2">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                ${message}
-            </div>
-        `
-        this.couponStatusTarget.classList.remove('hidden')
-        
+        renderCouponError(this.couponStatusTarget, message)
+
         // Auto-hide error after 5 seconds
+        const statusTarget = this.couponStatusTarget
         setTimeout(() => {
-            if (this.couponStatusTarget.innerHTML.includes('bg-red-100')) {
-                this.couponStatusTarget.classList.add('hidden')
-            }
+            statusTarget.classList.add('hidden')
         }, 5000)
     }
 
     async removeCoupon() {
         try {
-            // Call API to remove coupon from session
-            const response = await fetch('/api/remove-coupon', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-
-            const result = await response.json()
+            const result = await removeCouponRequest()
 
             if (result.success) {
                 // Clear frontend state

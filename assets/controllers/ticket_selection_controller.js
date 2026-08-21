@@ -1,4 +1,10 @@
 import { Controller } from "@hotwired/stimulus";
+import {
+    renderCouponError,
+    renderCouponSuccess,
+    validateCoupon,
+    removeCoupon as removeCouponRequest,
+} from "../coupon.js";
 
 // Connects to data-controller="ticket-selection"
 export default class extends Controller {
@@ -232,15 +238,7 @@ export default class extends Controller {
         this.proceedButtonTarget.disabled = true;
 
         try {
-            const response = await fetch("/api/validate-coupon", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ code: couponCode }),
-            });
-
-            const result = await response.json();
+            const result = await validateCoupon(couponCode);
 
             if (result.valid) {
                 this.appliedCoupon = result;
@@ -250,7 +248,7 @@ export default class extends Controller {
                 // Update hidden form fields
                 this.appliedCouponFieldTarget.value = JSON.stringify(result);
             } else {
-                this.showCouponError("Kortingscode niet geldig");
+                this.showCouponError(result.message || "Kortingscode niet geldig");
             }
         } catch (error) {
             console.error("Error validating coupon:", error);
@@ -265,43 +263,18 @@ export default class extends Controller {
     }
 
     showCouponSuccess(coupon) {
-        this.couponStatusTarget.innerHTML = `
-            <div class="flex items-center justify-between bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded text-sm">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span>Kortingscode toegepast: <strong>${coupon.code}</strong></span>
-                </div>
-                <button type="button" class="text-green-600 hover:text-green-800" data-action="click->ticket-selection#removeCoupon">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        this.couponStatusTarget.classList.remove("hidden");
+        renderCouponSuccess(this.couponStatusTarget, coupon, "ticket-selection");
         this.couponInputTarget.disabled = true;
         this.applyCouponButtonTarget.disabled = true;
     }
 
     showCouponError(message) {
-        this.couponStatusTarget.innerHTML = `
-            <div class="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                ${message}
-            </div>
-        `;
-        this.couponStatusTarget.classList.remove("hidden");
+        renderCouponError(this.couponStatusTarget, message);
     }
 
     async removeCoupon() {
         try {
-            // Call API to remove coupon from session
-            const response = await fetch("/api/remove-coupon", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            const result = await response.json();
+            const result = await removeCouponRequest();
 
             if (result.success) {
                 // Clear frontend state
@@ -333,17 +306,12 @@ export default class extends Controller {
             return 0;
         }
 
-        const amount = parseFloat(this.appliedCoupon.amount);
-        const discountType = this.appliedCoupon.discount_type;
+        // discountCents is already correctly computed server-side (unit-aware
+        // percent/fixed_cart conversion), so use it directly instead of
+        // re-deriving from the raw discountType/amount fields.
+        const discount = (this.appliedCoupon.discountCents || 0) / 100;
 
-        switch (discountType) {
-            case "percent":
-                return subtotal * (amount / 100);
-            case "fixed_cart":
-                return Math.min(amount, subtotal);
-            default:
-                return 0;
-        }
+        return Math.min(discount, subtotal);
     }
 
     updateOrderSummary() {
