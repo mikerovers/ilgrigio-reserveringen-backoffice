@@ -62,8 +62,18 @@ security:
             custom_authenticators:
                 - App\Security\ApiKeyAuthenticator
 
+        # Session-based login for the /admin backoffice UI (EasyAdminBundle).
         main:
             lazy: true
+            provider: app_user_provider
+            form_login:
+                login_path: admin_login
+                check_path: admin_login
+                enable_csrf: true
+                default_target_path: admin
+            logout:
+                path: admin_logout
+                target: admin_login
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used.
@@ -89,6 +99,10 @@ security:
         # All other /api routes require authentication (order-processing API,
         # plus the JWT-only check-in/order-process routes)
         - { path: ^/api, roles: IS_AUTHENTICATED }
+        # Admin login form must be reachable while logged out
+        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
+        # Backoffice UI (EasyAdminBundle) — admins only
+        - { path: ^/admin, roles: ROLE_ADMIN }
         # Force HTTPS on non-API routes (prod only, via SECURE_CHANNEL)
         - { path: ^/, requires_channel: '%env(default::SECURE_CHANNEL)%' }
 
