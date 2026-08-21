@@ -42,4 +42,15 @@ enum PaymentStatus: string
             self::CANCELED, self::EXPIRED, self::FAILED => OrderStatus::FAILED,
         };
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::OPEN, self::PENDING => 'Betaling in behandeling',
+            self::PAID => 'Betaling voltooid',
+            self::CANCELED => 'Betaling geannuleerd',
+            self::EXPIRED => 'Betaling verlopen',
+            self::FAILED => 'Betaling mislukt',
+        };
+    }
 }

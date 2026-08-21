@@ -109,7 +109,7 @@
 							<form
 								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-checkout-target="form">
 								<!-- CSRF Token for duplicate submission prevention -->
-								<input type="hidden" name="checkout_token" value="{{ checkout_token }}">
+								<input type="hidden" name="checkoutToken" value="{{ checkout_token }}">
 
 								<!-- Name Fields -->
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

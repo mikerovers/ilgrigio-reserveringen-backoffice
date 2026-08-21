@@ -1,0 +1,23 @@
+when@dev: &nelmio_api_doc_config
+    nelmio_api_doc:
+        documentation:
+            info:
+                title: Il Grigio Reserveringen Backoffice API
+                description: Internal API documentation
+                version: 1.0.0
+        areas:
+            default:
+                path_patterns:
+                    # Document /api routes, excluding available-events, validate-coupon,
+                    # and remove-coupon.
+                    - "^/api(?!/(available-events|validate-coupon|remove-coupon)$)"
+                security:
+                    ApiKeyAuth:
+                        type: apiKey
+                        in: header
+                        name: X-API-KEY
+        models:
+            use_jms: false
+
+when@test: *nelmio_api_doc_config
+ 

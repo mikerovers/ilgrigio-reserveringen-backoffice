@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
+use App\Entity\Coupon;
 use App\Entity\Customer;
 use App\Entity\Event;
 use App\Entity\Order;
@@ -12,6 +13,7 @@ use App\Entity\OrderNote;
 use App\Entity\SharedStock;
 use App\Entity\Ticket;
 use App\Entity\TicketType;
+use App\Enum\DiscountType;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
@@ -21,6 +23,12 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
+        // --- Coupon ---
+        $coupon = new Coupon('SAVE10', DiscountType::FIXED_CART, 1000);
+        $coupon->description = 'Save €10 on your order';
+        $coupon->active = true;
+        $manager->persist($coupon);
+
         // --- Event ---
         $event = new Event('Il Grigio Dinner & Jazz', new \DateTimeImmutable('2026-09-20 19:30:00'));
         $event->description = 'Een avond vol muziek en culinaire verrassingen in het hart van Amsterdam.';

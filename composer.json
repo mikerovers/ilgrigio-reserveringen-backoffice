@@ -16,6 +16,7 @@
         "endroid/qr-code": "*",
         "league/omnipay": "^3.2",
         "moneyphp/money": "^4.9",
+        "nelmio/api-doc-bundle": "^5.11",
         "nelmio/cors-bundle": "^2.6",
         "omnipay/common": "^3.5",
         "omnipay/mollie": "^5.6",

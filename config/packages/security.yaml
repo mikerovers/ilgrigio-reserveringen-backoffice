@@ -31,6 +31,8 @@ security:
     # null elsewhere) so it can be enforced in production without breaking
     # local http development.
     access_control:
+        # API doc UI (dev/test only — bundle isn't even registered in prod)
+        - { path: '^/api/doc', roles: PUBLIC_ACCESS }
         # Public storefront endpoints (called by anonymous browsers, no API key)
         # Kept on PUBLIC_ACCESS so CORS preflight / anonymous calls work.
         - { path: '^/api/(validate-coupon|remove-coupon|available-events)', roles: PUBLIC_ACCESS }

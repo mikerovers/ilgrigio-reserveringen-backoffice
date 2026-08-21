@@ -47,6 +47,9 @@
             "migrations/.gitignore"
         ]
     },
+    "nelmio/api-doc-bundle": {
+        "version": "v5.11.1"
+    },
     "nelmio/cors-bundle": {
         "version": "2.6",
         "recipe": {

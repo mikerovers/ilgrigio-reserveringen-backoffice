@@ -7,6 +7,8 @@ namespace App\Controller;
 use App\DTO\OrderProcessResponse;
 use App\Event\OrderCompletedEvent;
 use App\Repository\OrderRepository;
+use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -31,6 +33,11 @@ final class OrderApiController extends AbstractController
      */
     #[Route('/orders/{orderNumber}/process', name: 'order_process', methods: ['POST'])]
     #[IsGranted('IS_AUTHENTICATED')]
+    #[OA\Response(
+        response: 200,
+        description: 'Order fulfilment result',
+        content: new Model(type: OrderProcessResponse::class),
+    )]
     public function processOrder(string $orderNumber): JsonResponse
     {
         $this->logger->info('API order processing request received', [

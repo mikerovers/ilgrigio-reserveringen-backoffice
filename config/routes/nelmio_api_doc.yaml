@@ -1,0 +1,17 @@
+when@dev:
+    app.swagger_ui:
+        resource: "@NelmioApiDocBundle/config/routing/swaggerui.php"
+        prefix: /api/doc
+
+    app.swagger:
+        path: /api/doc.json
+        controller: nelmio_api_doc.controller.swagger
+
+when@test:
+    app.swagger_ui:
+        resource: "@NelmioApiDocBundle/config/routing/swaggerui.php"
+        prefix: /api/doc
+
+    app.swagger:
+        path: /api/doc.json
+        controller: nelmio_api_doc.controller.swagger

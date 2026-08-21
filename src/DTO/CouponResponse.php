@@ -20,11 +20,12 @@ final class CouponResponse
         public int $discountCents = 0,
         public int $newTotalCents = 0,
         public ?string $message = null,
+        public bool $success = true,
     ) {
     }
 
     public static function invalid(string $message): self
     {
-        return new self(valid: false, message: $message);
+        return new self(valid: false, message: $message, success: false);
     }
 }

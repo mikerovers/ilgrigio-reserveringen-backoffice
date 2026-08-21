@@ -177,8 +177,11 @@ final class TicketingController extends AbstractController
             return $this->redirectToRoute('app_tickets');
         }
 
-        $checkoutToken = bin2hex(random_bytes(32));
-        $session->set('checkout_token', $checkoutToken);
+        $checkoutToken = $session->get('checkout_token');
+        if (!is_string($checkoutToken)) {
+            $checkoutToken = bin2hex(random_bytes(32));
+            $session->set('checkout_token', $checkoutToken);
+        }
 
         $cartGross = $this->cartGross($cartItems);
         $couponCode = $session->get('applied_coupon_code');
@@ -212,6 +215,7 @@ final class TicketingController extends AbstractController
 
         // Checkout-token dedup (one-time use), unchanged.
         $sessionToken = $session->get('checkout_token');
+
         if (!$checkout->checkoutToken || !$sessionToken || $checkout->checkoutToken !== $sessionToken) {
             $this->logger->warning('Invalid or missing checkout token', [
                 'has_session_token' => !empty($sessionToken),
@@ -348,7 +352,7 @@ final class TicketingController extends AbstractController
             if ($order->payment !== null) {
                 $paymentStatus = $order->payment->status->value;
                 $paymentInfo = [
-                    'status_message' => $order->payment->status->value,
+                    'status_message' => $order->payment->status->label(),
                     'is_successful' => $order->payment->status->isSuccessful(),
                     'is_pending' => $order->payment->status->isPending(),
                     'is_failed' => $order->payment->status->isFailed(),
