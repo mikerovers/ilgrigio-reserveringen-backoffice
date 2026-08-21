@@ -8,6 +8,7 @@ use App\DTO\OrderProcessResponse;
 use App\Event\OrderCompletedEvent;
 use App\Repository\OrderRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,6 +34,7 @@ final class OrderApiController extends AbstractController
      */
     #[Route('/orders/{orderNumber}/process', name: 'order_process', methods: ['POST'])]
     #[IsGranted('IS_AUTHENTICATED')]
+    #[Security(name: 'BearerAuth')]
     #[OA\Response(
         response: 200,
         description: 'Order fulfilment result',

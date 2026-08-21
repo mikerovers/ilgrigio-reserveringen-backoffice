@@ -5,6 +5,16 @@ when@dev: &nelmio_api_doc_config
                 title: Il Grigio Reserveringen Backoffice API
                 description: Internal API documentation
                 version: 1.0.0
+            components:
+                securitySchemes:
+                    # Registered here (not under areas.default.security) so it's
+                    # available for the #[Security(name: 'BearerAuth')] override
+                    # on check-in/order-process without becoming every route's
+                    # default requirement alongside ApiKeyAuth.
+                    BearerAuth:
+                        type: http
+                        scheme: bearer
+                        bearerFormat: JWT
         areas:
             default:
                 path_patterns:

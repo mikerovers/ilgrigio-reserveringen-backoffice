@@ -10,6 +10,7 @@ use App\Entity\Event;
 use App\Service\CheckInResult;
 use App\Service\CheckInService;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
 use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -31,6 +32,7 @@ final class CheckInController extends AbstractController
 
     #[Route('/events/{eventId}/check-in', name: 'event_check_in', methods: ['POST'])]
     #[IsGranted('IS_AUTHENTICATED')]
+    #[Security(name: 'BearerAuth')]
     #[OA\Response(
         response: 200,
         description: 'Check-in result',

@@ -8,15 +8,57 @@ security:
         # used to reload user from session & other features (e.g. switch_user)
         api_key_users:
             id: App\Security\ApiKeyUserProvider
+        # backs the JWT login firewall — loads App\Entity\User by email
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
 
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Issues JWTs. Stateless, no session — CSRF is disabled since there's
+        # no session to protect; this is a bearer-token issuance endpoint
+        # called by an external SPA.
+        login:
+            pattern: ^/api/login
+            stateless: true
+            provider: app_user_provider
+            json_login:
+                check_path: /api/login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        # Exchanges a still-valid refresh token for a new JWT (+ new refresh
+        # token). Public/stateless, same as `login` — the refresh token
+        # itself is the credential here, not a session.
+        refresh:
+            pattern: ^/api/token/refresh
+            stateless: true
+            provider: app_user_provider
+            refresh-jwt:
+                check_path: /api/token/refresh
+
+        # check-in and order-process accept ONLY a JWT bearer token (jwt: ~,
+        # registered by LexikJWTAuthenticationBundle) — the legacy X-API-KEY
+        # header is deliberately NOT accepted here. Must appear before the
+        # general `api` firewall below — Symfony picks the first firewall
+        # whose pattern matches.
+        secure_api:
+            pattern: ^/api/(events/[^/]+/check-in|orders/[^/]+/process)
+            stateless: true
+            provider: app_user_provider
+            jwt: ~
+
+        # All other /api/* routes — unchanged, API-key only.
         api:
             pattern: ^/api
             stateless: true
+            provider: api_key_users
             custom_authenticators:
                 - App\Security\ApiKeyAuthenticator
 
@@ -33,12 +75,19 @@ security:
     access_control:
         # API doc UI (dev/test only — bundle isn't even registered in prod)
         - { path: '^/api/doc', roles: PUBLIC_ACCESS }
+        # Login endpoint issues the JWT itself — not authenticated yet. Must
+        # precede the generic ^/api rule below (access_control is
+        # first-match-wins across the whole list, independent of firewalls).
+        - { path: '^/api/login', roles: PUBLIC_ACCESS }
+        # Refresh endpoint authenticates via the refresh token itself, not IS_AUTHENTICATED
+        - { path: '^/api/token/refresh', roles: PUBLIC_ACCESS }
         # Public storefront endpoints (called by anonymous browsers, no API key)
         # Kept on PUBLIC_ACCESS so CORS preflight / anonymous calls work.
         - { path: '^/api/(validate-coupon|remove-coupon|available-events)', roles: PUBLIC_ACCESS }
         # Mollie webhook — server-to-server, no API key; security via re-fetching from Mollie API
         - { path: '^/webhook/mollie', roles: PUBLIC_ACCESS }
-        # All other /api routes require authentication (order-processing API)
+        # All other /api routes require authentication (order-processing API,
+        # plus the JWT-only check-in/order-process routes)
         - { path: ^/api, roles: IS_AUTHENTICATED }
         # Force HTTPS on non-API routes (prod only, via SECURE_CHANNEL)
         - { path: ^/, requires_channel: '%env(default::SECURE_CHANNEL)%' }
