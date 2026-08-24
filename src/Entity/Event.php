@@ -75,6 +75,11 @@ class Event
         $this->categories = new ArrayCollection();
     }
 
+    public function __toString(): string
+    {
+        return $this->name;
+    }
+
     /**
      * Derived from ticket types: IN_STOCK if any type has stock available, OUT_OF_STOCK otherwise.
      * Shared-stock pools are deduplicated so a pool shared by multiple types counts once.

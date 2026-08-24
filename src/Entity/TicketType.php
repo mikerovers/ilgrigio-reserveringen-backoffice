@@ -64,5 +64,8 @@ class TicketType
         $this->price = $price;
     }
 
-
+    public function __toString(): string
+    {
+        return $this->name;
+    }
 }

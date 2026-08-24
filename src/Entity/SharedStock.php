@@ -42,6 +42,11 @@ class SharedStock
         $this->name = $name;
     }
 
+    public function __toString(): string
+    {
+        return $this->name;
+    }
+
     public function decrementStock(int $qty): void
     {
         if ($this->stockQuantity === null) {
