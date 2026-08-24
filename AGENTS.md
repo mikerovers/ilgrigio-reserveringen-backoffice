@@ -201,6 +201,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `ILGRIGIO_BASE_URL` | Base URL of the WooCommerce site |
 | `ILGRIGIO_BASE_API_URL` | WooCommerce REST API root URL |
 | `ILGRIGIO_RESERVERINGEN_BASE_URL` | Base URL for this application (used in email links) |
+| `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
 | `PDF_TOKEN_SECRET` | Secret for HMAC-signed PDF download tokens |
 | `PDF_TOKEN_EXPIRATION_DAYS` | Token validity in days (default 150) |
 | `ILGRIGIO_TICKET_API_URL` | Ticket API endpoint |

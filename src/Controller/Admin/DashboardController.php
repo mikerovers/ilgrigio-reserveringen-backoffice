@@ -10,7 +10,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 
-#[AdminDashboard(routePath: '/admin', routeName: 'admin')]
+#[AdminDashboard(
+    routePath: '/',
+    routeName: 'admin',
+    routeOptions: ['host' => '%admin_host%'],
+)]
 class DashboardController extends AbstractDashboardController
 {
     public function index(): Response
@@ -26,6 +30,7 @@ class DashboardController extends AbstractDashboardController
 
     public function configureMenuItems(): iterable
     {
-        yield MenuItem::linkToUrl('Back to storefront', 'fa fa-arrow-left', '/');
+        yield MenuItem::linkTo(EventCategoryCrudController::class, 'Event categories', 'fa fa-tags')
+            ->setPermission('ROLE_ADMIN');
     }
 }

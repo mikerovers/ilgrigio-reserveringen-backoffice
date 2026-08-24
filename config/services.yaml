@@ -6,6 +6,7 @@
 parameters:
     default_from_email: 'noreply@example.com'
     default_admin_email: 'admin@example.com'
+    admin_host: '%env(ADMIN_HOST)%'
 
 services:
     # default configuration for services in *this* file

@@ -11,7 +11,7 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
 {
-    #[Route('/admin/login', name: 'admin_login')]
+    #[Route('/login', name: 'admin_login', host: '%admin_host%')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
         return $this->render('admin/login.html.twig', [
@@ -20,7 +20,7 @@ class SecurityController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/logout', name: 'admin_logout')]
+    #[Route('/logout', name: 'admin_logout', host: '%admin_host%')]
     public function logout(): never
     {
         // The logout route is intercepted by the firewall's logout listener

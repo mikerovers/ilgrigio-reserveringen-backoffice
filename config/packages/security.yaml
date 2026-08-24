@@ -100,9 +100,9 @@ security:
         # plus the JWT-only check-in/order-process routes)
         - { path: ^/api, roles: IS_AUTHENTICATED }
         # Admin login form must be reachable while logged out
-        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
-        # Backoffice UI (EasyAdminBundle) — admins only
-        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { host: '%admin_host%', path: ^/login, roles: PUBLIC_ACCESS }
+        # Backoffice UI (EasyAdminBundle), served on its own subdomain — admins only
+        - { host: '%admin_host%', path: ^/, roles: ROLE_ADMIN }
         # Force HTTPS on non-API routes (prod only, via SECURE_CHANNEL)
         - { path: ^/, requires_channel: '%env(default::SECURE_CHANNEL)%' }
 

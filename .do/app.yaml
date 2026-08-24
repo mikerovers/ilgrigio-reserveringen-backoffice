@@ -45,6 +45,9 @@ envs:
     - key: ILGRIGIO_RESERVERINGEN_BASE_URL
       value: https://reserveringen.ilgrigio.nl
       scope: RUN_AND_BUILD_TIME
+    - key: ADMIN_HOST
+      value: admin.reserveringen.ilgrigio.nl
+      scope: RUN_AND_BUILD_TIME
     - key: PDF_TOKEN_SECRET
       scope: RUN_AND_BUILD_TIME
       type: SECRET
@@ -150,6 +153,8 @@ domains:
     - domain: reserveringen.ilgrigio.nl
       type: PRIMARY
     - domain: www.reserveringen.ilgrigio.nl
+      type: ALIAS
+    - domain: admin.reserveringen.ilgrigio.nl
       type: ALIAS
 
 ingress:
