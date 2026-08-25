@@ -59,4 +59,9 @@ class Customer
         $this->lastName = $lastName;
         $this->orders = new ArrayCollection();
     }
+
+    public function __toString(): string
+    {
+        return trim($this->firstName . ' ' . $this->lastName);
+    }
 }

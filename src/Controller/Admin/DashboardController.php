@@ -25,17 +25,26 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('Il Grigio Backoffice');
+            ->setTitle('Backoffice')
+            ->setFaviconPath('images/favicon.ico');
     }
 
     public function configureMenuItems(): iterable
     {
+        yield MenuItem::section('Orders', 'fa fa-shopping-cart');
+        yield MenuItem::linkTo(OrderCrudController::class, 'Orders', 'fa fa-list')
+            ->setPermission('ROLE_ADMIN');
+
         yield MenuItem::section('Events', 'fa fa-book');
         yield MenuItem::linkTo(EventCrudController::class, 'Events', 'fa fa-calendar')
             ->setPermission('ROLE_ADMIN');
         yield MenuItem::linkTo(EventCategoryCrudController::class, 'Event categories', 'fa fa-tags')
             ->setPermission('ROLE_ADMIN');
         yield MenuItem::linkTo(SharedStockCrudController::class, 'Shared stock', 'fa fa-cubes')
+            ->setPermission('ROLE_ADMIN');
+
+        yield MenuItem::section('Promotions', 'fa fa-percent');
+        yield MenuItem::linkTo(CouponCrudController::class, 'Coupons', 'fa fa-ticket')
             ->setPermission('ROLE_ADMIN');
     }
 }

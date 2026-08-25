@@ -61,4 +61,9 @@ class Coupon
         $this->amount = $amount;
         $this->orders = new ArrayCollection();
     }
+
+    public function getUsedCount(): int
+    {
+        return $this->orders->count();
+    }
 }

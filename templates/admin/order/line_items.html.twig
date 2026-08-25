@@ -1,0 +1,24 @@
+<table class="table table-sm table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>Name</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Unit (gross)</th>
+            <th class="text-end">Line (gross)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in field.value %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td class="text-end">{{ item.quantity }}</td>
+                <td class="text-end">{{ (item.unitGross.amount / 100)|number_format(2, ',', '.') }} {{ item.unitGross.currency.code }}</td>
+                <td class="text-end">{{ (item.lineGross.amount / 100)|number_format(2, ',', '.') }} {{ item.lineGross.currency.code }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="4" class="text-muted">No line items.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

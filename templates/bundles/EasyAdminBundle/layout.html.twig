@@ -1,0 +1,17 @@
+{% extends '@!EasyAdmin/layout.html.twig' %}
+
+{% block header_logo %}
+    <a class="logo" title="Il Grigio Backoffice" href="{{ path(ea.dashboardRouteName) }}">
+        <span class="logo-custom">
+            <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" style="max-height:40px;vertical-align:middle;margin-right:8px;">
+            Il Grigio Backoffice
+        </span>
+        <span class="logo-compact"><twig:ea:Icon name="internal:home" /></span>
+    </a>
+{% endblock header_logo %}
+
+{% block responsive_header_logo %}
+    <a class="responsive-logo" title="Il Grigio Backoffice" href="{{ path(ea.dashboardRouteName) }}">
+        <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" style="max-height:32px;vertical-align:middle;">
+    </a>
+{% endblock responsive_header_logo %}
