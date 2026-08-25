@@ -62,22 +62,31 @@ bin/console assets:install
 
 ```
 src/
-  ArgumentResolver/   # Custom argument resolvers for DTOs
-  Command/            # Symfony console commands
-  Controller/         # HTTP controllers (webhook consumer, PDF download, ticketing)
+  Command/            # Symfony console commands (CreateUserCommand, DebugSqsCommand)
+  Controller/         # HTTP controllers
+    Admin/            # EasyAdmin CRUD controllers and dashboard
+  DataFixtures/       # Doctrine fixtures (AppFixtures)
+  Doctrine/           # Custom Doctrine types (MoneyType)
   DTO/                # Data Transfer Objects with validation constraints
+  Entity/             # Doctrine entities (Order, Ticket, Event, Customer, Payment, etc.)
+  Enum/               # PHP enums (OrderStatus, TicketStatus, PaymentStatus, etc.)
+  Event/              # Domain events (OrderCreatedEvent, OrderCompletedEvent, etc.)
+  EventListener/      # Symfony event listeners (OrderFulfilmentListener, OrderHistoryListener)
   Message/            # Symfony Messenger message classes
   MessageHandler/     # Async message handlers
-  Messenger/          # Custom Messenger transport serializers
+  Payment/            # Payment integration (OmnipayMolliePaymentInitiator, PaymentInitiatorInterface)
+  Repository/         # Doctrine repositories
   Security/           # API key authenticator and user provider
   Service/            # Business logic services
-  Webhook/            # WooCommerce webhook request parser + order normalizer
+  Webhook/            # Mollie webhook request parser and consumer
 templates/            # Twig templates (HTML, email, PDF)
 tests/                # PHPUnit tests mirroring src/ structure
 translations/         # i18n YAML files (currently Dutch: messages.nl.yaml)
 config/
   services.yaml       # Service definitions and environment variable bindings
   packages/           # Per-package Symfony configuration
+docs/
+  aws-webhook-ingress.md  # AWS API Gateway → SQS webhook ingress setup
 ```
 
 ---
@@ -136,23 +145,10 @@ config/
 - Use Symfony Validator `#[Assert\...]` attributes on DTOs for input validation
 - Throw `$this->createNotFoundException(...)` from controllers; re-throw domain exceptions
 
-### WooCommerce webhook ingress (two interchangeable routes)
+### Webhook ingress
 
-Completed orders reach the app via **one of two** ingress routes, configured as the
-WooCommerce Delivery URL (only one active at a time — see
-`docs/aws-webhook-ingress.md`):
-
-- **Route A — API Gateway → SQS** (resilient; app web service off the delivery
-  path): raw webhook lands on the `webhook_ingest` queue, decoded by
-  `App\Messenger\WooCommerceIngestSerializer`, handled by
-  `IncomingWooCommerceWebhookMessageHandler` (validate signature → normalize →
-  `processOrder()`).
-- **Route B — HTTP `/webhook`** (original): `WooCommerceRequestParser` +
-  `WooCommerceWebhookController` (`#[AsRemoteEventConsumer('woocommerce')]`).
-
-Both routes share `WooCommerceOrderNormalizer` (legacy vs. `{action, arg}` payload
-formats) and converge on `OrderPdfService::processOrder()`. When adding ingress
-logic, change the shared normalizer/service — not one route only.
+- **Mollie payments**: `MollieRequestParser` + `MollieWebhookConsumer` handle incoming Mollie payment status webhooks. The consumer dispatches `PaymentStatusChangedEvent` which triggers order fulfilment via `OrderFulfilmentListener`.
+- For historical context on the WooCommerce/SQS ingress setup, see `docs/aws-webhook-ingress.md`.
 
 ### Error handling and logging
 - Catch `\Exception` at integration boundaries; re-throw after logging
@@ -169,7 +165,7 @@ logic, change the shared normalizer/service — not one route only.
 - HMAC-SHA256 (`hash_hmac`) with `hash_equals` for signature/token verification
 - No token storage — stateless signed token system
 - Secrets always from environment variables, never hardcoded
-- Webhook signature validated in `WooCommerceRequestParser` before payload reaches controller
+- Mollie webhook signature validated in `MollieRequestParser` before payload reaches consumer
 
 ### Testing
 - Test classes mirror `src/` structure under `tests/`
@@ -190,18 +186,24 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 
 | Variable | Description |
 |---|---|
+| `APP_ENV` | Symfony environment (`dev`, `prod`, `test`) |
+| `APP_NAME` | Application name |
 | `APP_SECRET` | Symfony application secret |
+| `DATABASE_URL` | Doctrine database connection DSN |
+| `CORS_ALLOW_ORIGIN` | Allowed CORS origins for API endpoints |
 | `MAILER_DSN` | SMTP/SES DSN for Symfony Mailer |
 | `MAILER_FROM_EMAIL` | Sender email address |
 | `MAILER_FROM_NAME` | Sender display name |
 | `ADMIN_EMAIL` | Admin notification address |
+| `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
+| `JWT_SECRET_KEY` | Path to JWT private key |
+| `JWT_PUBLIC_KEY` | Path to JWT public key |
+| `JWT_PASSPHRASE` | Passphrase for JWT key pair |
 | `WOOCOMMERCE_CONSUMER_KEY` | WooCommerce API key |
 | `WOOCOMMERCE_CONSUMER_SECRET` | WooCommerce API secret |
-| `WOOCOMMERCE_WEBHOOK_SECRET` | HMAC secret for webhook signature validation |
 | `ILGRIGIO_BASE_URL` | Base URL of the WooCommerce site |
 | `ILGRIGIO_BASE_API_URL` | WooCommerce REST API root URL |
 | `ILGRIGIO_RESERVERINGEN_BASE_URL` | Base URL for this application (used in email links) |
-| `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
 | `PDF_TOKEN_SECRET` | Secret for HMAC-signed PDF download tokens |
 | `PDF_TOKEN_EXPIRATION_DAYS` | Token validity in days (default 150) |
 | `ILGRIGIO_TICKET_API_URL` | Ticket API endpoint |
@@ -212,4 +214,6 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `API_KEY` | API key for `OrderApiController` authentication |
 | `MESSENGER_TRANSPORT_DSN` | SQS DSN for the `async` queue (internal app messages) |
 | `MESSENGER_INGEST_TRANSPORT_DSN` | SQS DSN for the `webhook_ingest` queue (raw WooCommerce webhooks via API Gateway) |
-| `MESSENGER_INGEST_DLQ_TRANSPORT_DSN` | SQS DSN for the ingest dead-letter queue; the `webhook_ingest` `failure_transport` routes app-level failures here |
+| `NEW_RELIC_LICENSE_KEY` | New Relic license key for APM/logging |
+| `NEW_RELIC_APP_NAME` | New Relic application name |
+| `NEW_RELIC_LOGS_ENDPOINT` | New Relic logs API endpoint |
