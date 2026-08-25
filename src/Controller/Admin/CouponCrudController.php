@@ -56,6 +56,7 @@ class CouponCrudController extends AbstractCrudController
             ->createAsGlobalAction();
 
         return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $bulkCreate);
     }
 
@@ -90,6 +91,7 @@ class CouponCrudController extends AbstractCrudController
         yield IntegerField::new('usedCount')
             ->setLabel('Times used')
             ->hideOnForm()
+            ->hideOnIndex()
             ->setDisabled();
         yield DateTimeField::new('expiresAt')->hideOnIndex();
         yield DateTimeField::new('createdAt')->hideOnForm();
