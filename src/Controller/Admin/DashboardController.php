@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Service\SalesStatisticsService;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
+use Symfony\UX\Chartjs\Model\Chart;
 
 #[AdminDashboard(
     routePath: '/',
@@ -17,9 +21,62 @@ use Symfony\Component\HttpFoundation\Response;
 )]
 class DashboardController extends AbstractDashboardController
 {
+    public function __construct(
+        private readonly SalesStatisticsService $salesStatisticsService,
+        private readonly ChartBuilderInterface $chartBuilder,
+    ) {
+    }
+
     public function index(): Response
     {
-        return $this->render('admin/dashboard.html.twig');
+        $thisYear = (int) date('Y');
+        $lastYear = $thisYear - 1;
+
+        $years = $this->salesStatisticsService->getYearsWithSales();
+        sort($years);
+
+        $totalsByYear = [];
+        foreach ($years as $year) {
+            $totalsByYear[$year] = $this->salesStatisticsService->getAnnualTicketsSold($year);
+        }
+
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
+        $chart->setData([
+            'labels' => array_map(strval(...), $years),
+            'datasets' => [
+                [
+                    'label' => 'Verkochte tickets',
+                    'backgroundColor' => 'rgba(99, 102, 241, 0.7)',
+                    'borderColor' => 'rgba(99, 102, 241, 1)',
+                    'borderWidth' => 1,
+                    'data' => array_values($totalsByYear),
+                ],
+            ],
+        ]);
+        $chart->setOptions([
+            'responsive' => true,
+            'plugins' => [
+                'legend' => ['display' => false],
+                'title' => [
+                    'display' => true,
+                    'text' => 'Verkochte tickets per jaar',
+                ],
+            ],
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'ticks' => ['stepSize' => 1],
+                ],
+            ],
+        ]);
+
+        return $this->render('admin/dashboard.html.twig', [
+            'chart' => $chart,
+            'this_year' => $thisYear,
+            'last_year' => $lastYear,
+            'this_year_total' => $totalsByYear[$thisYear] ?? 0,
+            'last_year_total' => $totalsByYear[$lastYear] ?? 0,
+        ]);
     }
 
     public function configureDashboard(): Dashboard
@@ -27,6 +84,12 @@ class DashboardController extends AbstractDashboardController
         return Dashboard::new()
             ->setTitle('Backoffice')
             ->setFaviconPath('images/favicon.ico');
+    }
+
+    public function configureAssets(): Assets
+    {
+        return Assets::new()
+            ->addAssetMapperEntry('app');
     }
 
     public function configureMenuItems(): iterable

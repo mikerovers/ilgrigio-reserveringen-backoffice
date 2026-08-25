@@ -1,1 +1,41 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block main %}
+<div class="container-fluid px-0 py-4">
+
+    {# Stat cards #}
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Tickets verkocht {{ this_year }}</div>
+                    <div class="fs-3 fw-bold text-primary">
+                        {{ this_year_total }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Tickets verkocht {{ last_year }}</div>
+                    <div class="fs-3 fw-bold text-secondary">
+                        {{ last_year_total }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Bar chart #}
+    <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Verkochte tickets per jaar</div>
+        <div class="card-body">
+            {{ render_chart(chart, {'style': 'max-height: 400px'}) }}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
