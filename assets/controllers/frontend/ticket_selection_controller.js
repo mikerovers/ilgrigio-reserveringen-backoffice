@@ -4,9 +4,9 @@ import {
     renderCouponSuccess,
     validateCoupon,
     removeCoupon as removeCouponRequest,
-} from "../coupon.js";
+} from "./coupon.js";
 
-// Connects to data-controller="ticket-selection"
+// Connects to data-controller="frontend--ticket-selection"
 export default class extends Controller {
     static targets = [
         "quantity",

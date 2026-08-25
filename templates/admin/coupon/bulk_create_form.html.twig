@@ -1,0 +1,120 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Bulk create coupons{% endblock %}
+
+{% block main %}
+<div class="container-fluid px-0 py-4">
+    <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Bulk create coupons</div>
+        <div class="card-body">
+
+            {% if violations is defined and violations|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for violation in violations %}
+                            <li>{{ violation.message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if code_errors is defined and code_errors|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for code, error in code_errors %}
+                            <li><code>{{ code }}</code>: {{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ path('admin_coupon_bulk_create_save') }}"
+                  data-controller="admin--coupon-bulk-create"
+                  data-admin--coupon-bulk-create-generate-url-value="{{ path('admin_coupon_bulk_create_generate_codes') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label d-block">Discount type</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="discountType" id="discountTypePercent"
+                                   value="percent"
+                                   {% if not (bulk_request is defined) or bulk_request.discountType.value == 'percent' %}checked{% endif %}
+                                   data-admin--coupon-bulk-create-target="discountType"
+                                   data-action="change->admin--coupon-bulk-create#discountTypeChanged">
+                            <label class="form-check-label" for="discountTypePercent">Percentage</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="discountType" id="discountTypeFixed"
+                                   value="fixed_cart"
+                                   {% if bulk_request is defined and bulk_request.discountType.value == 'fixed_cart' %}checked{% endif %}
+                                   data-admin--coupon-bulk-create-target="discountType"
+                                   data-action="change->admin--coupon-bulk-create#discountTypeChanged">
+                            <label class="form-check-label" for="discountTypeFixed">Fixed amount</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="expiresAt" class="form-label">Expires at</label>
+                        <input type="datetime-local" class="form-control" id="expiresAt" name="expiresAt"
+                               value="{{ bulk_request is defined and bulk_request.expiresAt ? bulk_request.expiresAt|date('Y-m-d\\TH:i') : '' }}">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label d-block" for="active">Active</label>
+                        <twig:ea:Switch
+                            id="active"
+                            name="active"
+                            checked="{{ not (bulk_request is defined) or bulk_request.active }}"
+                        />
+                    </div>
+
+                    <div class="col-12">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2">{{ bulk_request is defined ? bulk_request.description : '' }}</textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="amount" name="amount" min="1"
+                               value="{{ bulk_request is defined ? bulk_request.amount : '' }}" required
+                               data-admin--coupon-bulk-create-target="amount">
+                        <div class="form-text">10 = 10% or &euro;10, depending on discount type. Percentage cannot exceed 100. Applies to every code below.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="manualCodes" class="form-label">Codes (one per line)</label>
+                        <textarea class="form-control" id="manualCodes" name="manualCodes" rows="6"
+                                  placeholder="ilgrigio-10-mycode"
+                                  data-admin--coupon-bulk-create-target="codes">{{ bulk_request is defined ? bulk_request.manualCodes : '' }}</textarea>
+                        <div class="form-text">Entered exactly as typed &mdash; not lowercased or reformatted.</div>
+
+                        <div class="d-flex align-items-end gap-2 mt-2">
+                            <div>
+                                <label for="prefix" class="form-label mb-1">Prefix</label>
+                                <input type="text" class="form-control form-control-sm" id="prefix"
+                                       placeholder="ilgrigio" style="width: 10rem;"
+                                       data-admin--coupon-bulk-create-target="prefix">
+                            </div>
+                            <div>
+                                <label for="prefillQuantity" class="form-label mb-1">Quantity to prefill</label>
+                                <input type="number" class="form-control form-control-sm" id="prefillQuantity"
+                                       min="1" value="1" style="width: 6rem;"
+                                       data-admin--coupon-bulk-create-target="quantity">
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-admin--coupon-bulk-create-target="prefillButton"
+                                    data-action="click->admin--coupon-bulk-create#prefill">
+                                Prefill codes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

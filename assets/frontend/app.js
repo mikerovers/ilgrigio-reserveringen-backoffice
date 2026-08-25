@@ -1,7 +1,7 @@
-import './bootstrap.js';
+import '../bootstrap.js';
 
 /*
- * Il Grigio TicketHub - Main JavaScript Entry Point
+ * Il Grigio TicketHub - Main JavaScript Entry Point (frontend/storefront only)
  */
 
 // Import minimal CSS styles

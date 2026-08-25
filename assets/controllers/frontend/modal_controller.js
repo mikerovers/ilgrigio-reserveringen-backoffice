@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus";
 
-// Connects to data-controller="modal"
+// Connects to data-controller="frontend--modal"
 // Opened from anywhere on the page (including outside this controller's
 // element) by dispatching `window.dispatchEvent(new CustomEvent("modal:open", { detail: { id } }))`.
 export default class extends Controller {

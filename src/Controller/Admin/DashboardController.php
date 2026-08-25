@@ -89,7 +89,7 @@ class DashboardController extends AbstractDashboardController
     public function configureAssets(): Assets
     {
         return Assets::new()
-            ->addAssetMapperEntry('app');
+            ->addAssetMapperEntry('admin');
     }
 
     public function configureMenuItems(): iterable

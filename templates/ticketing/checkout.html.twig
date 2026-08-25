@@ -86,7 +86,7 @@
 				{% endif %}
 
 				<div
-					class="grid grid-cols-1 lg:grid-cols-3 gap-8" data-controller="checkout" data-checkout-subtotal-value="{{ subtotal|default(0) }}" data-checkout-discount-amount-value="{{ discount|default(0) }}" data-checkout-total-value="{{ total|default(0) }}" data-checkout-tax-rate-value="{{ taxRate }}" data-checkout-applied-coupon-value="{{ applied_coupon ? (applied_coupon|json_encode) : '{}' }}">
+					class="grid grid-cols-1 lg:grid-cols-3 gap-8" data-controller="frontend--checkout" data-frontend--checkout-subtotal-value="{{ subtotal|default(0) }}" data-frontend--checkout-discount-amount-value="{{ discount|default(0) }}" data-frontend--checkout-total-value="{{ total|default(0) }}" data-frontend--checkout-tax-rate-value="{{ taxRate }}" data-frontend--checkout-applied-coupon-value="{{ applied_coupon ? (applied_coupon|json_encode) : '{}' }}">
 
 					<!-- Left Column - Checkout Form -->
 					<div class="lg:col-span-2">
@@ -107,7 +107,7 @@
 							{% endfor %}
 
 							<form
-								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-checkout-target="form">
+								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-frontend--checkout-target="form">
 								<!-- CSRF Token for duplicate submission prevention -->
 								<input type="hidden" name="checkoutToken" value="{{ checkout_token }}">
 
@@ -118,14 +118,14 @@
 											Voornaam
 											<span class="text-red-500">*</span>
 										</label>
-										<input type="text" id="firstName" name="firstName" required data-checkout-target="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je voornaam in">
+										<input type="text" id="firstName" name="firstName" required data-frontend--checkout-target="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je voornaam in">
 									</div>
 									<div>
 										<label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">
 											Achternaam
 											<span class="text-red-500">*</span>
 										</label>
-										<input type="text" id="lastName" name="lastName" required data-checkout-target="lastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je achternaam in">
+										<input type="text" id="lastName" name="lastName" required data-frontend--checkout-target="lastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je achternaam in">
 									</div>
 								</div>
 
@@ -135,7 +135,7 @@
 										Bedrijfsnaam
 										<span class="text-gray-400">(optioneel)</span>
 									</label>
-									<input type="text" id="companyName" name="companyName" data-checkout-target="companyName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je bedrijfsnaam in (optioneel)">
+									<input type="text" id="companyName" name="companyName" data-frontend--checkout-target="companyName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je bedrijfsnaam in (optioneel)">
 								</div>
 
 								<!-- City -->
@@ -144,7 +144,7 @@
 										Plaats
 										<span class="text-red-500">*</span>
 									</label>
-									<input type="text" id="city" name="city" required data-checkout-target="city" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je woonplaats in">
+									<input type="text" id="city" name="city" required data-frontend--checkout-target="city" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je woonplaats in">
 								</div>
 
 								<!-- Phone Number (Optional) -->
@@ -153,7 +153,7 @@
 										Telefoonnummer
 										<span class="text-gray-400">(optioneel)</span>
 									</label>
-									<input type="tel" id="phoneNumber" name="phoneNumber" data-checkout-target="phoneNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je telefoonnummer in (optioneel)">
+									<input type="tel" id="phoneNumber" name="phoneNumber" data-frontend--checkout-target="phoneNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je telefoonnummer in (optioneel)">
 								</div>
 
 								<!-- Email -->
@@ -162,7 +162,7 @@
 										E-mailadres
 										<span class="text-red-500">*</span>
 									</label>
-									<input type="email" id="email" name="email" required data-checkout-target="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je e-mailadres in">
+									<input type="email" id="email" name="email" required data-frontend--checkout-target="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je e-mailadres in">
 								</div>
 
 								<!-- Email Confirmation -->
@@ -171,8 +171,8 @@
 										Bevestig e-mailadres
 										<span class="text-red-500">*</span>
 									</label>
-									<input type="email" id="emailConfirm" name="emailConfirm" required data-checkout-target="emailConfirm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Bevestig je e-mailadres">
-									<div id="email-match-error" data-checkout-target="emailMatchError" class="text-red-500 text-sm mt-1 hidden">
+									<input type="email" id="emailConfirm" name="emailConfirm" required data-frontend--checkout-target="emailConfirm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Bevestig je e-mailadres">
+									<div id="email-match-error" data-frontend--checkout-target="emailMatchError" class="text-red-500 text-sm mt-1 hidden">
 										E-mailadressen komen niet overeen
 									</div>
 								</div>
@@ -180,7 +180,7 @@
 								<!-- Terms and Conditions -->
 								<div class="mb-6">
 									<label class="flex items-start">
-										<input type="checkbox" id="terms" name="terms" required data-checkout-target="terms" class="mt-1 mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+										<input type="checkbox" id="terms" name="terms" required data-frontend--checkout-target="terms" class="mt-1 mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
 										<span class="text-sm text-gray-700">
 											Ik ga akkoord met de
 											<button type="button" class="js-open-modal text-red-600 hover:text-red-700 underline bg-transparent border-none cursor-pointer text-sm p-0" data-modal-open="terms">Algemene Voorwaarden</button>
@@ -242,37 +242,37 @@
 									Kortingscode
 								</label>
 								<div class="space-y-2">
-									<input type="text" id="couponCode" name="couponCode" data-checkout-target="couponInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors text-sm" placeholder="Voer code in" value="{{ applied_coupon ? applied_coupon.code : '' }}">
-									<button type="button" data-checkout-target="applyCouponButton" data-action="click->checkout#applyCoupon" class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition duration-200 text-sm">
+									<input type="text" id="couponCode" name="couponCode" data-frontend--checkout-target="couponInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors text-sm" placeholder="Voer code in" value="{{ applied_coupon ? applied_coupon.code : '' }}">
+									<button type="button" data-frontend--checkout-target="applyCouponButton" data-action="click->frontend--checkout#applyCoupon" class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition duration-200 text-sm">
 										Toepassen
 									</button>
 								</div>
-								<div data-checkout-target="couponStatus" role="status" aria-live="polite"></div>
+								<div data-frontend--checkout-target="couponStatus" role="status" aria-live="polite"></div>
 							</div>
 
 							<!-- Order Total -->
 							<div class="border-t border-gray-200 pt-4">
 								<div class="flex justify-between text-sm text-gray-600 mb-2">
 									<span>Subtotaal:</span>
-									<span data-checkout-target="subtotal">€{{ subtotal|default('0,00')|number_format(2, ',', '.') }}</span>
+									<span data-frontend--checkout-target="subtotal">€{{ subtotal|default('0,00')|number_format(2, ',', '.') }}</span>
 								</div>
-								<div data-checkout-target="discountRow" class="flex justify-between text-sm text-green-600 mb-2 {% if not discount or discount <= 0 %}hidden{% endif %}">
+								<div data-frontend--checkout-target="discountRow" class="flex justify-between text-sm text-green-600 mb-2 {% if not discount or discount <= 0 %}hidden{% endif %}">
 									<span>Korting:</span>
-									<span data-checkout-target="discount">-€{{ discount|default('0,00')|number_format(2, ',', '.') }}</span>
+									<span data-frontend--checkout-target="discount">-€{{ discount|default('0,00')|number_format(2, ',', '.') }}</span>
 								</div>
 								<div class="flex justify-between text-sm text-gray-600 mb-2">
 									<span>BTW ({{ taxRate }}%):</span>
-									<span data-checkout-target="tax">€{{ tax|default('0,00')|number_format(2, ',', '.') }}</span>
+									<span data-frontend--checkout-target="tax">€{{ tax|default('0,00')|number_format(2, ',', '.') }}</span>
 								</div>
 								<div class="flex justify-between text-lg font-bold text-gray-800 border-t border-gray-200 pt-2">
 									<span>Totaal (incl. BTW):</span>
-									<span data-checkout-target="total">€{{ total|default('0,00')|number_format(2, ',', '.') }}</span>
+									<span data-frontend--checkout-target="total">€{{ total|default('0,00')|number_format(2, ',', '.') }}</span>
 								</div>
 							</div>
 
 							<!-- Checkout Button -->
 							<div class="mt-6">
-								<button type="submit" form="checkout-form" data-checkout-target="submitButton" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+								<button type="submit" form="checkout-form" data-frontend--checkout-target="submitButton" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
 									<i class="fas fa-credit-card mr-2"></i>
 									Doorgaan naar betaling
 								</button>
