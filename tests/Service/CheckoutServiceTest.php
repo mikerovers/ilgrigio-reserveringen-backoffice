@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Coupon;
 use App\Entity\Customer;
 use App\Entity\Event;
+use App\Entity\SharedStock;
 use App\Entity\TicketType;
 use App\Enum\DiscountType;
 use App\Repository\CustomerRepository;
@@ -14,6 +15,7 @@ use App\Service\CheckoutService;
 use App\Service\DiscountCalculator;
 use App\Service\MoneyService;
 use App\Service\OrderNumberGenerator;
+use App\Service\OrderPricingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
@@ -30,7 +32,7 @@ class CheckoutServiceTest extends TestCase
             $this->createMock(EntityManagerInterface::class),
             $this->createMock(CustomerRepository::class),
             $moneyService,
-            new DiscountCalculator($moneyService),
+            new OrderPricingService($moneyService, new DiscountCalculator($moneyService)),
             new OrderNumberGenerator(),
             $this->createMock(EventDispatcherInterface::class),
             9.0,
@@ -45,8 +47,12 @@ class CheckoutServiceTest extends TestCase
     private function ticketType(string $name, int $cents): TicketType
     {
         $event = new Event('Test Show', new \DateTimeImmutable('2026-09-01 19:30'));
+        $ticketType = new TicketType($event, $name, Money::EUR($cents));
+        $sharedStock = new SharedStock('Pool');
+        $ticketType->sharedStock = $sharedStock;
+        $event->ticketTypes->add($ticketType);
 
-        return new TicketType($event, $name, Money::EUR($cents));
+        return $ticketType;
     }
 
     public function testOrderTotalsReconcileWithoutDiscount(): void

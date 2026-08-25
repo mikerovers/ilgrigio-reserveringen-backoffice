@@ -19,6 +19,7 @@ use App\Repository\OrderRepository;
 use App\Service\CheckoutService;
 use App\Service\DiscountCalculator;
 use App\Service\MoneyService;
+use App\Service\OrderPricingService;
 use Money\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -38,6 +39,7 @@ final class TicketingController extends AbstractController
         private OrderRepository $orderRepository,
         private CouponRepository $couponRepository,
         private CheckoutService $checkoutService,
+        private OrderPricingService $orderPricingService,
         private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
         private PaymentInitiatorInterface $paymentInitiator,
@@ -149,7 +151,15 @@ final class TicketingController extends AbstractController
             return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
         }
 
-        [$discountGross] = $this->resolveCoupon($ticketOrder->appliedCouponCode, $grossTotal);
+        $coupon = null;
+        if ($ticketOrder->appliedCouponCode !== null) {
+            $candidate = $this->couponRepository->findOneByCode($ticketOrder->appliedCouponCode);
+            if ($candidate !== null && $this->discountCalculator->isApplicable($candidate, $this->clock->now())) {
+                $coupon = $candidate;
+            }
+        }
+
+        $totals = $this->orderPricingService->calculateFromCartGross($grossTotal, $coupon, $this->taxRate);
 
         $session = $request->getSession();
         if (!$session->isStarted()) {
@@ -159,7 +169,7 @@ final class TicketingController extends AbstractController
         $session->set('event_slug', $event->slug);
         $session->set('applied_coupon_code', $ticketOrder->appliedCouponCode);
         $session->set('applied_coupon', $ticketOrder->appliedCouponCode ? ['code' => $ticketOrder->appliedCouponCode] : null);
-        $session->set('discount', $this->moneyService->toFloat($discountGross));
+        $session->set('discount', $this->moneyService->toFloat($totals->discountGross));
         $session->set('event_data', $this->eventView($event));
         $session->save();
 
@@ -185,22 +195,24 @@ final class TicketingController extends AbstractController
 
         $cartGross = $this->cartGross($cartItems);
         $couponCode = $session->get('applied_coupon_code');
-        $discountGross = Money::EUR(0);
+        $coupon = null;
         if ($couponCode !== null) {
-            [$discountGross] = $this->resolveCoupon($couponCode, $cartGross);
+            $candidate = $this->couponRepository->findOneByCode($couponCode);
+            if ($candidate !== null && $this->discountCalculator->isApplicable($candidate, $this->clock->now())) {
+                $coupon = $candidate;
+            }
         }
 
-        $totalGross = $cartGross->subtract($discountGross);
-        [$net, $tax] = $this->moneyService->splitGross($totalGross, $this->taxRate);
+        $totals = $this->orderPricingService->calculateFromCartGross($cartGross, $coupon, $this->taxRate);
 
         return $this->render('ticketing/checkout.html.twig', [
             'cart_items' => $cartItems,
             'event' => $session->get('event_data'),
             'applied_coupon' => $session->get('applied_coupon'),
-            'subtotal' => $this->moneyService->toFloat($net),
-            'discount' => $this->moneyService->toFloat($discountGross),
-            'tax' => $this->moneyService->toFloat($tax),
-            'total' => $this->moneyService->toFloat($totalGross),
+            'subtotal' => $this->moneyService->toFloat($totals->subtotalNet),
+            'discount' => $this->moneyService->toFloat($totals->discountGross),
+            'tax' => $this->moneyService->toFloat($totals->tax),
+            'total' => $this->moneyService->toFloat($totals->totalGross),
             'taxRate' => $this->taxRate,
             'checkout_token' => $checkoutToken,
         ]);
@@ -371,23 +383,6 @@ final class TicketingController extends AbstractController
             'payment_status' => $paymentStatus,
             'payment_info' => $paymentInfo,
         ]);
-    }
-
-    /**
-     * @return array{0: Money} the gross discount for a coupon code against a cart total
-     */
-    private function resolveCoupon(?string $couponCode, Money $cartGross): array
-    {
-        if ($couponCode === null) {
-            return [Money::EUR(0)];
-        }
-
-        $coupon = $this->couponRepository->findOneByCode($couponCode);
-        if ($coupon === null || !$this->discountCalculator->isApplicable($coupon, $this->clock->now())) {
-            return [Money::EUR(0)];
-        }
-
-        return [$this->discountCalculator->discountGross($coupon, $cartGross)];
     }
 
     /**

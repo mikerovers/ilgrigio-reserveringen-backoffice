@@ -12,6 +12,7 @@ use App\Repository\CouponRepository;
 use App\Repository\EventRepository;
 use App\Service\DiscountCalculator;
 use App\Service\MoneyService;
+use App\Service\OrderPricingService;
 use Money\Money;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,9 +31,11 @@ final class CartApiController extends AbstractController
     public function __construct(
         private EventRepository $eventRepository,
         private CouponRepository $couponRepository,
+        private OrderPricingService $orderPricingService,
         private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
         private ClockInterface $clock,
+        private float $taxRatePercent,
     ) {
     }
 
@@ -60,19 +63,19 @@ final class CartApiController extends AbstractController
             return $this->json(CouponResponse::invalid('Coupon is ongeldig of verlopen.'));
         }
 
-        $discount = $this->discountCalculator->discountGross($coupon, $cartGross);
+        $totals = $this->orderPricingService->calculateFromCartGross($cartGross, $coupon, $this->taxRatePercent);
 
         $session->set('applied_coupon_code', $coupon->code);
         $session->set('applied_coupon', ['code' => $coupon->code]);
-        $session->set('discount', $this->moneyService->toFloat($discount));
+        $session->set('discount', $this->moneyService->toFloat($totals->discountGross));
 
         return $this->json(new CouponResponse(
             valid: true,
             code: $coupon->code,
             discountType: $coupon->discountType,
             amount: $coupon->amount,
-            discountCents: (int) $discount->getAmount(),
-            newTotalCents: (int) $cartGross->subtract($discount)->getAmount(),
+            discountCents: (int) $totals->discountGross->getAmount(),
+            newTotalCents: (int) $totals->totalGross->getAmount(),
         ));
     }
 

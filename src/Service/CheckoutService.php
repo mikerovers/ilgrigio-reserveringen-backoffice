@@ -13,7 +13,6 @@ use App\Enum\StockStatus;
 use App\Event\OrderCreatedEvent;
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Money\Money;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -27,7 +26,7 @@ final class CheckoutService
         private EntityManagerInterface $entityManager,
         private CustomerRepository $customerRepository,
         private MoneyService $moneyService,
-        private DiscountCalculator $discountCalculator,
+        private OrderPricingService $orderPricingService,
         private OrderNumberGenerator $orderNumberGenerator,
         private EventDispatcherInterface $eventDispatcher,
         private float $taxRatePercent,
@@ -48,11 +47,6 @@ final class CheckoutService
             $customer,
             (int) round($this->taxRatePercent * 100),
         );
-
-        $grossSubtotal = Money::EUR(0);
-        $netSubtotal = Money::EUR(0);
-        $taxSubtotal = Money::EUR(0);
-        $totalTickets = 0;
 
         // Validate stock before any mutation.
         // Accumulate demand per shared pool so cross-type totals are checked together.
@@ -130,35 +124,20 @@ final class CheckoutService
                     $decrementedPools[$poolId] = true;
                 }
             }
-
-            $totalTickets += $quantity;
-
-            $grossSubtotal = $grossSubtotal->add($lineGross);
-            $netSubtotal = $netSubtotal->add($lineNet);
-            $taxSubtotal = $taxSubtotal->add($lineTax);
         }
 
+        $totals = $this->orderPricingService->calculate($cart, $coupon, $this->taxRatePercent);
 
-        $discountGross = Money::EUR(0);
-        $discountNet = Money::EUR(0);
-        $discountTax = Money::EUR(0);
+        $order->subtotalNet = $totals->subtotalNet;
+        $order->tax = $totals->tax;
+        $order->discountGross = $totals->discountGross;
+        $order->discountTax = $totals->discountTax;
+        $order->totalGross = $totals->totalGross;
 
         if ($coupon !== null) {
-            $discountGross = $this->discountCalculator->discountGross($coupon, $grossSubtotal);
-            [$discountNet, $discountTax] = $this->discountCalculator->splitDiscount(
-                $discountGross,
-                $this->taxRatePercent,
-            );
             $order->coupon = $coupon;
             $order->couponCode = $coupon->code;
         }
-
-        // Store post-discount components so subtotalNet + tax == totalGross always.
-        $order->subtotalNet = $netSubtotal->subtract($discountNet);
-        $order->tax = $taxSubtotal->subtract($discountTax);
-        $order->discountGross = $discountGross;
-        $order->discountTax = $discountTax;
-        $order->totalGross = $grossSubtotal->subtract($discountGross);
 
         $this->entityManager->persist($order);
 
