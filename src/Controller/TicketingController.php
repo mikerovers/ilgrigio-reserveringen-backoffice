@@ -324,7 +324,7 @@ final class TicketingController extends AbstractController
 
             $this->addFlash('success', 'Je bestelling is geplaatst! Geen betaling vereist.');
 
-            return $this->redirectToRoute('app_thank_you', ['order' => $order->orderNumber]);
+            return $this->redirectToRoute('app_thank_you');
         }
 
         // Paid path: hand off to the payment provider (Omnipay, pending).
@@ -347,7 +347,7 @@ final class TicketingController extends AbstractController
     public function thankYou(Request $request): Response
     {
         $session = $request->getSession();
-        $orderNumber = $request->query->get('order') ?? $session->get('order_number');
+        $orderNumber = $session->get('order_number');
 
         $order = $orderNumber ? $this->orderRepository->findOneByOrderNumber((string) $orderNumber) : null;
 

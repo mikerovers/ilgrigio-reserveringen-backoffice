@@ -18,7 +18,10 @@ use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -36,6 +39,8 @@ final class CartApiController extends AbstractController
         private MoneyService $moneyService,
         private ClockInterface $clock,
         private float $taxRatePercent,
+        #[Autowire(service: 'limiter.validate_coupon')]
+        private RateLimiterFactory $validateCouponLimiter,
     ) {
     }
 
@@ -55,6 +60,15 @@ final class CartApiController extends AbstractController
         #[MapRequestPayload] ValidateCouponRequest $request,
         Request $httpRequest,
     ): JsonResponse {
+        $limit = $this->validateCouponLimiter->create($httpRequest->getClientIp())->consume();
+        if (!$limit->isAccepted()) {
+            return $this->json(
+                CouponResponse::invalid('Te veel pogingen, probeer het later opnieuw.'),
+                Response::HTTP_TOO_MANY_REQUESTS,
+                ['Retry-After' => (string) $limit->getRetryAfter()->getTimestamp()],
+            );
+        }
+
         $session = $httpRequest->getSession();
         $cartGross = $this->cartGross($session->get('cart_items', []));
 

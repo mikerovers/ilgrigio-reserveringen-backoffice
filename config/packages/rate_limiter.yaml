@@ -1,0 +1,22 @@
+framework:
+    rate_limiter:
+        # Backs login_throttling on the `login` firewall (security.yaml).
+        login:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
+
+        # Public, unauthenticated coupon-code lookup — guards against
+        # enumeration of valid coupon codes.
+        validate_coupon:
+            policy: sliding_window
+            limit: 10
+            interval: '1 minute'
+
+        # Guards against refresh-token guessing/brute force. Enforced by
+        # TokenRefreshRateLimitListener since gesdinet/jwt-refresh-token-bundle
+        # has no login_throttling-style hook of its own.
+        token_refresh:
+            policy: sliding_window
+            limit: 10
+            interval: '15 minutes'

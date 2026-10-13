@@ -1,0 +1,38 @@
+nelmio_security:
+    # prevents framing of the entire site
+    clickjacking:
+        paths:
+            '^/.*': DENY
+
+    # disables content type sniffing for script resources
+    content_type:
+        nosniff: true
+
+    # Send a full URL in the `Referer` header when performing a same-origin request,
+    # only send the origin of the document to secure destination (HTTPS->HTTPS),
+    # and send no header to a less secure destination (HTTPS->HTTP).
+    # If `strict-origin-when-cross-origin` is not supported, use `no-referrer` policy,
+    # no referrer information is sent along with requests.
+    referrer_policy:
+        enabled: true
+        policies:
+            - 'no-referrer'
+            - 'strict-origin-when-cross-origin'
+
+    # forced_ssl is intentionally omitted: HTTPS enforcement is already
+    # handled by the requires_channel rule in security.yaml, driven by the
+    # same SECURE_CHANNEL env var.
+
+    # Report-only: logs violations without blocking, so the directive list can
+    # be verified against real traffic before enforcing. EasyAdmin, the public
+    # storefront, and the admin login page all rely on inline scripts/styles
+    # and a few external CDNs, so those are allowlisted up front.
+    csp:
+        report:
+            default-src: ["'self'"]
+            script-src: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"]
+            style-src: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"]
+            font-src: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "data:"]
+            img-src: ["'self'", "data:"]
+            connect-src: ["'self'"]
+            frame-ancestors: ["'self'"]

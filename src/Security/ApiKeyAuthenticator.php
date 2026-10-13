@@ -33,7 +33,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
             throw new CustomUserMessageAuthenticationException('No API key provided');
         }
 
-        if ($apiKey !== $this->apiKey) {
+        if (!hash_equals($this->apiKey, $apiKey)) {
             throw new CustomUserMessageAuthenticationException('Invalid API key');
         }
 

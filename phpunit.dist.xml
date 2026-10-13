@@ -32,6 +32,12 @@
         <env name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/config/jwt/test-public.pem"/>
         <env name="JWT_PASSPHRASE" value="test-passphrase"/>
         <!-- ###- lexik/jwt-authentication-bundle ### -->
+
+        <!-- ###+ symfony/lock ### -->
+        <!-- Choose one of the stores below -->
+        <!-- postgresql+advisory://db_user:db_password@localhost/db_name -->
+        <env name="LOCK_DSN" value="flock"/>
+        <!-- ###- symfony/lock ### -->
     </php>
 
     <testsuites>

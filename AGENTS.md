@@ -72,7 +72,7 @@ src/
   Entity/             # Doctrine entities (Order, Ticket, Event, Customer, Payment, etc.)
   Enum/               # PHP enums (OrderStatus, TicketStatus, PaymentStatus, etc.)
   Event/              # Domain events (OrderCreatedEvent, OrderCompletedEvent, etc.)
-  EventListener/      # Symfony event listeners (OrderFulfilmentListener, OrderHistoryListener)
+  EventListener/      # Symfony event listeners (OrderFulfilmentListener, OrderHistoryListener, TokenRefreshRateLimitListener)
   Message/            # Symfony Messenger message classes
   MessageHandler/     # Async message handlers
   Payment/            # Payment integration (OmnipayMolliePaymentInitiator, PaymentInitiatorInterface)
@@ -105,6 +105,25 @@ docs/
   use the API-key authenticator; check-in and order reprocessing require a JWT.
 - `docs/aws-webhook-ingress.md` and the WooCommerce-related environment values
   are legacy integration context, not part of the active application flow.
+- `/bedankt` (`TicketingController::thankYou`) resolves the order strictly from
+  the session (`order_number`), never from a query parameter — do not
+  reintroduce a `?order=`-driven lookup, as that previously allowed anyone to
+  view another customer's order by guessing/enumerating an order number.
+- Rate limiting guards the public/auth API surface: `/api/login`
+  (`login_throttling` on the `login` firewall), `/api/validate-coupon`
+  (`limiter.validate_coupon`, enforced in `CartApiController`), and
+  `/api/token/refresh` (`limiter.token_refresh`, enforced by
+  `TokenRefreshRateLimitListener` on `kernel.request` since
+  gesdinet/jwt-refresh-token-bundle has no controller/hook of its own to
+  attach a limiter to). Limiter definitions live in
+  `config/packages/rate_limiter.yaml`.
+- `nelmio/security-bundle` (`config/packages/nelmio_security.yaml`) sets
+  baseline HTTP security headers (clickjacking/`X-Frame-Options`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy`). The CSP is in
+  **report-only** mode, tuned to the CDNs/inline scripts the storefront and
+  EasyAdmin login page currently rely on (Tailwind CDN, Font Awesome CDN,
+  jsDelivr, `unsafe-inline`) — do not flip it to `enforce` without first
+  checking `Content-Security-Policy-Report-Only` violation reports.
 
 ---
 
@@ -252,6 +271,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `NEW_RELIC_LICENSE_KEY` | New Relic license key for APM/logging |
 | `NEW_RELIC_APP_NAME` | New Relic application name |
 | `NEW_RELIC_LOGS_ENDPOINT` | New Relic logs API endpoint |
+| `LOCK_DSN` | Symfony Lock store DSN backing the rate limiters (e.g. `flock`) |
 
 Legacy WooCommerce and ticket-API variables may still occur in existing
 deployment files. They are not consumed by the current application

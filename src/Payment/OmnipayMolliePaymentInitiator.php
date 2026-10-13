@@ -35,7 +35,7 @@ final class OmnipayMolliePaymentInitiator implements PaymentInitiatorInterface
             'amount'        => $amountEuros,
             'currency'      => 'EUR',
             'description'   => 'Bestelling ' . $order->orderNumber,
-            'returnUrl'     => $this->returnUrl . '?order=' . urlencode($order->orderNumber),
+            'returnUrl'     => $this->returnUrl,
             'notifyUrl'     => $this->webhookUrl,
             'transactionId' => $order->orderNumber,
         ])->send();
