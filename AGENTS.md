@@ -1,8 +1,9 @@
 # Agent Guidelines
 
-**See CLAUDE.md for project overview, architecture, and key workflows.**
+**See `README.md` for local setup.** This file is the authoritative guide for
+the current codebase; the short `CLAUDE.md` only points back here.
 
-This document provides comprehensive technical prescriptions for coding agents working on this **Symfony 7.3** application.
+This document provides comprehensive technical prescriptions for coding agents working on this **Symfony 7.4** application.
 
 ---
 
@@ -25,12 +26,12 @@ composer install
 
 ### Run a single test file
 ```bash
-./bin/phpunit tests/Service/WebhookSecurityServiceTest.php
+./bin/phpunit tests/Service/CheckoutServiceTest.php
 ```
 
 ### Run a single test method
 ```bash
-./bin/phpunit tests/Service/WebhookSecurityServiceTest.php --filter testValidateWooCommerceSignatureWithValidSignature
+./bin/phpunit tests/Service/CheckoutServiceTest.php --filter testPercentCouponIsApplied
 ```
 
 ### Run a test suite by directory
@@ -86,8 +87,23 @@ config/
   services.yaml       # Service definitions and environment variable bindings
   packages/           # Per-package Symfony configuration
 docs/
-  aws-webhook-ingress.md  # AWS API Gateway → SQS webhook ingress setup
+  aws-webhook-ingress.md  # Historical WooCommerce/AWS ingress documentation
 ```
+
+## Core Workflows
+
+- The public ticketing flow builds a session cart, validates coupons, creates an
+  order, and starts a Mollie payment.
+- `MollieRequestParser` accepts the payment ID from Mollie's POST webhook;
+  `MollieWebhookConsumer` fetches the authoritative payment status from the
+  Mollie API before updating the order.
+- A paid (or zero-total) order dispatches `OrderCompletedEvent`.
+  `OrderFulfilmentListener` issues tickets idempotently, creates a signed PDF
+  token, and queues `SendOrderEmailMessage` on the `async` transport.
+- The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
+  use the API-key authenticator; check-in and order reprocessing require a JWT.
+- `docs/aws-webhook-ingress.md` and the WooCommerce-related environment values
+  are legacy integration context, not part of the active application flow.
 
 ---
 
@@ -147,8 +163,16 @@ docs/
 
 ### Webhook ingress
 
-- **Mollie payments**: `MollieRequestParser` + `MollieWebhookConsumer` handle incoming Mollie payment status webhooks. The consumer dispatches `PaymentStatusChangedEvent` which triggers order fulfilment via `OrderFulfilmentListener`.
-- For historical context on the WooCommerce/SQS ingress setup, see `docs/aws-webhook-ingress.md`.
+- **Mollie payments**: `MollieRequestParser` accepts the payment ID, and
+  `MollieWebhookConsumer` retrieves the payment's authoritative state using the
+  Mollie API. It dispatches `PaymentStatusChangedEvent`; when paid, it then
+  dispatches `OrderCompletedEvent`, which triggers fulfilment.
+- Do not describe the parser as validating an HMAC signature: it currently only
+  requires a POST request with an `id`. The API re-fetch in the consumer is the
+  payment-status verification boundary.
+- `docs/aws-webhook-ingress.md` documents a historical WooCommerce/SQS setup;
+  do not extend it as though it were an active transport without first adding
+  the corresponding application code and Messenger configuration.
 
 ### Error handling and logging
 - Catch `\Exception` at integration boundaries; re-throw after logging
@@ -165,7 +189,8 @@ docs/
 - HMAC-SHA256 (`hash_hmac`) with `hash_equals` for signature/token verification
 - No token storage — stateless signed token system
 - Secrets always from environment variables, never hardcoded
-- Mollie webhook signature validated in `MollieRequestParser` before payload reaches consumer
+- Mollie webhook consumers must retrieve payment status from Mollie's API; do
+  not trust the inbound webhook body beyond its payment ID
 
 ### Testing
 - Test classes mirror `src/` structure under `tests/`
@@ -187,33 +212,31 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | Variable | Description |
 |---|---|
 | `APP_ENV` | Symfony environment (`dev`, `prod`, `test`) |
-| `APP_NAME` | Application name |
 | `APP_SECRET` | Symfony application secret |
 | `DATABASE_URL` | Doctrine database connection DSN |
 | `CORS_ALLOW_ORIGIN` | Allowed CORS origins for API endpoints |
 | `MAILER_DSN` | SMTP/SES DSN for Symfony Mailer |
-| `MAILER_FROM_EMAIL` | Sender email address |
+| `MAILER_FROM_EMAIL` | Sender email address (falls back to the configured default) |
 | `MAILER_FROM_NAME` | Sender display name |
 | `ADMIN_EMAIL` | Admin notification address |
+| `FROM_EMAIL` | Legacy application parameter for sender email; keep aligned if code uses `app.from_email` |
 | `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
+| `SECURE_CHANNEL` | Set to `https` in production to require HTTPS for non-API routes |
 | `JWT_SECRET_KEY` | Path to JWT private key |
 | `JWT_PUBLIC_KEY` | Path to JWT public key |
 | `JWT_PASSPHRASE` | Passphrase for JWT key pair |
-| `WOOCOMMERCE_CONSUMER_KEY` | WooCommerce API key |
-| `WOOCOMMERCE_CONSUMER_SECRET` | WooCommerce API secret |
-| `ILGRIGIO_BASE_URL` | Base URL of the WooCommerce site |
-| `ILGRIGIO_BASE_API_URL` | WooCommerce REST API root URL |
 | `ILGRIGIO_RESERVERINGEN_BASE_URL` | Base URL for this application (used in email links) |
 | `PDF_TOKEN_SECRET` | Secret for HMAC-signed PDF download tokens |
 | `PDF_TOKEN_EXPIRATION_DAYS` | Token validity in days (default 150) |
-| `ILGRIGIO_TICKET_API_URL` | Ticket API endpoint |
-| `ILGRIGIO_TICKET_API_KEY` | Ticket API authentication key |
 | `MOLLIE_API_KEY` | Mollie payment API key |
 | `MAX_TICKETS_PER_ORDER` | Ticket purchase limit per order |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |
 | `API_KEY` | API key for `OrderApiController` authentication |
 | `MESSENGER_TRANSPORT_DSN` | SQS DSN for the `async` queue (internal app messages) |
-| `MESSENGER_INGEST_TRANSPORT_DSN` | SQS DSN for the `webhook_ingest` queue (raw WooCommerce webhooks via API Gateway) |
 | `NEW_RELIC_LICENSE_KEY` | New Relic license key for APM/logging |
 | `NEW_RELIC_APP_NAME` | New Relic application name |
 | `NEW_RELIC_LOGS_ENDPOINT` | New Relic logs API endpoint |
+
+Legacy WooCommerce, ticket-API, and ingest-queue variables may still occur in
+existing deployment files. They are not consumed by the current application
+configuration and should not be treated as required for new work.
