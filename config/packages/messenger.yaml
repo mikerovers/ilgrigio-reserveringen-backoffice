@@ -11,17 +11,19 @@ framework:
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
-                    auto_setup: true
-                    # Set visibility timeout to ensure messages are not processed twice
-                    # Must be longer than the expected processing time
-                    visibility_timeout: 300
+                    auto_setup: false
+                    redeliver_timeout: 900
                 retry_strategy:
-                    max_retries: 3
-                    delay: 1000
-                    multiplier: 2
-                    max_delay: 0
-                failure_transport: sync
-            sync: 'sync://'
+                    max_retries: 5
+                    delay: 300000
+                    multiplier: 3
+                    max_delay: 3600000
+                    jitter: 0.1
+                failure_transport: failed
+            failed:
+                dsn: '%env(MESSENGER_FAILED_TRANSPORT_DSN)%'
+                options:
+                    auto_setup: false
 
         routing:
             'App\Message\SendOrderEmailMessage': async
@@ -31,3 +33,4 @@ when@test:
         messenger:
             transports:
                 async: 'in-memory://'
+                failed: 'in-memory://'

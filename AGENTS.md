@@ -63,7 +63,7 @@ bin/console assets:install
 
 ```
 src/
-  Command/            # Symfony console commands (CreateUserCommand, DebugSqsCommand)
+  Command/            # Symfony console commands (CreateUserCommand, etc.)
   Controller/         # HTTP controllers
     Admin/            # EasyAdmin CRUD controllers and dashboard
   DataFixtures/       # Doctrine fixtures (AppFixtures)
@@ -99,7 +99,8 @@ docs/
   Mollie API before updating the order.
 - A paid (or zero-total) order dispatches `OrderCompletedEvent`.
   `OrderFulfilmentListener` issues tickets idempotently, creates a signed PDF
-  token, and queues `SendOrderEmailMessage` on the `async` transport.
+  token, and queues `SendOrderEmailMessage` on the Doctrine-backed `async`
+  transport.
 - The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
   use the API-key authenticator; check-in and order reprocessing require a JWT.
 - `docs/aws-webhook-ingress.md` and the WooCommerce-related environment values
@@ -161,6 +162,20 @@ docs/
 - Use Symfony Validator `#[Assert\...]` attributes on DTOs for input validation
 - Throw `$this->createNotFoundException(...)` from controllers; re-throw domain exceptions
 
+### Messenger queues
+
+- The `async` and `failed` Messenger transports share the database-backed
+  `messenger_messages` table; distinguish them by `queue_name`.
+- The worker consumes only `async`. It retries operational failures five times
+  with exponential backoff (starting at five minutes and capped at one hour),
+  then moves the message to `failed`.
+- Successful messages are acknowledged and removed. Inspect queued counts with
+  `messenger:stats`, and inspect or recover exhausted messages with
+  `messenger:failed:show`, `messenger:failed:retry`, and
+  `messenger:failed:remove`.
+- Keep `auto_setup: false` in production configuration; create or alter the
+  transport schema with Doctrine migrations instead of runtime DDL.
+
 ### Webhook ingress
 
 - **Mollie payments**: `MollieRequestParser` accepts the payment ID, and
@@ -171,8 +186,8 @@ docs/
   requires a POST request with an `id`. The API re-fetch in the consumer is the
   payment-status verification boundary.
 - `docs/aws-webhook-ingress.md` documents a historical WooCommerce/SQS setup;
-  do not extend it as though it were an active transport without first adding
-  the corresponding application code and Messenger configuration.
+  it is not part of the active application flow. `webhook_ingest` is retired
+  and must not be reintroduced without an explicit product decision.
 
 ### Error handling and logging
 - Catch `\Exception` at integration boundaries; re-throw after logging
@@ -232,11 +247,12 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `MAX_TICKETS_PER_ORDER` | Ticket purchase limit per order |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |
 | `API_KEY` | API key for `OrderApiController` authentication |
-| `MESSENGER_TRANSPORT_DSN` | SQS DSN for the `async` queue (internal app messages) |
+| `MESSENGER_TRANSPORT_DSN` | Doctrine DSN for the `async` queue, e.g. `doctrine://default?queue_name=async` |
+| `MESSENGER_FAILED_TRANSPORT_DSN` | Doctrine DSN for exhausted messages, e.g. `doctrine://default?queue_name=failed` |
 | `NEW_RELIC_LICENSE_KEY` | New Relic license key for APM/logging |
 | `NEW_RELIC_APP_NAME` | New Relic application name |
 | `NEW_RELIC_LOGS_ENDPOINT` | New Relic logs API endpoint |
 
-Legacy WooCommerce, ticket-API, and ingest-queue variables may still occur in
-existing deployment files. They are not consumed by the current application
+Legacy WooCommerce and ticket-API variables may still occur in existing
+deployment files. They are not consumed by the current application
 configuration and should not be treated as required for new work.

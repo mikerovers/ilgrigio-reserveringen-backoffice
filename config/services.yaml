@@ -78,14 +78,3 @@ services:
             $endpoint: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
             $appName: '%env(NEW_RELIC_APP_NAME)%'
             $environment: '%kernel.environment%'
-
-    # Dedicated CurlHttpClient for the SQS transport. Injects directly into
-    # AmazonSqsTransportFactory so async-aws never wraps it in AsyncResponse.
-    # Without AsyncResponse in the chain, AsyncAws\Core\Response.__destruct()
-    # cannot crash during PHP shutdown when the worker restarts on --time-limit.
-    sqs.http_client:
-        class: Symfony\Component\HttpClient\CurlHttpClient
-
-    Symfony\Component\Messenger\Bridge\AmazonSqs\Transport\AmazonSqsTransportFactory:
-        arguments:
-            $httpClient: '@sqs.http_client'

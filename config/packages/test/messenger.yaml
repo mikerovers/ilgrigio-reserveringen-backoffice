@@ -3,5 +3,6 @@ framework:
         transports:
             # Force synchronous processing in test environment
             async: 'sync://sync'
+            failed: 'in-memory://'
         routing:
             'Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage': async

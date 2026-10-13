@@ -59,6 +59,22 @@ symfony server:start
 ./vendor/bin/phpcbf
 ```
 
+## Background email queue
+
+Order confirmation emails are stored in the database-backed Messenger queues.
+Use these commands from the worker environment to inspect and recover work:
+
+```bash
+# Pending messages per transport
+bin/console messenger:stats
+
+# Inspect, retry, or remove exhausted email deliveries
+bin/console messenger:failed:show
+bin/console messenger:failed:retry
+bin/console messenger:failed:remove
+```
+
+
 ## Features
 
 - WooCommerce order webhook processing
