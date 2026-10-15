@@ -134,4 +134,24 @@ class Event
 
         return $min;
     }
+
+    /**
+     * Distinct shared stock pools referenced by this event's ticket types,
+     * deduplicated the same way as stockStatus()/stockQuantity().
+     *
+     * @return SharedStock[]
+     */
+    public function sharedStocks(): array
+    {
+        $pools = [];
+
+        foreach ($this->ticketTypes as $ticketType) {
+            if ($ticketType->sharedStock === null) {
+                continue;
+            }
+            $pools[(string) $ticketType->sharedStock->id] = $ticketType->sharedStock;
+        }
+
+        return array_values($pools);
+    }
 }

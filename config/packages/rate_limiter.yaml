@@ -20,3 +20,12 @@ framework:
             policy: sliding_window
             limit: 10
             interval: '15 minutes'
+
+        # General-purpose throttle applied to every /api/* request by
+        # ApiRateLimitListener, keyed by authenticated user (or IP for
+        # unauthenticated/public endpoints). Protects all current and future
+        # API routes from being overloaded, not just a single endpoint.
+        api:
+            policy: sliding_window
+            limit: 120
+            interval: '1 minute'
