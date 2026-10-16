@@ -27,13 +27,17 @@ class EventRepository extends ServiceEntityRepository
     }
 
     /**
-     * Upcoming events (start in the future), soonest first.
+     * Upcoming events (start in the future), soonest first. Fetch-joins ticket
+     * types and shared stock to avoid N+1 lazy-loads when the caller reads
+     * stockStatus()/stockQuantity() per event.
      *
      * @return Event[]
      */
     public function findUpcoming(\DateTimeImmutable $now): array
     {
         return $this->createQueryBuilder('e')
+            ->leftJoin('e.ticketTypes', 't')->addSelect('t')
+            ->leftJoin('t.sharedStock', 's')->addSelect('s')
             ->andWhere('e.startsAt >= :now')
             ->setParameter('now', $now)
             ->orderBy('e.startsAt', 'ASC')

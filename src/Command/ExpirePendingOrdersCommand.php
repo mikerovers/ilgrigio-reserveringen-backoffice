@@ -43,7 +43,7 @@ final class ExpirePendingOrdersCommand extends Command
 
         /** @var Order[] $orders */
         $orders = $this->entityManager->createQuery(
-            'SELECT o FROM ' . Order::class . ' o WHERE o.status = :status AND o.createdAt < :cutoff'
+            'SELECT o, p FROM ' . Order::class . ' o LEFT JOIN o.payment p WHERE o.status = :status AND o.createdAt < :cutoff'
         )
             ->setParameter('status', OrderStatus::PENDING)
             ->setParameter('cutoff', $cutoff)
@@ -64,6 +64,10 @@ final class ExpirePendingOrdersCommand extends Command
                 ]);
                 $io->warning(sprintf('Order %s skipped: %s', $order->orderNumber, $e->getMessage()));
             }
+        }
+
+        if ($expired > 0) {
+            $this->entityManager->flush();
         }
 
         $io->success(sprintf('Expired %d of %d stale pending order(s).', $expired, count($orders)));
@@ -97,7 +101,6 @@ final class ExpirePendingOrdersCommand extends Command
 
         $order->status = OrderStatus::FAILED;
         $this->stockReservationService->releaseForOrder($order);
-        $this->entityManager->flush();
 
         $this->logger->info('Expired pending order', ['order_number' => $order->orderNumber]);
 

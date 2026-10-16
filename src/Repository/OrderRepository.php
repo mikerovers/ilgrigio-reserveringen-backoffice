@@ -55,9 +55,14 @@ class OrderRepository extends ServiceEntityRepository
             'SELECT COUNT(t.id)
              FROM customer_order o
              INNER JOIN ticket t ON t.order_id = o.id
-             WHERE EXTRACT(YEAR FROM o.created_at) = :year
+             WHERE o.created_at >= :start
+               AND o.created_at < :end
                AND o.status = :status',
-            ['year' => $year, 'status' => OrderStatus::COMPLETED->value],
+            [
+                'start' => sprintf('%d-01-01 00:00:00', $year),
+                'end' => sprintf('%d-01-01 00:00:00', $year + 1),
+                'status' => OrderStatus::COMPLETED->value,
+            ],
         );
 
         return (int) $result;

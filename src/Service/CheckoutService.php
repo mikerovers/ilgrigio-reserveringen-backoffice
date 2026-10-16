@@ -107,7 +107,10 @@ final class CheckoutService
                     ));
                 }
 
-                $this->entityManager->refresh($pool);
+                // Decrement already happened atomically in SQL above; the in-memory
+                // entity is intentionally left stale (not refreshed) to avoid an
+                // extra round-trip while the pool's row lock is held, and because
+                // its stock fields are not read again on this path.
                 $reservations[] = new StockReservation($order, $pool, $demand, $now);
             }
 

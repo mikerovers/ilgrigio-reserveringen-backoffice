@@ -1,0 +1,6 @@
+framework:
+    webhook:
+        routing:
+            mollie:
+                service: App\Webhook\MollieRequestParser
+                secret: ''
