@@ -8,10 +8,13 @@ use App\Entity\Coupon;
 use App\Entity\Customer;
 use App\Entity\Order;
 use App\Entity\OrderLineItem;
+use App\Entity\SharedStock;
+use App\Entity\StockReservation;
 use App\Entity\TicketType;
 use App\Enum\StockStatus;
 use App\Event\OrderCreatedEvent;
 use App\Repository\CustomerRepository;
+use App\Repository\SharedStockRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -25,6 +28,7 @@ final class CheckoutService
     public function __construct(
         private EntityManagerInterface $entityManager,
         private CustomerRepository $customerRepository,
+        private SharedStockRepository $sharedStockRepository,
         private MoneyService $moneyService,
         private OrderPricingService $orderPricingService,
         private OrderNumberGenerator $orderNumberGenerator,
@@ -48,103 +52,115 @@ final class CheckoutService
             (int) round($this->taxRatePercent * 100),
         );
 
-        // Validate stock before any mutation.
         // Accumulate demand per shared pool so cross-type totals are checked together.
         /** @var array<string, int> $sharedDemand keyed by SharedStock id string */
         $sharedDemand = [];
+        /** @var array<string, SharedStock> $pools */
+        $pools = [];
 
         foreach ($cart as $row) {
             $ticketType = $row['ticketType'];
-            $quantity = $row['quantity'];
 
             if ($ticketType->disabled) {
                 throw new \RuntimeException(sprintf('Ticket type "%s" is not available for purchase.', $ticketType->name));
             }
 
-            if ($ticketType->sharedStock !== null) {
-                $poolId = (string) $ticketType->sharedStock->id;
-                $sharedDemand[$poolId] = ($sharedDemand[$poolId] ?? 0) + $quantity;
+            if ($ticketType->event->stockStatus() === StockStatus::OUT_OF_STOCK) {
+                throw new \RuntimeException('This event is sold out.');
             }
-        }
 
-        // Validate shared pool totals.
-        foreach ($cart as $row) {
-            $sharedStock = $row['ticketType']->sharedStock;
-            if ($sharedStock === null) {
+            $pool = $ticketType->sharedStock;
+            if ($pool === null) {
                 continue;
             }
 
-            $poolId = (string) $sharedStock->id;
-            if ($sharedStock->stockStatus === StockStatus::OUT_OF_STOCK) {
-                throw new \RuntimeException(sprintf('Shared stock pool "%s" is out of stock.', $sharedStock->name));
+            if ($pool->stockStatus === StockStatus::OUT_OF_STOCK) {
+                throw new \RuntimeException(sprintf('Shared stock pool "%s" is out of stock.', $pool->name));
             }
 
-            if ($sharedStock->stockQuantity !== null && $sharedStock->stockQuantity < ($sharedDemand[$poolId] ?? 0)) {
-                throw new \RuntimeException(sprintf(
-                    'Only %d ticket(s) remaining in pool "%s".',
-                    $sharedStock->stockQuantity,
-                    $sharedStock->name,
+            $poolId = (string) $pool->id;
+            $pools[$poolId] = $pool;
+            $sharedDemand[$poolId] = ($sharedDemand[$poolId] ?? 0) + $row['quantity'];
+        }
+
+        // Always lock pools in the same order so concurrent checkouts cannot deadlock.
+        ksort($pools);
+
+        $connection = $this->entityManager->getConnection();
+        /** @var StockReservation[] $reservations */
+        $reservations = [];
+
+        $connection->beginTransaction();
+
+        try {
+            foreach ($pools as $poolId => $pool) {
+                $demand = $sharedDemand[$poolId];
+
+                // Check and decrement in one atomic UPDATE: the only race-free guard.
+                if (!$this->sharedStockRepository->reserve($pool, $demand)) {
+                    $this->entityManager->refresh($pool);
+
+                    throw new \RuntimeException(sprintf(
+                        'Only %d ticket(s) remaining in pool "%s".',
+                        $pool->stockQuantity ?? 0,
+                        $pool->name,
+                    ));
+                }
+
+                $this->entityManager->refresh($pool);
+                $reservations[] = new StockReservation($order, $pool, $demand, $now);
+            }
+
+            foreach ($cart as $row) {
+                $ticketType = $row['ticketType'];
+                $quantity = $row['quantity'];
+
+                $unitGross = $ticketType->price;
+                $lineGross = $unitGross->multiply($quantity);
+                [$unitNet] = $this->moneyService->splitGross($unitGross, $this->taxRatePercent);
+                [$lineNet, $lineTax] = $this->moneyService->splitGross($lineGross, $this->taxRatePercent);
+
+                $order->lineItems->add(new OrderLineItem(
+                    $order,
+                    $ticketType,
+                    $ticketType->name,
+                    $quantity,
+                    $unitNet,
+                    $unitGross,
+                    $lineNet,
+                    $lineTax,
+                    $lineGross,
                 ));
             }
-        }
 
-        $event = $cart[0]['ticketType']->event ?? null;
-        if ($event !== null && $event->stockStatus() === StockStatus::OUT_OF_STOCK) {
-            throw new \RuntimeException('This event is sold out.');
-        }
+            $totals = $this->orderPricingService->calculate($cart, $coupon, $this->taxRatePercent);
 
-        /** @var array<string, true> $decrementedPools tracks which SharedStock pools have been decremented */
-        $decrementedPools = [];
+            $order->subtotalNet = $totals->subtotalNet;
+            $order->tax = $totals->tax;
+            $order->discountGross = $totals->discountGross;
+            $order->discountTax = $totals->discountTax;
+            $order->totalGross = $totals->totalGross;
 
-        foreach ($cart as $row) {
-            $ticketType = $row['ticketType'];
-            $quantity = $row['quantity'];
-
-            $unitGross = $ticketType->price;
-            $lineGross = $unitGross->multiply($quantity);
-            [$unitNet] = $this->moneyService->splitGross($unitGross, $this->taxRatePercent);
-            [$lineNet, $lineTax] = $this->moneyService->splitGross($lineGross, $this->taxRatePercent);
-
-            $order->lineItems->add(new OrderLineItem(
-                $order,
-                $ticketType,
-                $ticketType->name,
-                $quantity,
-                $unitNet,
-                $unitGross,
-                $lineNet,
-                $lineTax,
-                $lineGross,
-            ));
-
-            if ($ticketType->sharedStock !== null) {
-                $poolId = (string) $ticketType->sharedStock->id;
-                if (!isset($decrementedPools[$poolId])) {
-                    $ticketType->sharedStock->decrementStock($sharedDemand[$poolId]);
-                    $decrementedPools[$poolId] = true;
-                }
+            if ($coupon !== null) {
+                $order->coupon = $coupon;
+                $order->couponCode = $coupon->code;
             }
+
+            $this->entityManager->persist($order);
+            foreach ($reservations as $reservation) {
+                $this->entityManager->persist($reservation);
+            }
+
+            // Dispatch before flush so the history listener's note is included in the same flush.
+            $this->eventDispatcher->dispatch(new OrderCreatedEvent($order));
+
+            $this->entityManager->flush();
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+
+            throw $e;
         }
-
-        $totals = $this->orderPricingService->calculate($cart, $coupon, $this->taxRatePercent);
-
-        $order->subtotalNet = $totals->subtotalNet;
-        $order->tax = $totals->tax;
-        $order->discountGross = $totals->discountGross;
-        $order->discountTax = $totals->discountTax;
-        $order->totalGross = $totals->totalGross;
-
-        if ($coupon !== null) {
-            $order->coupon = $coupon;
-            $order->couponCode = $coupon->code;
-        }
-
-        $this->entityManager->persist($order);
-
-        // Dispatch before flush so the history listener's note is included in the same flush.
-        $this->eventDispatcher->dispatch(new OrderCreatedEvent($order));
-
-        $this->entityManager->flush();
 
         return $order;
     }

@@ -9,6 +9,7 @@ use App\DTO\TicketOrderRequest;
 use App\Entity\Event;
 use App\Entity\TicketType;
 use App\Enum\PaymentStatus;
+use App\Enum\OrderStatus;
 use App\Enum\StockStatus;
 use App\Event\OrderCompletedEvent;
 use App\Event\PaymentStatusChangedEvent;
@@ -20,6 +21,7 @@ use App\Service\CheckoutService;
 use App\Service\DiscountCalculator;
 use App\Service\MoneyService;
 use App\Service\OrderPricingService;
+use App\Service\StockReservationService;
 use Money\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -43,6 +45,7 @@ final class TicketingController extends AbstractController
         private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
         private PaymentInitiatorInterface $paymentInitiator,
+        private StockReservationService $stockReservationService,
         private EventDispatcherInterface $eventDispatcher,
         private ValidatorInterface $validator,
         private ClockInterface $clock,
@@ -70,7 +73,8 @@ final class TicketingController extends AbstractController
         #[MapEntity(mapping: ['slug' => 'slug'])] Event $event,
         Request $request,
     ): Response {
-        if ($event->stockStatus() !== StockStatus::IN_STOCK || ($event->stockQuantity() ?? 0) <= 0) {
+        $remaining = $event->stockQuantity();
+        if ($event->stockStatus() !== StockStatus::IN_STOCK || ($remaining !== null && $remaining <= 0)) {
             $this->addFlash('error', 'Deze show is uitverkocht en er kunnen geen tickets meer worden besteld.');
 
             return $this->redirectToRoute('app_tickets');
@@ -329,7 +333,22 @@ final class TicketingController extends AbstractController
 
         // Paid path: hand off to the payment provider (Omnipay, pending).
         $this->checkoutService->save($order);
-        $redirectUrl = $this->paymentInitiator->initiate($order);
+        try {
+            $redirectUrl = $this->paymentInitiator->initiate($order);
+        } catch (\Throwable $e) {
+            // No payment will ever arrive for this order: hand its stock back right away.
+            $this->logger->error('Payment initiation failed', [
+                'order_number' => $order->orderNumber,
+                'error' => $e->getMessage(),
+            ]);
+            $order->status = OrderStatus::FAILED;
+            $this->stockReservationService->releaseForOrder($order);
+            $this->checkoutService->save($order);
+
+            $this->addFlash('error', 'De betaling kon niet worden gestart. Probeer het later opnieuw.');
+
+            return $this->redirectToRoute('app_tickets');
+        }
 
         // Record payment initiation in the order history.
         $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($order, null, PaymentStatus::OPEN));

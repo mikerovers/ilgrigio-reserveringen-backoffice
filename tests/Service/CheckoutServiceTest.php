@@ -11,12 +11,16 @@ use App\Entity\SharedStock;
 use App\Entity\TicketType;
 use App\Enum\DiscountType;
 use App\Repository\CustomerRepository;
+use App\Repository\SharedStockRepository;
 use App\Service\CheckoutService;
 use App\Service\DiscountCalculator;
 use App\Service\MoneyService;
 use App\Service\OrderNumberGenerator;
 use App\Service\OrderPricingService;
+use App\Entity\StockReservation;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\MockObject\MockObject;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -24,13 +28,22 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 class CheckoutServiceTest extends TestCase
 {
     private CheckoutService $checkoutService;
+    private MockObject&EntityManagerInterface $entityManager;
+    private MockObject&Connection $connection;
+    private MockObject&SharedStockRepository $sharedStockRepository;
 
     protected function setUp(): void
     {
         $moneyService = new MoneyService();
+        $this->connection = $this->createMock(Connection::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager->method('getConnection')->willReturn($this->connection);
+        $this->sharedStockRepository = $this->createMock(SharedStockRepository::class);
+        $this->sharedStockRepository->method('reserve')->willReturn(true);
         $this->checkoutService = new CheckoutService(
-            $this->createMock(EntityManagerInterface::class),
+            $this->entityManager,
             $this->createMock(CustomerRepository::class),
+            $this->sharedStockRepository,
             $moneyService,
             new OrderPricingService($moneyService, new DiscountCalculator($moneyService)),
             new OrderNumberGenerator(),
@@ -94,5 +107,101 @@ class CheckoutServiceTest extends TestCase
         $order = $this->checkoutService->createOrder($cart, $this->customer(), $coupon, new \DateTimeImmutable());
 
         $this->assertTrue($order->totalGross->isZero(), 'fully-discounted order is zero-total');
+    }
+
+    public function testStockIsReservedAtomicallyOncePerPoolAcrossTicketTypes(): void
+    {
+        $regular = $this->ticketType('Regulier', 1200);
+        $child = $this->ticketType('Kind', 1000);
+        $child->sharedStock = $regular->sharedStock;
+
+        $reserved = [];
+        $sharedStockRepository = $this->createMock(SharedStockRepository::class);
+        $sharedStockRepository->method('reserve')->willReturnCallback(
+            function (SharedStock $pool, int $qty) use (&$reserved): bool {
+                $reserved[] = $qty;
+
+                return true;
+            },
+        );
+        $service = $this->serviceWith($sharedStockRepository);
+
+        $persisted = [];
+        $this->entityManager->method('persist')->willReturnCallback(
+            function (object $entity) use (&$persisted): void {
+                $persisted[] = $entity;
+            },
+        );
+        $this->connection->expects($this->once())->method('commit');
+
+        $service->createOrder(
+            [['ticketType' => $regular, 'quantity' => 2], ['ticketType' => $child, 'quantity' => 3]],
+            $this->customer(),
+            null,
+            new \DateTimeImmutable(),
+        );
+
+        $this->assertSame([5], $reserved, 'cross-type demand is reserved as a single pool claim');
+        $reservations = array_values(array_filter($persisted, fn ($e) => $e instanceof StockReservation));
+        $this->assertCount(1, $reservations);
+        $this->assertSame(5, $reservations[0]->quantity);
+    }
+
+    public function testInsufficientStockRollsBackAndPersistsNothing(): void
+    {
+        $sharedStockRepository = $this->createMock(SharedStockRepository::class);
+        $sharedStockRepository->method('reserve')->willReturn(false);
+        $service = $this->serviceWith($sharedStockRepository);
+
+        $this->entityManager->expects($this->never())->method('persist');
+        $this->connection->expects($this->once())->method('rollBack');
+        $this->connection->expects($this->never())->method('commit');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('ticket(s) remaining');
+
+        $ticketType = $this->ticketType('Regulier', 1200);
+        $ticketType->sharedStock->stockQuantity = 1;
+
+        $service->createOrder(
+            [['ticketType' => $ticketType, 'quantity' => 2]],
+            $this->customer(),
+            null,
+            new \DateTimeImmutable(),
+        );
+    }
+
+    public function testOutOfStockPoolIsRejectedBeforeAnyReservation(): void
+    {
+        $sharedStockRepository = $this->createMock(SharedStockRepository::class);
+        $sharedStockRepository->expects($this->never())->method('reserve');
+        $service = $this->serviceWith($sharedStockRepository);
+
+        $ticketType = $this->ticketType('Regulier', 1200);
+        $ticketType->sharedStock->stockStatus = \App\Enum\StockStatus::OUT_OF_STOCK;
+
+        $this->expectException(\RuntimeException::class);
+        $service->createOrder(
+            [['ticketType' => $ticketType, 'quantity' => 1]],
+            $this->customer(),
+            null,
+            new \DateTimeImmutable(),
+        );
+    }
+
+    private function serviceWith(SharedStockRepository $sharedStockRepository): CheckoutService
+    {
+        $moneyService = new MoneyService();
+
+        return new CheckoutService(
+            $this->entityManager,
+            $this->createMock(CustomerRepository::class),
+            $sharedStockRepository,
+            $moneyService,
+            new OrderPricingService($moneyService, new DiscountCalculator($moneyService)),
+            new OrderNumberGenerator(),
+            $this->createMock(EventDispatcherInterface::class),
+            9.0,
+        );
     }
 }

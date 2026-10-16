@@ -54,6 +54,7 @@ final class TicketIssuanceService
                     $event->name,
                     $event->startsAt,
                     $issuedAt,
+                    $i,
                 );
 
                 $order->tickets->add($ticket);

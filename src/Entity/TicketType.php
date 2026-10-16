@@ -35,7 +35,7 @@ class TicketType
     public Money $price;
 
     #[ORM\ManyToOne(targetEntity: SharedStock::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
     public ?SharedStock $sharedStock = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]

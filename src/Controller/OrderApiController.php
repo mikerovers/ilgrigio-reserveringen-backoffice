@@ -59,6 +59,17 @@ final class OrderApiController extends AbstractController
             );
         }
 
+        if (!$order->status->triggersFulfilment()) {
+            return $this->json(
+                new OrderProcessResponse(
+                    success: false,
+                    orderNumber: $orderNumber,
+                    message: "Order {$orderNumber} is not completed (status: {$order->status->value})",
+                ),
+                Response::HTTP_CONFLICT,
+            );
+        }
+
         $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
 
         return $this->json(new OrderProcessResponse(

@@ -16,6 +16,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: 'idx_ticket_order', columns: ['order_id'])]
 #[ORM\Index(name: 'idx_ticket_status', columns: ['status'])]
 #[ORM\UniqueConstraint(name: 'uniq_ticket_code', columns: ['ticket_code'])]
+#[ORM\UniqueConstraint(name: 'uniq_ticket_line_index', columns: ['line_item_id', 'line_index'])]
 class Ticket
 {
     #[ORM\Id]
@@ -61,6 +62,10 @@ class Ticket
     #[ORM\Column(name: 'checked_in_by', length: 255, nullable: true)]
     public ?string $checkedInBy = null;
 
+    /** Position within its line item; with the line item it makes duplicate issuance fail at the DB. */
+    #[ORM\Column(name: 'line_index', type: 'integer', options: ['default' => 0])]
+    public int $lineIndex = 0;
+
     #[ORM\Column(name: 'issued_at', type: 'datetime_immutable')]
     public \DateTimeImmutable $issuedAt;
 
@@ -73,7 +78,8 @@ class Ticket
         string $ticketName,
         string $eventNameSnapshot,
         \DateTimeImmutable $eventDateTimeSnapshot,
-        \DateTimeImmutable $issuedAt
+        \DateTimeImmutable $issuedAt,
+        int $lineIndex = 0,
     ) {
         $this->id = Uuid::v7();
         $this->ticketCode = $ticketCode;
@@ -85,5 +91,6 @@ class Ticket
         $this->eventNameSnapshot = $eventNameSnapshot;
         $this->eventDateTimeSnapshot = $eventDateTimeSnapshot;
         $this->issuedAt = $issuedAt;
+        $this->lineIndex = $lineIndex;
     }
 }

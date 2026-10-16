@@ -103,6 +103,16 @@ docs/
   transport.
 - The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
   use the API-key authenticator; check-in and order reprocessing require a JWT.
+- **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
+  `CheckoutService::createOrder` takes stock with the single atomic
+  `SharedStockRepository::reserve()` UPDATE inside a DB transaction (pools
+  locked in id order) and records a `StockReservation` per pool. Never
+  reintroduce an in-memory check-then-decrement. Stock is returned exactly once
+  via `StockReservationService::releaseForOrder()` (failed/canceled/expired
+  Mollie payment, failed payment start, or `app:orders:expire-pending`). A late
+  PAID re-takes it via `reacquireForOrder()`. Run
+  `bin/console app:orders:expire-pending` every minute from cron;
+  `ORDER_RESERVATION_TTL_MINUTES` (default 30) sets how long unpaid orders hold stock.
 - `docs/aws-webhook-ingress.md` and the WooCommerce-related environment values
   are legacy integration context, not part of the active application flow.
 - `/bedankt` (`TicketingController::thankYou`) resolves the order strictly from

@@ -7,6 +7,7 @@ parameters:
     default_from_email: 'noreply@example.com'
     default_admin_email: 'admin@example.com'
     admin_host: '%env(ADMIN_HOST)%'
+    env(ORDER_RESERVATION_TTL_MINUTES): '30'
 
 services:
     # default configuration for services in *this* file
@@ -26,6 +27,11 @@ services:
             $mollieApiKey: '%env(MOLLIE_API_KEY)%'
             $returnUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%/bedankt'
             $webhookUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%/webhook/mollie'
+
+    App\Command\ExpirePendingOrdersCommand:
+        arguments:
+            $mollieApiKey: '%env(MOLLIE_API_KEY)%'
+            $reservationTtlMinutes: '%env(int:ORDER_RESERVATION_TTL_MINUTES)%'
 
     App\Webhook\MollieWebhookConsumer:
         arguments:
