@@ -31,7 +31,16 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
         try {
             $payload = $this->formatPayload($record);
 
-            $response = $this->getHttpClient()->request("POST", $this->buildUrl(), [
+            // Fire-and-forget: Symfony's HttpClient dispatches the request
+            // asynchronously and only blocks once the response is consumed
+            // (e.g. getStatusCode()/getContent()). We deliberately never
+            // consume it here, so a slow or hanging New Relic endpoint can't
+            // stall the request this log line was emitted from. Using a
+            // dedicated NativeHttpClient (below) keeps this off the shared
+            // async/scoped client stack, so it never interferes with an
+            // in-flight CurlResponse being consumed elsewhere (e.g. the
+            // messenger worker).
+            $this->getHttpClient()->request("POST", $this->buildUrl(), [
                 "headers" => [
                     "Content-Type" => "application/json",
                     "Api-Key" => $this->licenseKey,
@@ -39,11 +48,6 @@ final class NewRelicMonologHandler extends AbstractProcessingHandler
                 "json" => $payload,
                 "timeout" => 5,
             ]);
-            // Fully resolve the request so it is dispatched before we discard it.
-            // Using a dedicated NativeHttpClient (below) keeps this off the shared
-            // async/scoped client stack, so it never interferes with an in-flight
-            // CurlResponse being consumed elsewhere (e.g. the messenger worker).
-            $response->getStatusCode();
         } catch (\Throwable $e) {
             // Silently fail to prevent infinite logging loops
             // Do NOT use error_log, trigger_error, or any logging here

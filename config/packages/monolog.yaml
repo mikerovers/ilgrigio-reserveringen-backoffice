@@ -5,11 +5,6 @@ monolog:
 when@dev:
     monolog:
         handlers:
-            new_relic:
-                type: service
-                id: App\Service\NewRelicMonologHandler
-                level: info
-                channels: ["!http_client"]
             main:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
