@@ -11,7 +11,7 @@ use Symfony\Component\Messenger\Attribute\AsMessage;
  * order id (state read fresh from the database by the handler) and the signed
  * PDF download token.
  */
-#[AsMessage('async')]
+#[AsMessage('email')]
 final class SendOrderEmailMessage
 {
     public function __construct(

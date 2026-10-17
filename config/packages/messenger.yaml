@@ -20,17 +20,30 @@ framework:
                     max_delay: 3600000
                     jitter: 0.1
                 failure_transport: failed
+            email:
+                dsn: '%env(MESSENGER_EMAIL_TRANSPORT_DSN)%'
+                options:
+                    auto_setup: false
+                    redeliver_timeout: 900
+                retry_strategy:
+                    max_retries: 5
+                    delay: 300000
+                    multiplier: 3
+                    max_delay: 3600000
+                    jitter: 0.1
+                failure_transport: failed
             failed:
                 dsn: '%env(MESSENGER_FAILED_TRANSPORT_DSN)%'
                 options:
                     auto_setup: false
 
         routing:
-            'App\Message\SendOrderEmailMessage': async
+            'App\Message\SendOrderEmailMessage': email
 
 when@test:
     framework:
         messenger:
             transports:
                 async: 'in-memory://'
+                email: 'in-memory://'
                 failed: 'in-memory://'
