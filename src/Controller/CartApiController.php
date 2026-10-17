@@ -8,9 +8,8 @@ use App\DTO\AvailableEventResponse;
 use App\DTO\CouponResponse;
 use App\DTO\ValidateCouponRequest;
 use App\Entity\Event;
-use App\Repository\CouponRepository;
 use App\Repository\EventRepository;
-use App\Service\DiscountCalculator;
+use App\Service\CouponResolver;
 use App\Service\MoneyService;
 use App\Service\OrderPricingService;
 use Money\Money;
@@ -33,9 +32,8 @@ final class CartApiController extends AbstractController
 {
     public function __construct(
         private EventRepository $eventRepository,
-        private CouponRepository $couponRepository,
+        private CouponResolver $couponResolver,
         private OrderPricingService $orderPricingService,
-        private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
         private ClockInterface $clock,
         private float $taxRatePercent,
@@ -72,9 +70,9 @@ final class CartApiController extends AbstractController
         $session = $httpRequest->getSession();
         $cartGross = $this->cartGross($session->get('cart_items', []));
 
-        $coupon = $this->couponRepository->findOneByCode($request->code);
-        if ($coupon === null || !$this->discountCalculator->isApplicable($coupon, $this->clock->now())) {
-            return $this->json(CouponResponse::invalid('Coupon is ongeldig of verlopen.'));
+        $coupon = $this->couponResolver->resolve($request->code);
+        if ($coupon === null) {
+            return $this->json(CouponResponse::invalid('Coupon is ongeldig, verlopen of al gebruikt.'));
         }
 
         $totals = $this->orderPricingService->calculateFromCartGross($cartGross, $coupon, $this->taxRatePercent);

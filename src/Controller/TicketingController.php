@@ -12,13 +12,13 @@ use App\Enum\PaymentStatus;
 use App\Enum\OrderStatus;
 use App\Enum\StockStatus;
 use App\Event\OrderCompletedEvent;
+use App\Exception\CouponUnavailableException;
 use App\Event\PaymentStatusChangedEvent;
 use App\Payment\PaymentInitiatorInterface;
-use App\Repository\CouponRepository;
 use App\Repository\EventRepository;
 use App\Repository\OrderRepository;
 use App\Service\CheckoutService;
-use App\Service\DiscountCalculator;
+use App\Service\CouponResolver;
 use App\Service\MoneyService;
 use App\Service\OrderPricingService;
 use App\Service\StockReservationService;
@@ -30,6 +30,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -39,10 +40,9 @@ final class TicketingController extends AbstractController
     public function __construct(
         private EventRepository $eventRepository,
         private OrderRepository $orderRepository,
-        private CouponRepository $couponRepository,
+        private CouponResolver $couponResolver,
         private CheckoutService $checkoutService,
         private OrderPricingService $orderPricingService,
-        private DiscountCalculator $discountCalculator,
         private MoneyService $moneyService,
         private PaymentInitiatorInterface $paymentInitiator,
         private StockReservationService $stockReservationService,
@@ -155,12 +155,9 @@ final class TicketingController extends AbstractController
             return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
         }
 
-        $coupon = null;
-        if ($ticketOrder->appliedCouponCode !== null) {
-            $candidate = $this->couponRepository->findOneByCode($ticketOrder->appliedCouponCode);
-            if ($candidate !== null && $this->discountCalculator->isApplicable($candidate, $this->clock->now())) {
-                $coupon = $candidate;
-            }
+        $coupon = $this->couponResolver->resolve($ticketOrder->appliedCouponCode);
+        if ($coupon === null && trim((string) $ticketOrder->appliedCouponCode) !== '') {
+            $this->addFlash('error', 'De kortingscode is ongeldig, verlopen of al gebruikt en is niet toegepast.');
         }
 
         $totals = $this->orderPricingService->calculateFromCartGross($grossTotal, $coupon, $this->taxRate);
@@ -171,8 +168,8 @@ final class TicketingController extends AbstractController
         }
         $session->set('cart_items', $cartItems);
         $session->set('event_slug', $event->slug);
-        $session->set('applied_coupon_code', $ticketOrder->appliedCouponCode);
-        $session->set('applied_coupon', $ticketOrder->appliedCouponCode ? ['code' => $ticketOrder->appliedCouponCode] : null);
+        $session->set('applied_coupon_code', $coupon?->code);
+        $session->set('applied_coupon', $coupon !== null ? ['code' => $coupon->code] : null);
         $session->set('discount', $this->moneyService->toFloat($totals->discountGross));
         $session->set('event_data', $this->eventView($event));
         $session->save();
@@ -199,12 +196,10 @@ final class TicketingController extends AbstractController
 
         $cartGross = $this->cartGross($cartItems);
         $couponCode = $session->get('applied_coupon_code');
-        $coupon = null;
-        if ($couponCode !== null) {
-            $candidate = $this->couponRepository->findOneByCode($couponCode);
-            if ($candidate !== null && $this->discountCalculator->isApplicable($candidate, $this->clock->now())) {
-                $coupon = $candidate;
-            }
+        $coupon = $this->couponResolver->resolve($couponCode);
+        if ($couponCode !== null && $coupon === null) {
+            $this->dropSessionCoupon($session);
+            $this->addFlash('error', 'Je kortingscode is niet meer geldig en is verwijderd. Controleer het totaalbedrag.');
         }
 
         $totals = $this->orderPricingService->calculateFromCartGross($cartGross, $coupon, $this->taxRate);
@@ -280,13 +275,14 @@ final class TicketingController extends AbstractController
             }
         }
 
-        $coupon = null;
         $couponCode = $session->get('applied_coupon_code');
-        if ($couponCode !== null) {
-            $candidate = $this->couponRepository->findOneByCode($couponCode);
-            if ($candidate !== null && $this->discountCalculator->isApplicable($candidate, $this->clock->now())) {
-                $coupon = $candidate;
-            }
+        $coupon = $this->couponResolver->resolve($couponCode);
+        if ($couponCode !== null && $coupon === null) {
+            // Never charge full price behind the customer's back: show the new total first.
+            $this->dropSessionCoupon($session);
+            $this->addFlash('error', 'Je kortingscode is niet meer geldig en is verwijderd. Controleer het totaalbedrag.');
+
+            return $this->redirectToRoute('app_checkout');
         }
 
         $customer = $this->checkoutService->resolveCustomer(
@@ -300,6 +296,11 @@ final class TicketingController extends AbstractController
 
         try {
             $order = $this->checkoutService->createOrder($cart, $customer, $coupon, $this->clock->now());
+        } catch (CouponUnavailableException) {
+            $this->dropSessionCoupon($session);
+            $this->addFlash('error', 'Je kortingscode is niet meer beschikbaar en is verwijderd. Controleer het totaalbedrag.');
+
+            return $this->redirectToRoute('app_checkout');
         } catch (\RuntimeException $e) {
             $this->addFlash('error', $e->getMessage());
 
@@ -402,6 +403,14 @@ final class TicketingController extends AbstractController
             'payment_status' => $paymentStatus,
             'payment_info' => $paymentInfo,
         ]);
+    }
+
+    private function dropSessionCoupon(SessionInterface $session): void
+    {
+        foreach (['applied_coupon_code', 'applied_coupon'] as $key) {
+            $session->remove($key);
+        }
+        $session->set('discount', 0);
     }
 
     /**

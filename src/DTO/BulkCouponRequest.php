@@ -18,6 +18,8 @@ final class BulkCouponRequest
         public ?string $description = null,
         #[Assert\NotBlank(message: 'Add at least one coupon code')]
         public string $manualCodes = '',
+        #[Assert\Positive(message: 'Usage limit must be greater than zero')]
+        public ?int $usageLimit = 1,
     ) {
     }
 

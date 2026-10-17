@@ -40,16 +40,27 @@ export default class extends Controller {
         this.appliedCoupon = null;
 
         // Check if there's a pre-applied coupon from session
+        this.updateOrderSummary();
+
         const appliedCouponField = this.appliedCouponFieldTarget;
         if (appliedCouponField && appliedCouponField.value) {
-            try {
-                this.appliedCoupon = JSON.parse(appliedCouponField.value);
-                if (this.appliedCoupon) {
-                    this.showCouponSuccess(this.appliedCoupon);
-                }
-            } catch (e) {
-                console.log("Error parsing applied coupon:", e);
+            this.restoreCoupon(appliedCouponField.value);
+        }
+    }
+
+    // The field only carries the code; re-validate it to get its type/amount.
+    async restoreCoupon(code) {
+        try {
+            const result = await validateCoupon(code);
+
+            if (result.valid) {
+                this.appliedCoupon = result;
+                this.showCouponSuccess(result);
+            } else {
+                this.appliedCouponFieldTarget.value = "";
             }
+        } catch (error) {
+            console.error("Error restoring coupon:", error);
         }
 
         this.updateOrderSummary();
@@ -246,7 +257,7 @@ export default class extends Controller {
                 this.updateOrderSummary();
 
                 // Update hidden form fields
-                this.appliedCouponFieldTarget.value = JSON.stringify(result);
+                this.appliedCouponFieldTarget.value = result.code;
             } else {
                 this.showCouponError(result.message || "Kortingscode niet geldig");
             }
@@ -306,12 +317,16 @@ export default class extends Controller {
             return 0;
         }
 
-        // discountCents is already correctly computed server-side (unit-aware
-        // percent/fixed_cart conversion), so use it directly instead of
-        // re-deriving from the raw discountType/amount fields.
-        const discount = (this.appliedCoupon.discountCents || 0) / 100;
+        // The server's discountCents was computed against whatever cart was in
+        // the session, not the current selection, so recompute from the coupon's
+        // type/amount (percent = basis points, fixed_cart = cents).
+        const subtotalCents = Math.round(subtotal * 100);
+        const discountCents =
+            this.appliedCoupon.discountType === "percent"
+                ? Math.round((subtotalCents * this.appliedCoupon.amount) / 10000)
+                : this.appliedCoupon.amount;
 
-        return Math.min(discount, subtotal);
+        return Math.min(Math.max(discountCents, 0), subtotalCents) / 100;
     }
 
     updateOrderSummary() {

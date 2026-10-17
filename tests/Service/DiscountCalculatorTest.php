@@ -71,4 +71,15 @@ class DiscountCalculatorTest extends TestCase
 
         $this->assertFalse($this->calculator->isApplicable($coupon, new \DateTimeImmutable()));
     }
+
+    public function testNegativeAmountNeverIncreasesTheTotal(): void
+    {
+        $calculator = new DiscountCalculator(new MoneyService());
+
+        foreach ([DiscountType::PERCENT, DiscountType::FIXED_CART] as $type) {
+            $coupon = new Coupon('NEG', $type, -500);
+
+            $this->assertTrue($calculator->discountGross($coupon, Money::EUR(5000))->isZero(), $type->value);
+        }
+    }
 }

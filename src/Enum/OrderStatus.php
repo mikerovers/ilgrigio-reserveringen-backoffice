@@ -22,6 +22,18 @@ enum OrderStatus: string
     }
 
     /**
+     * Pending, processing and completed orders count against a coupon's usage
+     * limit; failed, cancelled and refunded ones give the redemption back.
+     */
+    public function holdsCouponRedemption(): bool
+    {
+        return match ($this) {
+            self::PENDING, self::PROCESSING, self::COMPLETED => true,
+            default => false,
+        };
+    }
+
+    /**
      * Only a completed order triggers ticket issuance, the confirmation email
      * and PDF generation.
      */

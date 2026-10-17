@@ -40,6 +40,10 @@ final class DiscountCalculator
             DiscountType::FIXED_CART => Money::EUR($coupon->amount),
         };
 
+        if ($discount->isNegative()) {
+            return Money::EUR(0);
+        }
+
         return $discount->greaterThan($cartGross) ? $cartGross : $discount;
     }
 

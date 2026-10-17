@@ -85,6 +85,8 @@ class CouponCrudController extends AbstractCrudController
 
                 return number_format($coupon->amount / 100, 2) . '%';
             });
+        yield IntegerField::new('usageLimit')
+            ->setHelp('Max. non-failed orders that may use this code. Empty = unlimited.');
         yield TextareaField::new('description')->hideOnIndex();
         yield BooleanField::new('active')
             ->renderAsSwitch(false);

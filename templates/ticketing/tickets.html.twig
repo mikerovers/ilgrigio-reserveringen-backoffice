@@ -254,7 +254,7 @@
 
 								<!-- Hidden form fields for validation -->
 								<input type="hidden" name="event_id" value="{{ event.id }}">
-								<input type="hidden" name="applied_coupon" data-frontend--ticket-selection-target="appliedCouponField" value="{% if appliedCoupon %}{{ appliedCoupon|json_encode }}{% endif %}">
+								<input type="hidden" name="appliedCouponCode" data-frontend--ticket-selection-target="appliedCouponField" value="{% if appliedCoupon %}{{ appliedCoupon.code }}{% endif %}">
 								<input
 								type="hidden" name="discount_amount" data-frontend--ticket-selection-target="discountAmountField" value="0">
 

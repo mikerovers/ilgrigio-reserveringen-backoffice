@@ -88,6 +88,7 @@ class CouponBulkCreateController extends AbstractController
             $coupon->description = $bulkRequest->description;
             $coupon->active = $bulkRequest->active;
             $coupon->expiresAt = $bulkRequest->expiresAt;
+            $coupon->usageLimit = $bulkRequest->usageLimit;
             $this->entityManager->persist($coupon);
         }
 
@@ -112,6 +113,9 @@ class CouponBulkCreateController extends AbstractController
             $expiresAt = new \DateTimeImmutable($expiresAtValue);
         }
 
+        $usageLimitValue = trim((string) $request->request->get('usageLimit', ''));
+        $usageLimit = $usageLimitValue === '' ? null : (int) $usageLimitValue;
+
         $discountType = DiscountType::from(
             (string) $request->request->get('discountType', DiscountType::PERCENT->value),
         );
@@ -123,6 +127,7 @@ class CouponBulkCreateController extends AbstractController
             active: $request->request->getBoolean('active', true),
             description: $request->request->get('description') ?: null,
             manualCodes: (string) $request->request->get('manualCodes', ''),
+            usageLimit: $usageLimit,
         );
     }
 

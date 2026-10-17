@@ -67,6 +67,13 @@
                         />
                     </div>
 
+                    <div class="col-md-4">
+                        <label for="usageLimit" class="form-label">Max uses per code</label>
+                        <input type="number" class="form-control" id="usageLimit" name="usageLimit" min="1"
+                               value="{{ bulk_request is defined ? bulk_request.usageLimit : 1 }}">
+                        <div class="form-text">Leave empty for unlimited. Failed or cancelled orders do not count.</div>
+                    </div>
+
                     <div class="col-12">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="2">{{ bulk_request is defined ? bulk_request.description : '' }}</textarea>

@@ -10,6 +10,8 @@ use App\Entity\Event;
 use App\Entity\SharedStock;
 use App\Entity\TicketType;
 use App\Enum\DiscountType;
+use App\Exception\CouponUnavailableException;
+use App\Repository\CouponRepository;
 use App\Repository\CustomerRepository;
 use App\Repository\SharedStockRepository;
 use App\Service\CheckoutService;
@@ -31,6 +33,7 @@ class CheckoutServiceTest extends TestCase
     private MockObject&EntityManagerInterface $entityManager;
     private MockObject&Connection $connection;
     private MockObject&SharedStockRepository $sharedStockRepository;
+    private MockObject&CouponRepository $couponRepository;
 
     protected function setUp(): void
     {
@@ -40,10 +43,12 @@ class CheckoutServiceTest extends TestCase
         $this->entityManager->method('getConnection')->willReturn($this->connection);
         $this->sharedStockRepository = $this->createMock(SharedStockRepository::class);
         $this->sharedStockRepository->method('reserve')->willReturn(true);
+        $this->couponRepository = $this->createMock(CouponRepository::class);
         $this->checkoutService = new CheckoutService(
             $this->entityManager,
             $this->createMock(CustomerRepository::class),
             $this->sharedStockRepository,
+            $this->couponRepository,
             $moneyService,
             new OrderPricingService($moneyService, new DiscountCalculator($moneyService)),
             new OrderNumberGenerator(),
@@ -197,11 +202,27 @@ class CheckoutServiceTest extends TestCase
             $this->entityManager,
             $this->createMock(CustomerRepository::class),
             $sharedStockRepository,
+            $this->couponRepository,
             $moneyService,
             new OrderPricingService($moneyService, new DiscountCalculator($moneyService)),
             new OrderNumberGenerator(),
             $this->createMock(EventDispatcherInterface::class),
             9.0,
         );
+    }
+
+    public function testExhaustedCouponIsRejectedUnderLockAndRollsBack(): void
+    {
+        $coupon = new Coupon('ONCE', DiscountType::PERCENT, 1000);
+        $coupon->usageLimit = 1;
+        $this->couponRepository->expects($this->once())->method('lockForRedemption')->with($coupon);
+        $this->couponRepository->method('isExhausted')->with($coupon)->willReturn(true);
+        $this->connection->expects($this->once())->method('rollBack');
+        $this->sharedStockRepository->expects($this->never())->method('reserve');
+
+        $this->expectException(CouponUnavailableException::class);
+
+        $cart = [['ticketType' => $this->ticketType('Regulier', 1200), 'quantity' => 1]];
+        $this->checkoutService->createOrder($cart, $this->customer(), $coupon, new \DateTimeImmutable());
     }
 }

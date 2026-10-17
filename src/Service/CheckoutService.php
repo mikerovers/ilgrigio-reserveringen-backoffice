@@ -13,6 +13,8 @@ use App\Entity\StockReservation;
 use App\Entity\TicketType;
 use App\Enum\StockStatus;
 use App\Event\OrderCreatedEvent;
+use App\Exception\CouponUnavailableException;
+use App\Repository\CouponRepository;
 use App\Repository\CustomerRepository;
 use App\Repository\SharedStockRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,6 +31,7 @@ final class CheckoutService
         private EntityManagerInterface $entityManager,
         private CustomerRepository $customerRepository,
         private SharedStockRepository $sharedStockRepository,
+        private CouponRepository $couponRepository,
         private MoneyService $moneyService,
         private OrderPricingService $orderPricingService,
         private OrderNumberGenerator $orderNumberGenerator,
@@ -93,6 +96,15 @@ final class CheckoutService
         $connection->beginTransaction();
 
         try {
+            // Serialise concurrent redemptions of the same coupon, then re-check its limit.
+            if ($coupon !== null) {
+                $this->couponRepository->lockForRedemption($coupon);
+
+                if ($this->couponRepository->isExhausted($coupon)) {
+                    throw new CouponUnavailableException(sprintf('Coupon "%s" is no longer available.', $coupon->code));
+                }
+            }
+
             foreach ($pools as $poolId => $pool) {
                 $demand = $sharedDemand[$poolId];
 
