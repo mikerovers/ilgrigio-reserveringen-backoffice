@@ -111,7 +111,7 @@
 											<div class="flex-1">
 												<h3 class="text-lg font-semibold text-gray-800">{{ ticketType.name }}</h3>
 												{% if ticketType.disabled and ticketType.disabled_reason %}
-													<div class="text-xs text-gray-600 mt-1">{{ ticketType.disabled_reason|raw }}</div>
+													<div class="text-xs text-gray-600 mt-1">{{ ticketType.disabled_reason|sanitize_html('app.ticket_type_disabled_reason') }}</div>
 												{% endif %}
 											</div>
 

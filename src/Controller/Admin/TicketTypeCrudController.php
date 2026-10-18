@@ -21,6 +21,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use Money\Money;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -94,7 +95,9 @@ class TicketTypeCrudController extends AbstractCrudController
         yield AssociationField::new('sharedStock');
         yield IntegerField::new('sortOrder')->hideOnIndex();
         yield BooleanField::new('disabled');
-        yield TextareaField::new('disabledReason')->hideOnIndex();
+        yield TextEditorField::new('disabledReason')
+            ->addCssClass('ticket-type-disabled-reason')
+            ->hideOnIndex();
         yield DateTimeField::new('createdAt')->hideOnForm();
         yield DateTimeField::new('updatedAt')->hideOnForm();
     }

@@ -1,0 +1,14 @@
+/*
+ * Trix rich-text editor toolbars, one block per field, selected with
+ * ->addCssClass('<field-class>') on the TextEditorField. Editors without a
+ * block here keep the full default toolbar.
+ */
+
+/* TicketType "disabled reason": bold and link only. */
+.ticket-type-disabled-reason trix-toolbar .trix-button-group--block-tools,
+.ticket-type-disabled-reason trix-toolbar .trix-button-group--file-tools,
+.ticket-type-disabled-reason trix-toolbar .trix-button-group--history-tools,
+.ticket-type-disabled-reason trix-toolbar .trix-button--icon-italic,
+.ticket-type-disabled-reason trix-toolbar .trix-button--icon-strike {
+    display: none;
+}
