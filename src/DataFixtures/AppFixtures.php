@@ -7,6 +7,7 @@ namespace App\DataFixtures;
 use App\Entity\Coupon;
 use App\Entity\Customer;
 use App\Entity\Event;
+use App\Entity\EventCategory;
 use App\Entity\Order;
 use App\Entity\OrderLineItem;
 use App\Entity\OrderNote;
@@ -67,6 +68,11 @@ class AppFixtures extends Fixture
         $event->ticketTypes->add($typeStandardAdults);
         $event->ticketTypes->add($typeStandardChildren);
         $event->ticketTypes->add($sharedStockWheelchair);
+
+        $category = new EventCategory('Theater');
+        $manager->persist($category);
+        $event->categories->add($category);
+        $category->events->add($event);
 
         $manager->persist($event);
 

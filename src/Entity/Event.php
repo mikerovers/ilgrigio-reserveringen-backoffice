@@ -35,6 +35,12 @@ class Event
     #[ORM\Column(name: 'ends_at', type: 'datetime_immutable', nullable: true)]
     public ?\DateTimeImmutable $endsAt = null;
 
+    #[ORM\Column(name: 'sold_from', type: 'datetime_immutable', nullable: true)]
+    public ?\DateTimeImmutable $soldFrom = null;
+
+    #[ORM\Column(name: 'sold_until', type: 'datetime_immutable', nullable: true)]
+    public ?\DateTimeImmutable $soldUntil = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     public ?string $location = null;
 
@@ -78,6 +84,15 @@ class Event
     public function __toString(): string
     {
         return $this->name;
+    }
+
+    /**
+     * Whether tickets may be sold at the given moment. Empty bounds are open-ended.
+     */
+    public function isOnSale(\DateTimeImmutable $now): bool
+    {
+        return ($this->soldFrom === null || $now >= $this->soldFrom)
+            && ($this->soldUntil === null || $now <= $this->soldUntil);
     }
 
     /**

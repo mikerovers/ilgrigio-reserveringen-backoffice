@@ -68,6 +68,10 @@ final class CheckoutService
                 throw new \RuntimeException(sprintf('Ticket type "%s" is not available for purchase.', $ticketType->name));
             }
 
+            if (!$ticketType->event->isOnSale($now)) {
+                throw new \RuntimeException(sprintf('Ticket sales for "%s" are currently closed.', $ticketType->event->name));
+            }
+
             if ($ticketType->event->stockStatus() === StockStatus::OUT_OF_STOCK) {
                 throw new \RuntimeException('This event is sold out.');
             }

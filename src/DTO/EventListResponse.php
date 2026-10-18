@@ -17,6 +17,8 @@ final class EventListResponse
         public string $name,
         public string $startsAt,
         public ?string $endsAt,
+        public ?string $soldFrom,
+        public ?string $soldUntil,
         public ?string $location,
         public ?string $description,
         public array $categories,
@@ -31,6 +33,8 @@ final class EventListResponse
             name: $event->name,
             startsAt: $event->startsAt->format(\DateTimeInterface::ATOM),
             endsAt: $event->endsAt?->format(\DateTimeInterface::ATOM),
+            soldFrom: $event->soldFrom?->format(\DateTimeInterface::ATOM),
+            soldUntil: $event->soldUntil?->format(\DateTimeInterface::ATOM),
             location: $event->location,
             description: $event->description,
             categories: array_map(

@@ -68,6 +68,10 @@ class EventCrudController extends AbstractCrudController
         yield TextareaField::new('description')->hideOnIndex();
         yield DateTimeField::new('startsAt');
         yield DateTimeField::new('endsAt');
+        yield DateTimeField::new('soldFrom')
+            ->setHelp('Start of the ticket sale period. Leave empty for no start limit.');
+        yield DateTimeField::new('soldUntil')
+            ->setHelp('End of the ticket sale period. Leave empty for no end limit.');
         yield TextField::new('location')->hideOnIndex();
         yield AssociationField::new('categories');
         yield AssociationField::new('ticketTypes')
