@@ -104,12 +104,21 @@ docs/
 - The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
   use the API-key authenticator; check-in and order reprocessing require a JWT.
 - **Register (JWT, `ROLE_REGISTER`) API:** `GET /api/events` (returns both
-  `ticketTypes` and `sharedStocks`), `GET /api/event-categories`,
-  `GET /api/orders`, `POST /api/orders` (register sale: items by ticket-type UUID,
-  `paymentMethod` cash|pin settled immediately, optional coupon *or* ad-hoc
-  `discount` {type percent|fixed, amount in basis points|cents, reason}, optional
+  `ticketTypes` and `sharedStocks`; stock pools and ticket types carry `lowStockThreshold`
+  and a derived `lowStock` flag, true when remaining quantity <= threshold), `GET /api/event-categories`,
+  `GET /api/me` (current user: id, email, required name, roles; any authenticated JWT user),
+  `GET /api/orders` (optional `search`: case-insensitive, every word must match the order
+  number or the customer's first/last name; `OrderListQuery`), `POST /api/orders` (register sale: items by ticket-type UUID,
+  `paymentMethod` (only `cash` for now, default; the order completes immediately), optional coupon *or* ad-hoc
+  `discount` {type percent|fixed, amount as plain percent (`10` = 10%, max 2 decimals) | whole cents, reason}; stored internally as basis points, optional
+  free-text `note` (max 1000, stored on `Order.note`, separate from the `OrderNote` history), optional
   `Idempotency-Key` header; creates `Order.source = register`),
-  `GET|POST /api/orders/{orderNumber}/notes`,
+  `GET /api/orders/{orderNumber}` (same detail body as the create response),
+  `DELETE /api/orders/{orderNumber}` (cancels a *register* order: releases stock, voids
+  tickets, frees the coupon, keeps the row as `cancelled`; idempotent; 409 for web/Mollie
+  orders or checked-in tickets; no refund is issued),
+  `GET|POST /api/orders/{orderNumber}/notes`, `POST /api/orders/{orderNumber}/process`
+  (re-dispatches fulfilment and adds an order note naming the user),
   `GET /api/sale-report` (tickets of completed orders, per year), `GET /api/coupons` (`search` on code) and `PUT /api/coupons/{id}/deactivate` (only sets
   `active = false`, idempotent, no body). List endpoints are paginated with
   `page`/`limit` (max 100) and order by `createdAt` via `orderDirection`
@@ -119,7 +128,7 @@ docs/
   falls through to the API-key firewall and a JWT gets a 401. `ROLE_ADMIN` inherits
   `ROLE_REGISTER` via `role_hierarchy`, so admins can call every API endpoint;
   create dedicated register users with
-  `app:user:create <email> <password> --role=ROLE_REGISTER`.
+  `app:user:create <email> <password> --role=ROLE_REGISTER --name="Display Name"` (`--name` is required).
 - **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
   `CheckoutService::createOrder` takes stock with the single atomic
   `SharedStockRepository::reserve()` UPDATE inside a DB transaction (pools
@@ -234,6 +243,15 @@ docs/
 - `docs/aws-webhook-ingress.md` documents a historical WooCommerce/SQS setup;
   it is not part of the active application flow. `webhook_ingest` is retired
   and must not be reintroduced without an explicit product decision.
+
+### Dates and timezones
+- The kernel forces PHP's default timezone to `UTC` (`Kernel::boot`); the database
+  (`timestamp without time zone`) and the API hold UTC instants, API values are ISO 8601 with `+00:00`.
+- The venue is in Amsterdam: Twig's `date` filter renders `Europe/Amsterdam`
+  (`config/packages/twig.yaml`), EasyAdmin date fields use `Controller\Admin\VenueDateTimeField`
+  (edited in Amsterdam time, stored as UTC), and PHP code that formats a stored instant for people or
+  parses a typed local time must go through `App\Service\VenueTime` (`toLocal` / `fromLocal`).
+  Never persist a `DateTimeImmutable` that is not in UTC: Doctrine drops the timezone.
 
 ### Error handling and logging
 - Catch `\Exception` at integration boundaries; re-throw after logging

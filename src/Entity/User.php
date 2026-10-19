@@ -27,6 +27,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     public string $password;
 
+    /** Display name shown in the register app. */
+    #[ORM\Column(length: 255)]
+    public string $name = '';
+
     /** @var list<string> */
     #[ORM\Column(type: 'json')]
     public array $roles = [];

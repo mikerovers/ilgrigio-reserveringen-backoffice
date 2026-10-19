@@ -24,6 +24,8 @@ final class CreateOrderRequest
         public ?string $couponCode = null,
         #[Assert\Valid]
         public ?RegisterOrderDiscountRequest $discount = null,
+        #[Assert\Length(max: 1000)]
+        public ?string $note = null,
     ) {
     }
 }

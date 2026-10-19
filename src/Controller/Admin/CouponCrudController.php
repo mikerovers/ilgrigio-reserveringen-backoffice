@@ -12,7 +12,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
@@ -95,8 +94,8 @@ class CouponCrudController extends AbstractCrudController
             ->hideOnForm()
             ->hideOnIndex()
             ->setDisabled();
-        yield DateTimeField::new('expiresAt')->hideOnIndex();
-        yield DateTimeField::new('createdAt')->hideOnForm();
-        yield DateTimeField::new('updatedAt')->hideOnForm();
+        yield VenueDateTimeField::new('expiresAt')->hideOnIndex();
+        yield VenueDateTimeField::new('createdAt')->hideOnForm();
+        yield VenueDateTimeField::new('updatedAt')->hideOnForm();
     }
 }

@@ -25,6 +25,10 @@ class SharedStock
     #[ORM\Column(type: 'integer', nullable: true)]
     public ?int $stockQuantity = null;
 
+    /** Remaining quantity at or below which the pool counts as low on stock; null disables the warning. */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    public ?int $lowStockThreshold = null;
+
     #[ORM\Column(enumType: StockStatus::class, options: ['default' => 'instock'])]
     public StockStatus $stockStatus = StockStatus::IN_STOCK;
 
@@ -45,6 +49,13 @@ class SharedStock
     public function __toString(): string
     {
         return $this->name;
+    }
+
+    public function isLowStock(): bool
+    {
+        return $this->lowStockThreshold !== null
+            && $this->stockQuantity !== null
+            && $this->stockQuantity <= $this->lowStockThreshold;
     }
 
     public function decrementStock(int $qty): void

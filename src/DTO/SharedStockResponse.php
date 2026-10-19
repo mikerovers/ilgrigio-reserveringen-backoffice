@@ -14,6 +14,8 @@ final class SharedStockResponse
         public string $name,
         public ?int $stockQuantity,
         public StockStatus $stockStatus,
+        public ?int $lowStockThreshold,
+        public bool $lowStock,
     ) {
     }
 
@@ -24,6 +26,8 @@ final class SharedStockResponse
             name: $sharedStock->name,
             stockQuantity: $sharedStock->stockQuantity,
             stockStatus: $sharedStock->stockStatus,
+            lowStockThreshold: $sharedStock->lowStockThreshold,
+            lowStock: $sharedStock->isLowStock(),
         );
     }
 }

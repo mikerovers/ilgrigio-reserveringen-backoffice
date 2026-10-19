@@ -72,6 +72,14 @@ class Event
     #[ORM\JoinTable(name: 'event_event_category')]
     public Collection $categories;
 
+    /**
+     * Shared stock pool whose status and quantity drive the low stock and sold out display for this event.
+     * Null falls back to the aggregate across all pools.
+     */
+    #[ORM\ManyToOne(targetEntity: SharedStock::class)]
+    #[ORM\JoinColumn(name: 'display_stock_id', nullable: true, onDelete: 'SET NULL')]
+    public ?SharedStock $displayStock = null;
+
     public function __construct(string $name, \DateTimeImmutable $startsAt)
     {
         $this->id = Uuid::v7();
@@ -148,6 +156,26 @@ class Event
         }
 
         return $min;
+    }
+
+    /**
+     * Stock status shown for this event: the display stock's status when one is chosen, otherwise stockStatus().
+     */
+    public function displayStockStatus(): StockStatus
+    {
+        return $this->displayStock !== null
+            ? $this->displayStock->stockStatus
+            : $this->stockStatus();
+    }
+
+    /**
+     * Quantity shown for this event: the display stock's quantity when one is chosen, otherwise stockQuantity().
+     */
+    public function displayStockQuantity(): ?int
+    {
+        return $this->displayStock !== null
+            ? $this->displayStock->stockQuantity
+            : $this->stockQuantity();
     }
 
     /**

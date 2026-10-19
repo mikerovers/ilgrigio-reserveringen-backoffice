@@ -74,14 +74,14 @@ final class RegisterOrderApiTest extends WebTestCase
     private function cleanUp(): void
     {
         $this->em->clear();
-        $orders = '(SELECT o.id FROM customer_order o JOIN customer c ON c.id = o.customer_id WHERE c.email = :email)';
+        $orders = '(SELECT o.id FROM customer_order o JOIN customer c ON c.id = o.customer_id WHERE c.email = :email OR c.last_name = \'NoEmail\')';
         $params = ['email' => self::CUSTOMER_EMAIL];
 
         foreach (['ticket', 'stock_reservation', 'payment', 'order_note', 'order_line_item'] as $table) {
             $this->connection->executeStatement("DELETE FROM {$table} WHERE order_id IN {$orders}", $params);
         }
         $this->connection->executeStatement("DELETE FROM customer_order WHERE id IN {$orders}", $params);
-        $this->connection->executeStatement('DELETE FROM customer WHERE email = :email', $params);
+        $this->connection->executeStatement('DELETE FROM customer WHERE email = :email OR last_name = \'NoEmail\'', $params);
         $this->connection->executeStatement('DELETE FROM event WHERE name = :name', ['name' => self::EVENT_NAME]);
         $this->connection->executeStatement('DELETE FROM shared_stock WHERE name = :name', ['name' => self::POOL_NAME]);
         $this->connection->executeStatement('DELETE FROM "user" WHERE email IN (:a, :b)', ['a' => self::REGISTER_EMAIL, 'b' => self::PLAIN_EMAIL]);
@@ -123,6 +123,26 @@ final class RegisterOrderApiTest extends WebTestCase
             $server['HTTP_IDEMPOTENCY_KEY'] = $idempotencyKey;
         }
         $this->client->request('POST', '/api/orders', server: $server, content: (string) json_encode($body));
+
+        return json_decode((string) $this->client->getResponse()->getContent(), true) ?? [];
+    }
+
+    /** @return array<string, mixed> */
+    private function get(string $uri): array
+    {
+        $this->client->request('GET', $uri, server: ['HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwt(self::REGISTER_EMAIL)]);
+
+        return json_decode((string) $this->client->getResponse()->getContent(), true) ?? [];
+    }
+
+    /** @return array<string, mixed> */
+    private function delete(string $orderNumber, ?string $email = self::REGISTER_EMAIL): array
+    {
+        $server = [];
+        if ($email !== null) {
+            $server['HTTP_AUTHORIZATION'] = 'Bearer ' . $this->jwt($email);
+        }
+        $this->client->request('DELETE', '/api/orders/' . $orderNumber, server: $server);
 
         return json_decode((string) $this->client->getResponse()->getContent(), true) ?? [];
     }
@@ -172,18 +192,170 @@ final class RegisterOrderApiTest extends WebTestCase
         self::assertSame(2, $tickets);
     }
 
+    public function testOrderDetailReturnsTheCreatedOrder(): void
+    {
+        $created = $this->post($this->payload([
+            'discount' => ['type' => 'fixed', 'amount' => 500, 'reason' => 'Goodwill'],
+        ]));
+
+        $this->client->request('GET', '/api/orders/' . $created['orderNumber'], server: [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwt(self::REGISTER_EMAIL),
+        ]);
+        $detail = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($created['id'], $detail['id']);
+        self::assertSame(1500, $detail['totalCents']);
+        self::assertSame('Goodwill', $detail['discount']['reason']);
+        self::assertSame('cash', $detail['paymentMethod']);
+        self::assertCount(1, $detail['lineItems']);
+    }
+
+    public function testOrderDetailAuthAndNotFound(): void
+    {
+        $this->client->request('GET', '/api/orders/NOPE-1');
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+
+        $this->client->request('GET', '/api/orders/NOPE-1', server: [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwt(self::PLAIN_EMAIL),
+        ]);
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+
+        $this->client->request('GET', '/api/orders/NOPE-1', server: [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwt(self::REGISTER_EMAIL),
+        ]);
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testOrderListIncludesSource(): void
+    {
+        $created = $this->post($this->payload());
+
+        $list = $this->get('/api/orders?limit=100');
+
+        self::assertResponseIsSuccessful();
+        $item = current(array_filter($list['items'], static fn (array $i): bool => $i['orderNumber'] === $created['orderNumber']));
+        self::assertSame('register', $item['source']);
+    }
+
+    public function testOrderListSearchMatchesOrderNumberAndCustomerName(): void
+    {
+        $created = $this->post($this->payload());
+        $number = $created['orderNumber'];
+
+        $numbers = fn (string $search): array => array_column(
+            $this->get('/api/orders?limit=100&search=' . rawurlencode($search))['items'],
+            'orderNumber',
+        );
+
+        self::assertContains($number, $numbers(substr($number, 1, -1)));
+        self::assertContains($number, $numbers(strtolower($number)));
+        self::assertContains($number, $numbers('reg'));
+        self::assertContains($number, $numbers('ORDER'));
+        self::assertContains($number, $numbers('reg order'));
+        self::assertNotContains($number, $numbers('reg nomatch'));
+        self::assertNotContains($number, $numbers('zzzqqq'));
+        self::assertNotContains($number, $numbers('%'));
+        self::assertContains($number, $numbers('   '));
+    }
+
+    public function testProcessOrderAddsNoteWhenFulfilmentIsRedispatched(): void
+    {
+        $created = $this->post($this->payload());
+
+        $this->client->request('POST', '/api/orders/' . $created['orderNumber'] . '/process', server: [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwt(self::REGISTER_EMAIL),
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $notes = $this->connection->fetchFirstColumn(
+            "SELECT n.content FROM order_note n JOIN customer_order o ON o.id = n.order_id WHERE o.order_number = :n AND n.content LIKE 'Orderverwerking opnieuw gestart%'",
+            ['n' => $created['orderNumber']],
+        );
+        self::assertCount(1, $notes);
+        self::assertStringContainsString('opnieuw gestart door', $notes[0]);
+    }
+
+    public function testOrderNoteIsStoredAndReturned(): void
+    {
+        $created = $this->post($this->payload(['note' => '  Birthday group, seat together  ']));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        self::assertSame('Birthday group, seat together', $created['note']);
+        self::assertSame('Birthday group, seat together', $this->get('/api/orders/' . $created['orderNumber'])['note']);
+
+        // Separate from the audit notes: no extra OrderNote was written for it.
+        $audit = (int) $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM order_note n JOIN customer_order o ON o.id = n.order_id WHERE o.order_number = :n AND n.content LIKE '%Birthday%'",
+            ['n' => $created['orderNumber']],
+        );
+        self::assertSame(0, $audit);
+
+        $item = current(array_filter(
+            $this->get('/api/orders?limit=100')['items'],
+            static fn (array $i): bool => $i['orderNumber'] === $created['orderNumber'],
+        ));
+        self::assertSame('Birthday group, seat together', $item['note']);
+
+        self::assertNull($this->post($this->payload())['note']);
+
+        $this->post($this->payload(['note' => str_repeat('x', 1001)]));
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    public function testCustomerEmailIsOptional(): void
+    {
+        $customer = ['firstName' => 'Walk', 'lastName' => 'NoEmail'];
+        $first = $this->post($this->payload(['customer' => $customer]));
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        self::assertNull($first['customerEmail']);
+        self::assertSame('completed', $first['status']);
+
+        // An empty string counts as absent; a second email-less customer must not collide on the unique index.
+        $second = $this->post($this->payload(['customer' => $customer + ['email' => '']]));
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        self::assertNull($second['customerEmail']);
+
+        $detail = $this->get('/api/orders/' . $first['orderNumber']);
+        self::assertNull($detail['customerEmail']);
+    }
+
+    public function testOrderListSearchReportsFilteredTotal(): void
+    {
+        $this->post($this->payload());
+
+        $list = $this->get('/api/orders?search=zzzqqq');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $list['items']);
+        self::assertSame(0, $list['total']);
+    }
+
     public function testPercentDiscountIsApplied(): void
     {
         $data = $this->post($this->payload([
-            'discount' => ['type' => 'percent', 'amount' => 1000, 'reason' => 'Staff'],
+            'discount' => ['type' => 'percent', 'amount' => 10, 'reason' => 'Staff'],
         ]));
 
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
         self::assertSame(1800, $data['totalCents']);
         self::assertSame(200, $data['discountGrossCents']);
         self::assertSame('percent', $data['discount']['type']);
+        self::assertSame(10, $data['discount']['amount']);
         self::assertSame('Staff', $data['discount']['reason']);
         self::assertSame(1800, $data['subtotalNetCents'] + $data['taxCents']);
+    }
+
+    public function testFractionalPercentDiscountIsApplied(): void
+    {
+        $data = $this->post($this->payload([
+            'discount' => ['type' => 'percent', 'amount' => 12.5, 'reason' => 'Group'],
+        ]));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        self::assertSame(250, $data['discountGrossCents']);
+        self::assertSame(1750, $data['totalCents']);
+        self::assertSame(12.5, $data['discount']['amount']);
     }
 
     public function testFixedDiscountIsApplied(): void
@@ -201,7 +373,7 @@ final class RegisterOrderApiTest extends WebTestCase
     public function testFullDiscountCompletesWithoutPayment(): void
     {
         $data = $this->post($this->payload([
-            'discount' => ['type' => 'percent', 'amount' => 10000, 'reason' => 'Comp ticket'],
+            'discount' => ['type' => 'percent', 'amount' => 100, 'reason' => 'Comp ticket'],
         ]));
 
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
@@ -215,7 +387,9 @@ final class RegisterOrderApiTest extends WebTestCase
      */
     public static function invalidDiscounts(): iterable
     {
-        yield 'percent above 100%' => [['discount' => ['type' => 'percent', 'amount' => 10001, 'reason' => 'x']]];
+        yield 'percent above 100%' => [['discount' => ['type' => 'percent', 'amount' => 100.5, 'reason' => 'x']]];
+        yield 'percent with three decimals' => [['discount' => ['type' => 'percent', 'amount' => 12.345, 'reason' => 'x']]];
+        yield 'fixed with fractional cents' => [['discount' => ['type' => 'fixed', 'amount' => 10.5, 'reason' => 'x']]];
         yield 'zero amount' => [['discount' => ['type' => 'fixed', 'amount' => 0, 'reason' => 'x']]];
         yield 'missing reason' => [['discount' => ['type' => 'fixed', 'amount' => 100, 'reason' => '']]];
         yield 'unknown type' => [['discount' => ['type' => 'bogus', 'amount' => 100, 'reason' => 'x']]];
@@ -251,8 +425,10 @@ final class RegisterOrderApiTest extends WebTestCase
         $this->post($this->payload(['items' => []]));
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
 
-        $this->post($this->payload(['paymentMethod' => 'bitcoin']));
-        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        foreach (['bitcoin', 'pin', 'invoice', 'online'] as $method) {
+            $this->post($this->payload(['paymentMethod' => $method]));
+            self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY, $method);
+        }
 
         $this->post($this->payload(['customer' => ['email' => 'not-an-email', 'firstName' => 'A', 'lastName' => 'B']]));
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -292,5 +468,70 @@ final class RegisterOrderApiTest extends WebTestCase
         $this->post($this->payload(), idempotencyKey: str_repeat('a', 65));
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    public function testCancelReleasesStockVoidsTicketsAndIsIdempotent(): void
+    {
+        $created = $this->post($this->payload());
+        self::assertSame(self::INITIAL_STOCK - 2, $this->stock());
+
+        $data = $this->delete($created['orderNumber']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('cancelled', $data['status']);
+        self::assertSame(self::INITIAL_STOCK, $this->stock());
+        $statuses = $this->connection->fetchFirstColumn(
+            'SELECT t.status FROM ticket t JOIN customer_order o ON o.id = t.order_id WHERE o.order_number = :n',
+            ['n' => $created['orderNumber']],
+        );
+        self::assertSame(['void', 'void'], $statuses);
+        $notes = (int) $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM order_note n JOIN customer_order o ON o.id = n.order_id WHERE o.order_number = :n AND n.content LIKE 'Bestelling geannuleerd%'",
+            ['n' => $created['orderNumber']],
+        );
+        self::assertSame(1, $notes);
+
+        $this->delete($created['orderNumber']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(self::INITIAL_STOCK, $this->stock(), 'second cancel must not release stock again');
+    }
+
+    public function testCancelRefusesCheckedInTickets(): void
+    {
+        $created = $this->post($this->payload());
+        $this->connection->executeStatement(
+            "UPDATE ticket SET status = 'checked_in' WHERE order_id = (SELECT id FROM customer_order WHERE order_number = :n)",
+            ['n' => $created['orderNumber']],
+        );
+
+        $this->delete($created['orderNumber']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+        self::assertSame(self::INITIAL_STOCK - 2, $this->stock());
+    }
+
+    public function testCancelRefusesNonRegisterOrders(): void
+    {
+        $created = $this->post($this->payload());
+        $this->connection->executeStatement(
+            "UPDATE customer_order SET source = 'web' WHERE order_number = :n",
+            ['n' => $created['orderNumber']],
+        );
+
+        $this->delete($created['orderNumber']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+    }
+
+    public function testCancelAuthAndNotFound(): void
+    {
+        $this->delete('NOPE-1', null);
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+
+        $this->delete('NOPE-1', self::PLAIN_EMAIL);
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+
+        $this->delete('NOPE-1');
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 }

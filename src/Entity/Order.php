@@ -77,9 +77,6 @@ class Order
     #[ORM\Embedded(class: Address::class, columnPrefix: "billing_")]
     public Address $billing;
 
-    #[ORM\Embedded(class: Address::class, columnPrefix: "shipping_")]
-    public Address $shipping;
-
     #[ORM\ManyToOne(targetEntity: Coupon::class, inversedBy: "orders")]
     #[ORM\JoinColumn(nullable: true)]
     public ?Coupon $coupon = null;
@@ -96,6 +93,10 @@ class Order
 
     #[ORM\Column(name: "discount_reason", length: 255, nullable: true)]
     public ?string $discountReason = null;
+
+    /** Free-text remark on the order itself (e.g. from the register); separate from the OrderNote audit trail. */
+    #[ORM\Column(type: "text", nullable: true)]
+    public ?string $note = null;
 
     /** Channel the order came from; NULL on rows created before the column existed (treated as web). */
     #[ORM\Column(nullable: true, enumType: OrderSource::class)]
@@ -170,7 +171,6 @@ class Order
         $this->customer = $customer;
         $this->taxRateBasisPoints = $taxRateBasisPoints;
         $this->billing = new Address();
-        $this->shipping = new Address();
         $this->subtotalNet = Money::EUR(0);
         $this->tax = Money::EUR(0);
         $this->discountGross = Money::EUR(0);

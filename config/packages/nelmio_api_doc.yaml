@@ -3,7 +3,14 @@ when@dev: &nelmio_api_doc_config
         documentation:
             info:
                 title: Il Grigio Reserveringen Backoffice API
-                description: Internal API documentation
+                description: |
+                    Internal API documentation.
+
+                    Dates and times: every timestamp in a response is an ISO 8601 date-time string
+                    in UTC with an explicit offset (for example `2026-10-19T20:21:58+00:00`). Treat the
+                    offset in the value as authoritative and convert to the venue's local time
+                    (Europe/Amsterdam) for display. Event times (`startsAt`, `endsAt`, `soldFrom`,
+                    `soldUntil`) are instants, not floating local times. Money is in integer cents.
                 version: 1.0.0
             components:
                 securitySchemes:

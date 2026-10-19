@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
-use App\DTO\PageQuery;
+use App\DTO\OrderListQuery;
 use App\Entity\Order;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -34,7 +34,7 @@ class OrderRepository extends ServiceEntityRepository
     /**
      * @return Paginator<Order>
      */
-    public function findPaginated(PageQuery $query): Paginator
+    public function findPaginated(OrderListQuery $query): Paginator
     {
         $qb = $this->createQueryBuilder('o')
             ->addSelect('c')
@@ -43,6 +43,16 @@ class OrderRepository extends ServiceEntityRepository
             ->addOrderBy('o.id', $query->orderDirection)
             ->setFirstResult(($query->page - 1) * $query->limit)
             ->setMaxResults($query->limit);
+
+        // Every word must match the order number or the customer's first/last name.
+        $words = preg_split('/\s+/', trim((string) $query->search), -1, PREG_SPLIT_NO_EMPTY);
+        foreach ($words as $i => $word) {
+            $param = 'search' . $i;
+            $qb->andWhere(sprintf(
+                "(LOWER(o.orderNumber) LIKE :%1\$s ESCAPE '!' OR LOWER(c.firstName) LIKE :%1\$s ESCAPE '!' OR LOWER(c.lastName) LIKE :%1\$s ESCAPE '!')",
+                $param,
+            ))->setParameter($param, '%' . mb_strtolower((string) preg_replace('/[!%_]/', '!$0', $word)) . '%');
+        }
 
         return new Paginator($qb, fetchJoinCollection: false);
     }

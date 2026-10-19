@@ -42,6 +42,8 @@ class SharedStockCrudController extends AbstractCrudController
         yield TextField::new('name');
         yield IntegerField::new('stockQuantity')
             ->setHelp('Leave empty for unlimited stock.');
+        yield IntegerField::new('lowStockThreshold')
+            ->setHelp('Flagged as low stock when the remaining quantity is at or below this number. Leave empty for no warning.');
         yield ChoiceField::new('stockStatus')
             ->setChoices(StockStatus::cases())
             ->renderAsBadges([

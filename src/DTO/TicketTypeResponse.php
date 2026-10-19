@@ -20,6 +20,8 @@ final class TicketTypeResponse
         public ?string $sharedStockId,
         public ?int $stockQuantity,
         public ?StockStatus $stockStatus,
+        public ?int $lowStockThreshold,
+        public bool $lowStock,
     ) {
     }
 
@@ -38,6 +40,8 @@ final class TicketTypeResponse
             sharedStockId: $sharedStock !== null ? (string) $sharedStock->id : null,
             stockQuantity: $sharedStock?->stockQuantity,
             stockStatus: $sharedStock?->stockStatus,
+            lowStockThreshold: $sharedStock?->lowStockThreshold,
+            lowStock: $sharedStock?->isLowStock() ?? false,
         );
     }
 }

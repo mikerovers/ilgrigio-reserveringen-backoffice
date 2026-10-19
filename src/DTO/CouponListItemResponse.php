@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
+use OpenApi\Attributes as OA;
 use App\Entity\Coupon;
 use App\Enum\DiscountType;
 
@@ -18,7 +19,9 @@ final class CouponListItemResponse
         public int $usedCount,
         public ?string $description,
         public bool $active,
+        #[OA\Property(description: 'When the coupon expires. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public ?string $expiresAt,
+        #[OA\Property(description: 'When it was created. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public string $createdAt,
     ) {
     }

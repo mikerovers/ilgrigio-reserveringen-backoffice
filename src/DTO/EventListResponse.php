@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
+use OpenApi\Attributes as OA;
 use App\Entity\Event;
 
 final class EventListResponse
@@ -16,9 +17,13 @@ final class EventListResponse
     public function __construct(
         public string $id,
         public string $name,
+        #[OA\Property(description: 'Event start. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public string $startsAt,
+        #[OA\Property(description: 'Event end. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public ?string $endsAt,
+        #[OA\Property(description: 'Ticket sales open. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public ?string $soldFrom,
+        #[OA\Property(description: 'Ticket sales close. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public ?string $soldUntil,
         public ?string $location,
         public ?string $description,

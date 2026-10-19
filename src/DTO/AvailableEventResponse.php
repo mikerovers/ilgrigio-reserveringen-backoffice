@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
+use OpenApi\Attributes as OA;
 use App\Entity\Event;
 use App\Enum\StockStatus;
 
@@ -17,6 +18,7 @@ final class AvailableEventResponse
         public string $id,
         public string $slug,
         public string $name,
+        #[OA\Property(description: 'Event start. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public string $startsAt,
         public ?string $location,
         public StockStatus $stockStatus,
@@ -41,8 +43,8 @@ final class AvailableEventResponse
             name: $event->name,
             startsAt: $event->startsAt->format(\DateTimeInterface::ATOM),
             location: $event->location,
-            stockStatus: $event->stockStatus(),
-            stockQuantity: $event->stockQuantity(),
+            stockStatus: $event->displayStockStatus(),
+            stockQuantity: $event->displayStockQuantity(),
             lowestPriceCents: $lowest,
         );
     }

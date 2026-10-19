@@ -35,6 +35,7 @@ final class CreateUserCommand extends Command
         $this
             ->addArgument('email', InputArgument::REQUIRED, 'User email address')
             ->addArgument('password', InputArgument::REQUIRED, 'Plain-text password (will be hashed)')
+            ->addOption('name', null, InputOption::VALUE_REQUIRED, 'Display name shown in the register app (required)')
             ->addOption('role', null, InputOption::VALUE_REQUIRED, 'Additional role to grant (e.g. ROLE_ADMIN)');
     }
 
@@ -48,6 +49,15 @@ final class CreateUserCommand extends Command
         $plainPassword = $input->getArgument('password');
         /** @var string|null $role */
         $role = $input->getOption('role');
+        /** @var string|null $name */
+        $name = $input->getOption('name');
+
+        $name = $name === null ? '' : trim($name);
+        if ($name === '') {
+            $io->error('The --name option is required (e.g. --name="Rita Register").');
+
+            return Command::FAILURE;
+        }
 
         if ($this->userRepository->findOneByEmail($email) !== null) {
             $io->error(sprintf('A user with email "%s" already exists.', $email));
@@ -59,11 +69,12 @@ final class CreateUserCommand extends Command
 
         $user = new User($email, '', $roles);
         $user->password = $this->passwordHasher->hashPassword($user, $plainPassword);
+        $user->name = $name;
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        $io->success(sprintf('User "%s" created with roles: %s', $email, implode(', ', $user->getRoles())));
+        $io->success(sprintf('User "%s" (%s) created with roles: %s', $name, $email, implode(', ', $user->getRoles())));
 
         return Command::SUCCESS;
     }

@@ -21,8 +21,9 @@ class Customer
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     public Uuid $id;
 
-    #[ORM\Column(length: 255, unique: true)]
-    public string $email;
+    /** Optional: register sales may be anonymous. Unique when set; Postgres allows many NULLs. */
+    #[ORM\Column(length: 255, unique: true, nullable: true)]
+    public ?string $email;
 
     #[ORM\Column(length: 255)]
     public string $firstName;
@@ -51,7 +52,7 @@ class Customer
     #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'customer')]
     public Collection $orders;
 
-    public function __construct(string $email, string $firstName, string $lastName)
+    public function __construct(?string $email, string $firstName, string $lastName)
     {
         $this->id = Uuid::v7();
         $this->email = $email;

@@ -28,7 +28,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 /**
  * Creates an order on behalf of the register (POS): validates the request,
  * reuses CheckoutService for pricing/stock, then settles it immediately as a
- * cash or pin payment and fans out fulfilment. Safe to retry via an idempotency key.
+ * cash payment and fans out fulfilment. Safe to retry via an idempotency key.
  */
 final class RegisterOrderService
 {
@@ -107,7 +107,7 @@ final class RegisterOrderService
         $customerRequest = $request->customer;
 
         $customer = $this->checkoutService->resolveCustomer(
-            trim($customerRequest->email),
+            $this->normalisedEmail($customerRequest->email),
             trim($customerRequest->firstName),
             trim($customerRequest->lastName),
             $customerRequest->companyName ?: null,
@@ -125,6 +125,7 @@ final class RegisterOrderService
         );
 
         $order->source = OrderSource::REGISTER;
+        $order->note = $request->note === null || trim($request->note) === '' ? null : trim($request->note);
         $order->idempotencyKey = $idempotencyKey;
         $this->snapshotAddresses($order, $request);
 
@@ -196,7 +197,7 @@ final class RegisterOrderService
             return null;
         }
 
-        $discount = new Discount($request->discount->type->toDiscountType(), $request->discount->amount);
+        $discount = new Discount($request->discount->type->toDiscountType(), $request->discount->minorAmount());
 
         if ($request->discount->type === RegisterDiscountType::PERCENT) {
             if ($discount->amount > (int) round($this->maxDiscountPercent * 100)) {
@@ -221,6 +222,13 @@ final class RegisterOrderService
         return $discount;
     }
 
+    private function normalisedEmail(?string $email): ?string
+    {
+        $email = $email === null ? '' : trim($email);
+
+        return $email === '' ? null : $email;
+    }
+
     private function snapshotAddresses(Order $order, CreateOrderRequest $request): void
     {
         $customer = $request->customer;
@@ -230,10 +238,6 @@ final class RegisterOrderService
         $order->billing->companyName = $customer->companyName ?: null;
         $order->billing->city = (string) $customer->city;
         $order->billing->phoneNumber = $customer->phoneNumber ?: null;
-        $order->billing->email = trim($customer->email);
-        $order->shipping->firstName = $order->billing->firstName;
-        $order->shipping->lastName = $order->billing->lastName;
-        $order->shipping->companyName = $order->billing->companyName;
-        $order->shipping->city = $order->billing->city;
+        $order->billing->email = $this->normalisedEmail($customer->email);
     }
 }

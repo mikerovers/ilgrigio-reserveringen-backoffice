@@ -7,8 +7,7 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Immutable snapshot of a billing or shipping address, captured on an Order at
- * purchase time. Shipping copies leave phone and email null.
+ * Immutable snapshot of the billing address, captured on an Order at purchase time.
  */
 #[ORM\Embeddable]
 final class Address

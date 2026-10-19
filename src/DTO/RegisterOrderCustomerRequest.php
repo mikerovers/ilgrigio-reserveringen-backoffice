@@ -9,10 +9,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class RegisterOrderCustomerRequest
 {
     public function __construct(
-        #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Email]
         #[Assert\Length(max: 180)]
-        public string $email = '',
+        public ?string $email = null,
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 255)]
         public string $firstName = '',

@@ -10,7 +10,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -66,17 +65,20 @@ class EventCrudController extends AbstractCrudController
             ->hideOnForm()
             ->setHelp('Generated automatically from the name.');
         yield TextareaField::new('description')->hideOnIndex();
-        yield DateTimeField::new('startsAt');
-        yield DateTimeField::new('endsAt');
-        yield DateTimeField::new('soldFrom')
+        yield VenueDateTimeField::new('startsAt');
+        yield VenueDateTimeField::new('endsAt');
+        yield VenueDateTimeField::new('soldFrom')
             ->setHelp('Start of the ticket sale period. Leave empty for no start limit.');
-        yield DateTimeField::new('soldUntil')
+        yield VenueDateTimeField::new('soldUntil')
             ->setHelp('End of the ticket sale period. Leave empty for no end limit.');
         yield TextField::new('location')->hideOnIndex();
         yield AssociationField::new('categories');
+        yield AssociationField::new('displayStock')
+            ->setHelp('Shared stock whose quantity drives the low stock and sold out display for this event. '
+                . 'Leave empty to use all of this event\'s stock.');
         yield AssociationField::new('ticketTypes')
             ->onlyOnDetail();
-        yield DateTimeField::new('createdAt')->hideOnForm();
-        yield DateTimeField::new('updatedAt')->hideOnForm();
+        yield VenueDateTimeField::new('createdAt')->hideOnForm();
+        yield VenueDateTimeField::new('updatedAt')->hideOnForm();
     }
 }

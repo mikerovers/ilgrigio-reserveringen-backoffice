@@ -22,6 +22,7 @@ use App\Service\CouponResolver;
 use App\Service\MoneyService;
 use App\Service\OrderPricingService;
 use App\Service\StockReservationService;
+use App\Service\VenueTime;
 use Money\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -96,8 +97,8 @@ final class TicketingController extends AbstractController
             'existingQuantities' => $existingQuantities,
             'appliedCoupon' => $session->get('applied_coupon'),
             'taxRate' => $this->taxRate,
-            'sharedStock' => $event->stockQuantity(),
-            'stockStatus' => $event->stockStatus()->value,
+            'sharedStock' => $event->displayStockQuantity(),
+            'stockStatus' => $event->displayStockStatus()->value,
         ]);
     }
 
@@ -145,7 +146,7 @@ final class TicketingController extends AbstractController
                 'total' => $this->moneyService->toFloat($lineGross),
                 'event_id' => (string) $event->id,
                 'event_name' => $event->name,
-                'date' => $event->startsAt->format('d-m-Y'),
+                'date' => VenueTime::toLocal($event->startsAt)->format('d-m-Y'),
             ];
         }
 
@@ -307,17 +308,13 @@ final class TicketingController extends AbstractController
             return $this->redirectToRoute('app_tickets');
         }
 
-        // Snapshot billing/shipping on the order.
+        // Snapshot the billing details on the order.
         $order->billing->firstName = $checkout->firstName;
         $order->billing->lastName = $checkout->lastName;
         $order->billing->companyName = $checkout->companyName ?: null;
         $order->billing->city = $checkout->city;
         $order->billing->phoneNumber = $checkout->phoneNumber ?: null;
         $order->billing->email = $checkout->email;
-        $order->shipping->firstName = $checkout->firstName;
-        $order->shipping->lastName = $checkout->lastName;
-        $order->shipping->companyName = $checkout->companyName ?: null;
-        $order->shipping->city = $checkout->city;
 
         $session->set('order_number', $order->orderNumber);
 
@@ -431,19 +428,21 @@ final class TicketingController extends AbstractController
      */
     private function eventView(Event $event): array
     {
+        $startsAt = VenueTime::toLocal($event->startsAt);
+
         return [
             'id' => (string) $event->id,
             'slug' => $event->slug,
             'name' => $event->name,
             'description' => $event->description,
-            'date' => $event->startsAt->format('d-m-Y'),
-            'time' => $event->startsAt->format('H:i'),
-            'formatted_date' => $event->startsAt->format('d M'),
+            'date' => $startsAt->format('d-m-Y'),
+            'time' => $startsAt->format('H:i'),
+            'formatted_date' => $startsAt->format('d M'),
             'location' => $event->location,
             'image_url' => $event->imageUrl,
             'permalink' => $event->permalink,
-            'stock_status' => $event->stockStatus()->value,
-            'stock_quantity' => $event->stockQuantity(),
+            'stock_status' => $event->displayStockStatus()->value,
+            'stock_quantity' => $event->displayStockQuantity(),
         ];
     }
 

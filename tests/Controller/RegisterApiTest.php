@@ -40,6 +40,7 @@ final class RegisterApiTest extends WebTestCase
         foreach ([self::REGISTER_EMAIL => ['ROLE_REGISTER'], self::ADMIN_EMAIL => ['ROLE_ADMIN'], self::PLAIN_EMAIL => []] as $email => $roles) {
             $user = new User($email, '', $roles);
             $user->password = $hasher->hashPassword($user, self::PASSWORD);
+            $user->name = 'Test ' . $email;
             $this->em->persist($user);
         }
 
@@ -118,6 +119,30 @@ final class RegisterApiTest extends WebTestCase
             $this->call('GET', $uri, null);
             self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
         }
+    }
+
+    public function testMeReturnsTheLoggedInUsersName(): void
+    {
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => self::REGISTER_EMAIL]);
+        $user->name = 'Rita Register';
+        $this->em->flush();
+
+        $data = $this->call('GET', '/api/me');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Rita Register', $data['name']);
+        self::assertSame(self::REGISTER_EMAIL, $data['email']);
+        self::assertContains('ROLE_REGISTER', $data['roles']);
+    }
+
+    public function testMeWorksForAnyAuthenticatedUserAndRequiresJwt(): void
+    {
+        $data = $this->call('GET', '/api/me', self::PLAIN_EMAIL);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Test ' . self::PLAIN_EMAIL, $data['name']);
+
+        $this->call('GET', '/api/me', null);
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     public function testEndpointsRequireRegisterRole(): void
@@ -200,6 +225,14 @@ final class RegisterApiTest extends WebTestCase
         foreach ($data['items'] as $item) {
             self::assertArrayHasKey('ticketTypes', $item);
             self::assertArrayHasKey('sharedStocks', $item);
+            foreach ($item['sharedStocks'] as $pool) {
+                self::assertArrayHasKey('lowStockThreshold', $pool);
+                self::assertArrayHasKey('lowStock', $pool);
+            }
+            foreach ($item['ticketTypes'] as $type) {
+                self::assertArrayHasKey('lowStockThreshold', $type);
+                self::assertArrayHasKey('lowStock', $type);
+            }
         }
     }
 }

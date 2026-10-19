@@ -29,8 +29,8 @@ class EventRepository extends ServiceEntityRepository
     /**
      * Upcoming events (start in the future) that are inside their sale window
      * (empty bounds are open-ended), soonest first. Fetch-joins ticket
-     * types and shared stock to avoid N+1 lazy-loads when the caller reads
-     * stockStatus()/stockQuantity() per event.
+     * types, shared stock and the display stock to avoid N+1 lazy-loads when the
+     * caller reads stockStatus()/stockQuantity()/displayStock* per event.
      *
      * @return Event[]
      */
@@ -39,6 +39,7 @@ class EventRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('e')
             ->leftJoin('e.ticketTypes', 't')->addSelect('t')
             ->leftJoin('t.sharedStock', 's')->addSelect('s')
+            ->leftJoin('e.displayStock', 'd')->addSelect('d')
             ->andWhere('e.startsAt >= :now')
             ->andWhere('e.soldFrom IS NULL OR e.soldFrom <= :now')
             ->andWhere('e.soldUntil IS NULL OR e.soldUntil >= :now')

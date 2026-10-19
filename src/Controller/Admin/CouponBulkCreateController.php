@@ -9,6 +9,7 @@ use App\Entity\Coupon;
 use App\Enum\DiscountType;
 use App\Repository\CouponRepository;
 use App\Service\CouponCodeGenerator;
+use App\Service\VenueTime;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -110,7 +111,7 @@ class CouponBulkCreateController extends AbstractController
         $expiresAt = null;
 
         if (\is_string($expiresAtValue) && $expiresAtValue !== '') {
-            $expiresAt = new \DateTimeImmutable($expiresAtValue);
+            $expiresAt = VenueTime::fromLocal($expiresAtValue);
         }
 
         $usageLimitValue = trim((string) $request->request->get('usageLimit', ''));

@@ -134,7 +134,7 @@ class SecurePdfStorageService
 
         foreach ($order->tickets as $ticket) {
             $eventName ??= $ticket->eventNameSnapshot;
-            $eventDateTime ??= $ticket->eventDateTimeSnapshot->format('d-m-Y H:i');
+            $eventDateTime ??= VenueTime::toLocal($ticket->eventDateTimeSnapshot)->format('d-m-Y H:i');
 
             $tickets[] = [
                 'ticket_code' => $ticket->ticketCode,

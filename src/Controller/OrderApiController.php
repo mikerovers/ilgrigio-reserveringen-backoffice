@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\DTO\CreateOrderRequest;
 use App\DTO\OrderDetailResponse;
 use App\DTO\OrderListItemResponse;
+use App\DTO\OrderListQuery;
 use App\DTO\OrderNoteRequest;
 use App\DTO\OrderNoteResponse;
 use App\DTO\OrderProcessResponse;
@@ -17,6 +18,8 @@ use App\Event\OrderCompletedEvent;
 use App\Exception\RegisterOrderException;
 use App\Repository\OrderNoteRepository;
 use App\Repository\OrderRepository;
+use App\Entity\User;
+use App\Service\OrderCancellationService;
 use App\Service\RegisterOrderService;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +35,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api', name: 'api_')]
@@ -44,6 +48,7 @@ final class OrderApiController extends AbstractController
         private EventDispatcherInterface $eventDispatcher,
         private LoggerInterface $logger,
         private RegisterOrderService $registerOrderService,
+        private OrderCancellationService $orderCancellationService,
     ) {
     }
 
@@ -59,7 +64,7 @@ final class OrderApiController extends AbstractController
         description: 'Order fulfilment result',
         content: new Model(type: OrderProcessResponse::class),
     )]
-    public function processOrder(string $orderNumber): JsonResponse
+    public function processOrder(string $orderNumber, #[CurrentUser] User $user): JsonResponse
     {
         $this->logger->info('API order processing request received', [
             'order_number' => $orderNumber,
@@ -91,6 +96,14 @@ final class OrderApiController extends AbstractController
 
         $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
 
+        $note = new OrderNote($order, sprintf(
+            'Orderverwerking opnieuw gestart door %s (tickets en bevestigingsmail).',
+            $user->name !== '' ? $user->name : $user->email,
+        ));
+        $order->notes->add($note);
+        $this->entityManager->persist($note);
+        $this->entityManager->flush();
+
         return $this->json(new OrderProcessResponse(
             success: true,
             orderNumber: $orderNumber,
@@ -99,7 +112,7 @@ final class OrderApiController extends AbstractController
     }
 
     /**
-     * Create an order at the register. It is settled immediately as a cash or pin
+     * Create an order at the register. It is settled immediately as a cash
      * payment (or completes for free when the total is zero) and fulfilled right away.
      * Send an `Idempotency-Key` header so a retried request returns the original order.
      */
@@ -141,6 +154,7 @@ final class OrderApiController extends AbstractController
     #[IsGranted('ROLE_REGISTER')]
     #[Security(name: 'BearerAuth')]
     #[OA\Tag(name: 'Orders')]
+    #[OA\Parameter(name: 'search', description: 'Case-insensitive match on (part of) the order number or the customer first/last name; every word must match', in: 'query', schema: new OA\Schema(type: 'string', maxLength: 64))]
     #[OA\Parameter(name: 'page', description: 'Page number', in: 'query', schema: new OA\Schema(type: 'integer', minimum: 1, default: 1))]
     #[OA\Parameter(name: 'limit', description: 'Items per page (max 100)', in: 'query', schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 20))]
     #[OA\Parameter(name: 'orderDirection', description: 'Order by createdAt', in: 'query', schema: new OA\Schema(type: 'string', enum: ['ASC', 'DESC'], default: 'DESC'))]
@@ -160,7 +174,7 @@ final class OrderApiController extends AbstractController
             ],
         ),
     )]
-    public function listOrders(#[MapQueryString] PageQuery $query = new PageQuery()): JsonResponse
+    public function listOrders(#[MapQueryString] OrderListQuery $query = new OrderListQuery()): JsonResponse
     {
         $paginator = $this->orderRepository->findPaginated($query);
 
@@ -173,6 +187,51 @@ final class OrderApiController extends AbstractController
             limit: $query->limit,
             total: count($paginator),
         ));
+    }
+
+    #[Route('/orders/{orderNumber}', name: 'order_detail', methods: ['GET'])]
+    #[IsGranted('ROLE_REGISTER')]
+    #[Security(name: 'BearerAuth')]
+    #[OA\Tag(name: 'Orders')]
+    #[OA\Response(response: 200, description: 'Order detail', content: new Model(type: OrderDetailResponse::class))]
+    #[OA\Response(response: 404, description: 'Order not found')]
+    public function getOrder(string $orderNumber): JsonResponse
+    {
+        $order = $this->orderRepository->findOneByOrderNumber($orderNumber);
+
+        if ($order === null) {
+            throw $this->createNotFoundException("Order {$orderNumber} could not be found");
+        }
+
+        return $this->json(OrderDetailResponse::fromEntity($order));
+    }
+
+    /**
+     * Cancel a register order: stock is returned, tickets are voided and the
+     * order is kept (status `cancelled`). Idempotent. No money is refunded by the API.
+     */
+    #[Route('/orders/{orderNumber}', name: 'order_cancel', methods: ['DELETE'])]
+    #[IsGranted('ROLE_REGISTER')]
+    #[Security(name: 'BearerAuth')]
+    #[OA\Tag(name: 'Orders')]
+    #[OA\Response(response: 200, description: 'The cancelled order', content: new Model(type: OrderDetailResponse::class))]
+    #[OA\Response(response: 404, description: 'Order not found')]
+    #[OA\Response(response: 409, description: 'Not a register order, already refunded/failed, or tickets already checked in')]
+    public function cancelOrder(string $orderNumber, #[CurrentUser] User $user): JsonResponse
+    {
+        $order = $this->orderRepository->findOneByOrderNumber($orderNumber);
+
+        if ($order === null) {
+            throw $this->createNotFoundException("Order {$orderNumber} could not be found");
+        }
+
+        try {
+            $this->orderCancellationService->cancel($order, $user->name !== '' ? $user->name : $user->email);
+        } catch (\DomainException $e) {
+            return $this->json(['message' => $e->getMessage()], Response::HTTP_CONFLICT);
+        }
+
+        return $this->json(OrderDetailResponse::fromEntity($order));
     }
 
     #[Route('/orders/{orderNumber}/notes', name: 'order_notes_list', methods: ['GET'])]

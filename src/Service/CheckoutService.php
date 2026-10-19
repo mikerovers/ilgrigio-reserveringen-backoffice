@@ -211,14 +211,15 @@ final class CheckoutService
      * Find an existing customer by email or create one from checkout details.
      */
     public function resolveCustomer(
-        string $email,
+        ?string $email,
         string $firstName,
         string $lastName,
         ?string $companyName,
         ?string $city,
         ?string $phoneNumber,
     ): Customer {
-        $customer = $this->customerRepository->findOneByEmail($email);
+        // Without an email there is nothing to match on: every such order gets its own customer.
+        $customer = $email === null ? null : $this->customerRepository->findOneByEmail($email);
 
         if ($customer === null) {
             $customer = new Customer($email, $firstName, $lastName);
