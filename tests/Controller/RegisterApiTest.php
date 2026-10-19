@@ -19,6 +19,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 final class RegisterApiTest extends WebTestCase
 {
     private const REGISTER_EMAIL = 'register-api-test@example.com';
+    private const ADMIN_EMAIL = 'register-api-admin@example.com';
     private const PLAIN_EMAIL = 'register-api-plain@example.com';
     private const PASSWORD = 'correct-horse-battery-staple';
     private const ORDER_NUMBER = 'REGAPI-1';
@@ -36,7 +37,7 @@ final class RegisterApiTest extends WebTestCase
         $this->cleanUp();
 
         $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
-        foreach ([self::REGISTER_EMAIL => ['ROLE_REGISTER'], self::PLAIN_EMAIL => []] as $email => $roles) {
+        foreach ([self::REGISTER_EMAIL => ['ROLE_REGISTER'], self::ADMIN_EMAIL => ['ROLE_ADMIN'], self::PLAIN_EMAIL => []] as $email => $roles) {
             $user = new User($email, '', $roles);
             $user->password = $hasher->hashPassword($user, self::PASSWORD);
             $this->em->persist($user);
@@ -62,7 +63,7 @@ final class RegisterApiTest extends WebTestCase
     {
         $this->em->clear();
 
-        foreach ([self::REGISTER_EMAIL, self::PLAIN_EMAIL] as $email) {
+        foreach ([self::REGISTER_EMAIL, self::ADMIN_EMAIL, self::PLAIN_EMAIL] as $email) {
             $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
             if ($user !== null) {
                 $this->em->remove($user);
@@ -127,6 +128,14 @@ final class RegisterApiTest extends WebTestCase
         }
     }
 
+    public function testAdminCanCallRegisterEndpoints(): void
+    {
+        foreach (['/api/orders', '/api/coupons', '/api/events', '/api/orders/' . self::ORDER_NUMBER . '/notes'] as $uri) {
+            $this->call('GET', $uri, self::ADMIN_EMAIL);
+            self::assertResponseIsSuccessful();
+        }
+    }
+
     public function testOrdersArePaginatedAndOrderedByCreatedAt(): void
     {
         $data = $this->call('GET', '/api/orders?limit=1&page=1&orderDirection=ASC');
@@ -177,7 +186,7 @@ final class RegisterApiTest extends WebTestCase
         $id = $this->call('GET', '/api/coupons?search=' . self::COUPON_CODE)['items'][0]['id'];
 
         foreach ([1, 2] as $_) {
-            $data = $this->call('PUT', '/api/coupons/' . $id);
+            $data = $this->call('PUT', '/api/coupons/' . $id . '/deactivate');
             self::assertResponseIsSuccessful();
             self::assertFalse($data['active']);
         }

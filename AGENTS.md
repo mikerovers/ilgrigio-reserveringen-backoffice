@@ -106,14 +106,15 @@ docs/
 - **Register (JWT, `ROLE_REGISTER`) API:** `GET /api/events` (returns both
   `ticketTypes` and `sharedStocks`), `GET /api/event-categories`,
   `GET /api/orders`, `GET|POST /api/orders/{orderNumber}/notes`,
-  `GET /api/coupons` (`search` on code) and `PUT /api/coupons/{id}` (only sets
+  `GET /api/coupons` (`search` on code) and `PUT /api/coupons/{id}/deactivate` (only sets
   `active = false`, idempotent, no body). List endpoints are paginated with
   `page`/`limit` (max 100) and order by `createdAt` via `orderDirection`
   (`PageQuery`, `CouponListQuery`; events use `EventListQuery`), returning
   `PaginatedResponse`. Any new JWT-only route must also be added to the
   `secure_api` firewall pattern in `config/packages/security.yaml`, otherwise it
-  falls through to the API-key firewall and a JWT gets a 401. `ROLE_ADMIN` does
-  not inherit `ROLE_REGISTER`; create register users with
+  falls through to the API-key firewall and a JWT gets a 401. `ROLE_ADMIN` inherits
+  `ROLE_REGISTER` via `role_hierarchy`, so admins can call every API endpoint;
+  create dedicated register users with
   `app:user:create <email> <password> --role=ROLE_REGISTER`.
 - **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
   `CheckoutService::createOrder` takes stock with the single atomic

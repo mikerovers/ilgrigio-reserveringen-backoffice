@@ -71,7 +71,7 @@ final class CouponApiController extends AbstractController
     /**
      * Deactivates the coupon (active = false). Idempotent; takes no body.
      */
-    #[Route('/{id}', name: 'deactivate', methods: ['PUT'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    #[Route('/{id}/deactivate', name: 'deactivate', methods: ['PUT'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
     #[Security(name: 'BearerAuth')]
     #[OA\Tag(name: 'Coupons')]
     #[OA\Response(response: 200, description: 'Deactivated coupon', content: new Model(type: CouponListItemResponse::class))]
