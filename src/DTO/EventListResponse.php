@@ -10,6 +10,7 @@ final class EventListResponse
 {
     /**
      * @param EventCategoryResponse[] $categories
+     * @param TicketTypeResponse[]    $ticketTypes
      * @param SharedStockResponse[]   $sharedStocks
      */
     public function __construct(
@@ -22,6 +23,7 @@ final class EventListResponse
         public ?string $location,
         public ?string $description,
         public array $categories,
+        public array $ticketTypes,
         public array $sharedStocks,
     ) {
     }
@@ -40,6 +42,10 @@ final class EventListResponse
             categories: array_map(
                 EventCategoryResponse::fromEntity(...),
                 $event->categories->toArray(),
+            ),
+            ticketTypes: array_map(
+                TicketTypeResponse::fromEntity(...),
+                $event->ticketTypes->toArray(),
             ),
             sharedStocks: array_map(
                 SharedStockResponse::fromEntity(...),

@@ -46,14 +46,14 @@ security:
             refresh-jwt:
                 check_path: /api/token/refresh
 
-        # check-in, order-process, and the events/event-categories listing
-        # endpoints accept ONLY a JWT bearer token (jwt: ~, registered by
-        # LexikJWTAuthenticationBundle) — the legacy X-API-KEY header is
+        # check-in, orders (listing/process/notes), coupons, and the
+        # events/event-categories listing endpoints accept ONLY a JWT bearer
+        # token (jwt: ~, registered by LexikJWTAuthenticationBundle) — the legacy X-API-KEY header is
         # deliberately NOT accepted here. Must appear before the general
         # `api` firewall below — Symfony picks the first firewall whose
         # pattern matches.
         secure_api:
-            pattern: ^/api/(events/[^/]+/check-in|events$|event-categories$|orders/[^/]+/process)
+            pattern: ^/api/(events/[^/]+/check-in|events$|event-categories$|orders$|orders/[^/]+/(process|notes)$|coupons$|coupons/[^/]+$)
             stateless: true
             provider: app_user_provider
             jwt: ~

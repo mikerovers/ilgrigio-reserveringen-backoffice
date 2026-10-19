@@ -103,6 +103,18 @@ docs/
   transport.
 - The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
   use the API-key authenticator; check-in and order reprocessing require a JWT.
+- **Register (JWT, `ROLE_REGISTER`) API:** `GET /api/events` (returns both
+  `ticketTypes` and `sharedStocks`), `GET /api/event-categories`,
+  `GET /api/orders`, `GET|POST /api/orders/{orderNumber}/notes`,
+  `GET /api/coupons` (`search` on code) and `PUT /api/coupons/{id}` (only sets
+  `active = false`, idempotent, no body). List endpoints are paginated with
+  `page`/`limit` (max 100) and order by `createdAt` via `orderDirection`
+  (`PageQuery`, `CouponListQuery`; events use `EventListQuery`), returning
+  `PaginatedResponse`. Any new JWT-only route must also be added to the
+  `secure_api` firewall pattern in `config/packages/security.yaml`, otherwise it
+  falls through to the API-key firewall and a JWT gets a 401. `ROLE_ADMIN` does
+  not inherit `ROLE_REGISTER`; create register users with
+  `app:user:create <email> <password> --role=ROLE_REGISTER`.
 - **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
   `CheckoutService::createOrder` takes stock with the single atomic
   `SharedStockRepository::reserve()` UPDATE inside a DB transaction (pools
@@ -246,6 +258,12 @@ docs/
 - Assert specific HTTP status codes, content types, and body content in controller tests
 - Replace container services with mocks via `static::getContainer()->set(ClassName::class, $mock)` in functional tests
 - PHPUnit version: **11.5** (configured in `phpunit.xml.dist`)
+- Functional tests use a real Postgres database. `phpunit.dist.xml` points at
+  port 5432; if your local DB runs elsewhere (e.g. the docker container on
+  32768), export `DATABASE_URL` for a separate test database and run
+  `APP_ENV=test bin/console doctrine:migrations:migrate -n` once. JWT API tests
+  (see `tests/Controller/RegisterApiTest.php`) create users with the needed
+  role, log in via `/api/login`, and send `Authorization: Bearer <token>`.
 
 ---
 

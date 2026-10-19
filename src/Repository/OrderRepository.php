@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\DTO\PageQuery;
 use App\Entity\Order;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -22,6 +24,22 @@ class OrderRepository extends ServiceEntityRepository
     public function findOneByOrderNumber(string $orderNumber): ?Order
     {
         return $this->findOneBy(['orderNumber' => $orderNumber]);
+    }
+
+    /**
+     * @return Paginator<Order>
+     */
+    public function findPaginated(PageQuery $query): Paginator
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->addSelect('c')
+            ->join('o.customer', 'c')
+            ->orderBy('o.createdAt', $query->orderDirection)
+            ->addOrderBy('o.id', $query->orderDirection)
+            ->setFirstResult(($query->page - 1) * $query->limit)
+            ->setMaxResults($query->limit);
+
+        return new Paginator($qb, fetchJoinCollection: false);
     }
 
     /**

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\DTO\CouponListQuery;
 use App\Entity\Coupon;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -22,6 +24,26 @@ class CouponRepository extends ServiceEntityRepository
     public function findOneByCode(string $code): ?Coupon
     {
         return $this->findOneBy(['code' => $code]);
+    }
+
+    /**
+     * @return Paginator<Coupon>
+     */
+    public function findPaginated(CouponListQuery $query): Paginator
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->orderBy('c.createdAt', $query->orderDirection)
+            ->addOrderBy('c.id', $query->orderDirection)
+            ->setFirstResult(($query->page - 1) * $query->limit)
+            ->setMaxResults($query->limit);
+
+        if ($query->search !== null && $query->search !== '') {
+            $escaped = preg_replace('/[!%_]/', '!$0', $query->search);
+            $qb->andWhere("LOWER(c.code) LIKE :search ESCAPE '!'")
+                ->setParameter('search', '%' . mb_strtolower($escaped) . '%');
+        }
+
+        return new Paginator($qb, fetchJoinCollection: false);
     }
 
     /**
