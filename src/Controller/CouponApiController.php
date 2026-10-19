@@ -69,7 +69,7 @@ final class CouponApiController extends AbstractController
     }
 
     /**
-     * Deactivates the coupon (active = false). Idempotent; takes no body.
+     * Deactivates the coupon (active = false).
      */
     #[Route('/{id}/deactivate', name: 'deactivate', methods: ['PUT'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
     #[Security(name: 'BearerAuth')]

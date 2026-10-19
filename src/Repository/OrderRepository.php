@@ -85,4 +85,30 @@ class OrderRepository extends ServiceEntityRepository
 
         return (int) $result;
     }
+
+    /**
+     * Tickets sold (via completed orders) per year, newest year first.
+     * Years without sales are omitted.
+     *
+     * @return array<int, int> year => tickets sold
+     */
+    public function getTicketsSoldPerYear(): array
+    {
+        $rows = $this->getEntityManager()->getConnection()->fetchAllKeyValue(
+            'SELECT EXTRACT(YEAR FROM o.created_at)::int AS year, COUNT(t.id) AS tickets_sold
+             FROM customer_order o
+             INNER JOIN ticket t ON t.order_id = o.id
+             WHERE o.status = :status
+             GROUP BY year
+             ORDER BY year DESC',
+            ['status' => OrderStatus::COMPLETED->value],
+        );
+
+        $result = [];
+        foreach ($rows as $y => $count) {
+            $result[(int) $y] = (int) $count;
+        }
+
+        return $result;
+    }
 }
