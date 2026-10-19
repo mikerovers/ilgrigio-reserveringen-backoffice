@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
+use App\Entity\Order;
 use App\Entity\OrderNote;
+use App\Enum\DiscountType;
 use App\Enum\PaymentStatus;
 use App\Event\OrderCompletedEvent;
 use App\Event\OrderCreatedEvent;
@@ -41,6 +43,14 @@ final class OrderHistoryListener
             $total,
         );
 
+        if ($order->manualDiscountType !== null) {
+            $content .= sprintf(
+                ' Handmatige korting: %s%s.',
+                $this->describeManualDiscount($order),
+                $order->discountReason !== null ? sprintf(' (%s)', $order->discountReason) : '',
+            );
+        }
+
         $this->addNote($order, $content);
     }
 
@@ -74,12 +84,21 @@ final class OrderHistoryListener
         }
     }
 
-    private function addNote(mixed $order, string $content): void
+    private function addNote(Order $order, string $content): void
     {
         $note = new OrderNote($order, $content);
         $order->notes->add($note);
         $this->entityManager->persist($note);
         $this->entityManager->flush();
+    }
+
+    private function describeManualDiscount(Order $order): string
+    {
+        $amount = (int) $order->manualDiscountAmount;
+
+        return $order->manualDiscountType === DiscountType::PERCENT
+            ? number_format($amount / 100, 2, ',', '.') . '%'
+            : '€' . number_format($amount / 100, 2, ',', '.');
     }
 
     private function translateStatus(PaymentStatus $status): string

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\DiscountType;
+use App\Enum\OrderSource;
 use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -20,6 +22,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: "idx_order_customer", columns: ["customer_id"])]
 #[ORM\Index(name: "idx_order_created", columns: ["created_at"])]
 #[ORM\UniqueConstraint(name: "uniq_order_number", columns: ["order_number"])]
+#[ORM\UniqueConstraint(name: "uniq_order_idempotency_key", columns: ["idempotency_key"])]
 class Order
 {
     #[ORM\Id]
@@ -83,6 +86,24 @@ class Order
 
     #[ORM\Column(name: "coupon_code", length: 64, nullable: true)]
     public ?string $couponCode = null;
+
+    /** Ad-hoc discount given at the register (distinct from a coupon); amount in bp or cents. */
+    #[ORM\Column(name: "manual_discount_type", nullable: true, enumType: DiscountType::class)]
+    public ?DiscountType $manualDiscountType = null;
+
+    #[ORM\Column(name: "manual_discount_amount", type: "integer", nullable: true)]
+    public ?int $manualDiscountAmount = null;
+
+    #[ORM\Column(name: "discount_reason", length: 255, nullable: true)]
+    public ?string $discountReason = null;
+
+    /** Channel the order came from; NULL on rows created before the column existed (treated as web). */
+    #[ORM\Column(nullable: true, enumType: OrderSource::class)]
+    public ?OrderSource $source = OrderSource::WEB;
+
+    /** Client-supplied key making register order creation safe to retry. */
+    #[ORM\Column(name: "idempotency_key", length: 64, nullable: true)]
+    public ?string $idempotencyKey = null;
 
     #[ORM\Column(type: "datetime_immutable", nullable: true)]
     public ?\DateTimeImmutable $paidAt = null;

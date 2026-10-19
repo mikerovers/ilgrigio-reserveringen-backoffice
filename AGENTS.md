@@ -105,7 +105,11 @@ docs/
   use the API-key authenticator; check-in and order reprocessing require a JWT.
 - **Register (JWT, `ROLE_REGISTER`) API:** `GET /api/events` (returns both
   `ticketTypes` and `sharedStocks`), `GET /api/event-categories`,
-  `GET /api/orders`, `GET|POST /api/orders/{orderNumber}/notes`,
+  `GET /api/orders`, `POST /api/orders` (register sale: items by ticket-type UUID,
+  `paymentMethod` cash|pin settled immediately, optional coupon *or* ad-hoc
+  `discount` {type percent|fixed, amount in basis points|cents, reason}, optional
+  `Idempotency-Key` header; creates `Order.source = register`),
+  `GET|POST /api/orders/{orderNumber}/notes`,
   `GET /api/sale-report` (tickets of completed orders, per year), `GET /api/coupons` (`search` on code) and `PUT /api/coupons/{id}/deactivate` (only sets
   `active = false`, idempotent, no body). List endpoints are paginated with
   `page`/`limit` (max 100) and order by `createdAt` via `orderDirection`

@@ -26,6 +26,11 @@ class OrderRepository extends ServiceEntityRepository
         return $this->findOneBy(['orderNumber' => $orderNumber]);
     }
 
+    public function findOneByIdempotencyKey(string $key): ?Order
+    {
+        return $this->findOneBy(['idempotencyKey' => $key]);
+    }
+
     /**
      * @return Paginator<Order>
      */

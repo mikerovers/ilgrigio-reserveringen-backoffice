@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\DTO\Discount;
 use App\Entity\Coupon;
 use App\Enum\DiscountType;
 use Money\Money;
@@ -33,11 +34,13 @@ final class DiscountCalculator
     /**
      * The gross discount, capped at the cart total.
      */
-    public function discountGross(Coupon $coupon, Money $cartGross): Money
+    public function discountGross(Coupon|Discount $source, Money $cartGross): Money
     {
-        $discount = match ($coupon->discountType) {
-            DiscountType::PERCENT => $cartGross->multiply($coupon->amount)->divide(10000),
-            DiscountType::FIXED_CART => Money::EUR($coupon->amount),
+        $rule = $source instanceof Coupon ? $source->toDiscount() : $source;
+
+        $discount = match ($rule->type) {
+            DiscountType::PERCENT => $cartGross->multiply($rule->amount)->divide(10000),
+            DiscountType::FIXED_CART => Money::EUR($rule->amount),
         };
 
         if ($discount->isNegative()) {

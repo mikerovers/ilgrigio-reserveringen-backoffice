@@ -8,6 +8,7 @@ parameters:
     default_admin_email: 'admin@example.com'
     admin_host: '%env(ADMIN_HOST)%'
     env(ORDER_RESERVATION_TTL_MINUTES): '30'
+    env(REGISTER_MAX_DISCOUNT_PERCENT): '100'
 
 services:
     # default configuration for services in *this* file
@@ -60,6 +61,12 @@ services:
     App\Service\CheckoutService:
         arguments:
             $taxRatePercent: '%env(float:TAX_RATE)%'
+
+    # Register (POS) order creation
+    App\Service\RegisterOrderService:
+        arguments:
+            $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
+            $maxDiscountPercent: '%env(float:REGISTER_MAX_DISCOUNT_PERCENT)%'
 
     # Ticketing Controller configuration
     App\Controller\TicketingController:

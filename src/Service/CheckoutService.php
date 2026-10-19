@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\DTO\Discount;
 use App\Entity\Coupon;
 use App\Entity\Customer;
 use App\Entity\Order;
@@ -41,6 +42,8 @@ final class CheckoutService
     }
 
     /**
+     * A coupon and a manual (register) discount are mutually exclusive.
+     *
      * @param array<array{ticketType: TicketType, quantity: int}> $cart
      */
     public function createOrder(
@@ -48,7 +51,13 @@ final class CheckoutService
         Customer $customer,
         ?Coupon $coupon,
         \DateTimeImmutable $now,
+        ?Discount $manualDiscount = null,
+        ?string $discountReason = null,
     ): Order {
+        if ($coupon !== null && $manualDiscount !== null) {
+            throw new \LogicException('A coupon and a manual discount cannot be combined.');
+        }
+
         $order = new Order(
             $this->orderNumberGenerator->generate($now),
             $customer,
@@ -152,7 +161,7 @@ final class CheckoutService
                 ));
             }
 
-            $totals = $this->orderPricingService->calculate($cart, $coupon, $this->taxRatePercent);
+            $totals = $this->orderPricingService->calculate($cart, $coupon ?? $manualDiscount, $this->taxRatePercent);
 
             $order->subtotalNet = $totals->subtotalNet;
             $order->tax = $totals->tax;
@@ -163,6 +172,12 @@ final class CheckoutService
             if ($coupon !== null) {
                 $order->coupon = $coupon;
                 $order->couponCode = $coupon->code;
+            }
+
+            if ($manualDiscount !== null) {
+                $order->manualDiscountType = $manualDiscount->type;
+                $order->manualDiscountAmount = $manualDiscount->amount;
+                $order->discountReason = $discountReason;
             }
 
             $this->entityManager->persist($order);

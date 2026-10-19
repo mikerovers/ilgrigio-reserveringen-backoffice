@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\DTO\Discount;
 use App\Entity\Coupon;
 use App\Enum\DiscountType;
 use App\Service\DiscountCalculator;
@@ -36,6 +37,15 @@ class DiscountCalculatorTest extends TestCase
         $discount = $this->calculator->discountGross($coupon, Money::EUR(8200));
 
         $this->assertSame('500', $discount->getAmount());
+    }
+
+    public function testManualDiscountUsesTheSameRulesAsCoupons(): void
+    {
+        $percent = $this->calculator->discountGross(new Discount(DiscountType::PERCENT, 1250), Money::EUR(8000));
+        $fixed = $this->calculator->discountGross(new Discount(DiscountType::FIXED_CART, 700), Money::EUR(8000));
+
+        $this->assertSame('1000', $percent->getAmount()); // 12.5% of €80.00
+        $this->assertSame('700', $fixed->getAmount());
     }
 
     public function testDiscountNeverExceedsCartTotal(): void

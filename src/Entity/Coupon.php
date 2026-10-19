@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\DTO\Discount;
 use App\Enum\DiscountType;
 use App\Repository\CouponRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -73,6 +74,11 @@ class Coupon
         $this->discountType = $discountType;
         $this->amount = $amount;
         $this->orders = new ArrayCollection();
+    }
+
+    public function toDiscount(): Discount
+    {
+        return new Discount($this->discountType, $this->amount);
     }
 
     /** Orders that still hold a redemption (failed/cancelled/refunded ones give it back). */

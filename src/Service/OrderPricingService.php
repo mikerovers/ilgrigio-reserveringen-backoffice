@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\DTO\Discount;
 use App\DTO\OrderTotals;
 use App\Entity\Coupon;
 use App\Entity\TicketType;
@@ -28,7 +29,7 @@ final class OrderPricingService
     /**
      * @param array<array{ticketType: TicketType, quantity: int}> $cart
      */
-    public function calculate(array $cart, ?Coupon $coupon, float $taxRatePercent): OrderTotals
+    public function calculate(array $cart, Coupon|Discount|null $coupon, float $taxRatePercent): OrderTotals
     {
         $subtotalGross = Money::EUR(0);
 
@@ -45,7 +46,7 @@ final class OrderPricingService
      * (e.g. cart items stored as floats in the session). Uses the same
      * discount and net/tax split logic as calculate().
      */
-    public function calculateFromCartGross(Money $cartGross, ?Coupon $coupon, float $taxRatePercent): OrderTotals
+    public function calculateFromCartGross(Money $cartGross, Coupon|Discount|null $coupon, float $taxRatePercent): OrderTotals
     {
         $discountGross = Money::EUR(0);
         $discountNet = Money::EUR(0);
