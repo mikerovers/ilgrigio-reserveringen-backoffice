@@ -159,14 +159,16 @@ export default class extends Controller {
             const result = await validateCoupon(couponCode)
 
             if (result.valid) {
+                // Update the summary in place from the backend totals (no page reload)
                 this.appliedCoupon = result
                 this.showCouponSuccess(result)
-                
-                // Reload the page to get updated session values from backend
-                setTimeout(() => {
-                    window.location.reload()
-                }, 1500)
-                // Keep the submit button disabled — the page reloads on success
+                this.discountAmountValue = result.discountCents / 100
+                this.totalValue = result.newTotalCents / 100
+                this.updateTotals()
+
+                this.applyCouponButtonTarget.innerHTML = 'Toepassen'
+                this.submitButtonTarget.disabled = false
+                this.submitButtonTarget.classList.remove('opacity-50', 'cursor-not-allowed')
                 return
             } else {
                 this.showCouponError(result.message || 'Kortingscode niet geldig')
@@ -184,7 +186,7 @@ export default class extends Controller {
     }
 
     showCouponSuccess(coupon) {
-        renderCouponSuccess(this.couponStatusTarget, coupon, 'checkout')
+        renderCouponSuccess(this.couponStatusTarget, coupon, 'frontend--checkout')
         this.couponInputTarget.disabled = true
         this.applyCouponButtonTarget.disabled = true
     }
@@ -204,15 +206,15 @@ export default class extends Controller {
             const result = await removeCouponRequest()
 
             if (result.success) {
-                // Clear frontend state
+                // Clear frontend state and update the totals in place (no page reload)
                 this.appliedCoupon = null
                 this.couponStatusTarget.classList.add('hidden')
                 this.couponInputTarget.value = ''
                 this.couponInputTarget.disabled = false
                 this.applyCouponButtonTarget.disabled = false
-                
-                // Reload page to get updated session values
-                window.location.reload()
+                this.discountAmountValue = 0
+                this.totalValue = result.newTotalCents / 100
+                this.updateTotals()
             } else {
                 console.error('Failed to remove coupon:', result.message)
             }

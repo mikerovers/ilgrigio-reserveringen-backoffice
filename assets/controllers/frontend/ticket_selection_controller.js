@@ -274,7 +274,7 @@ export default class extends Controller {
     }
 
     showCouponSuccess(coupon) {
-        renderCouponSuccess(this.couponStatusTarget, coupon, "ticket-selection");
+        renderCouponSuccess(this.couponStatusTarget, coupon, "frontend--ticket-selection");
         this.couponInputTarget.disabled = true;
         this.applyCouponButtonTarget.disabled = true;
     }
