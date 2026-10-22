@@ -34,6 +34,7 @@ final class OrderConfirmationEmailContextFactory
                 $downloadToken,
                 $this->appBaseUrl,
             ),
+            'order_subtotal' => $this->moneyService->format($order->totalGross->add($order->discountGross)),
             'order_total' => $this->moneyService->format($order->totalGross),
             'total_tax' => $this->moneyService->format($order->tax),
             'order_data' => $this->buildOrderView($order),

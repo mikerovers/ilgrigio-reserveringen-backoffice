@@ -7,268 +7,136 @@
     <title>Reserveringsbevestiging #{{ order_number }}</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333333;
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
+            background-color: #fffaf2;
+            color: #34272a;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
         }
-        .header {
-            background-color: #eb2127;
-            color: #ffffff;
-            text-align: left;
-            border-radius: 12px 12px 0 0;
-        }
-        .header td {
-            padding: 30px 20px;
-            border-radius: 12px 12px 0 0;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-        .content {
-            background-color: #ffffff;
-            padding: 10px 20px 30px 20px;
-            text-align: left;
-            font-weight: normal;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            color: #6c757d;
-            padding: 24px 20px;
-            text-align: center;
-            font-size: 13px;
-            border-top: 1px solid #dee2e6;
-        }
-        .footer p {
-            text-align: center;
-            margin: 0 0 8px 0;
-        }
-        .intro-text {
-            font-size: 15px;
-            line-height: 1.7;
-            margin: 0 0 18px 0;
-            text-align: left;
-            font-weight: normal;
-        }
-        .intro-text.highlight {
-            background-color: #fff3cd;
-            border-left: 4px solid #f2ac21;
-            padding: 12px 16px;
-            margin: 20px 0;
-        }
-        .download-link {
-            font-size: 15px;
-            margin: 20px 0;
-            text-align: left;
-            font-weight: normal;
-        }
-        .info-list {
-            background-color: #f8f9fa;
-            padding: 16px 20px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        .info-list p {
-            margin: 0 0 8px 0;
-            font-weight: normal;
-        }
-        .info-list ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .info-list li {
-            margin-bottom: 6px;
-            color: #495057;
-            font-weight: normal;
-        }
-        .order-details {
-            background-color: #f8f9fa;
-            padding: 16px;
-            margin: 24px 0 0 0;
-            border: 1px solid #dee2e6;
-            text-align: left;
-        }
-        .order-details h3 {
-            margin: 0 0 12px 0;
-            color: #eb2127;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        table.order-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background-color: #ffffff;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        table.order-table td {
-            font-weight: normal;
-        }
-        table.order-table th,
-        table.order-table td {
-            padding: 10px 8px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
-            font-size: 13px;
-            vertical-align: top;
-        }
-        table.order-table th {
-            background-color: #eb2127;
-            color: #ffffff;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .text-center {
-            text-align: left;
-        }
-        .text-right {
-            text-align: left;
-        }
-        .total-row td {
-            border-top: 2px solid #f2ac21;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        a {
-            color: #eb2127;
+        .email-background { background-color: #fffaf2; padding: 28px 12px; }
+        .email-card { background-color: #ffffff; border: 1px solid #eadfd1; }
+        .brand-header { background-color: #c62828; border-bottom: 8px solid #a91f24; color: #ffffff; }
+        .brand-inner { max-width: 720px; padding: 26px 28px; }
+        .brand-name { color: #ffffff; font-size: 22px; font-weight: bold; margin: 0 0 4px; }
+        .brand-caption { color: #fff1df; font-size: 13px; margin: 0; }
+        .content { padding: 28px; }
+        .greeting { color: #34272a; font-size: 21px; font-weight: bold; margin: 0 0 10px; }
+        .intro { margin: 0 0 18px; }
+        .notice { background-color: #fff1df; border-left: 4px solid #c62828; color: #34272a; margin: 20px 0; padding: 14px 16px; }
+        .download-wrap { margin: 24px 0; text-align: center; }
+        .download-button { background-color: #dc2626; color: #ffffff !important; display: inline-block; font-size: 16px; font-weight: bold; padding: 14px 22px; text-decoration: none; }
+        .details { border: 1px solid #eadfd1; margin-top: 28px; padding: 18px; }
+        .details-title { color: #a91f24; font-size: 17px; margin: 0 0 14px; }
+        .order-table { border-collapse: collapse; width: 100%; }
+        .order-table th { background-color: #c62828; color: #ffffff; font-size: 12px; padding: 10px 8px; text-align: left; }
+        .order-table td { border-bottom: 1px solid #eadfd1; padding: 10px 8px; vertical-align: top; }
+        .align-right { text-align: right !important; }
+        .summary-row td { border-bottom: 0; padding-bottom: 5px; }
+        .total-row td { border-top: 2px solid #c62828; color: #a91f24; font-size: 16px; font-weight: bold; padding-top: 12px; }
+        .help-box { background-color: #fff7eb; border-left: 4px solid #c62828; margin-top: 24px; padding: 16px 18px; }
+        .help-box p { margin: 0 0 6px; }
+        .help-box p:last-child { margin-bottom: 0; }
+        a { color: #b91c1c; }
+        .footer { background-color: #34272a; color: #fff1df; font-size: 13px; text-align: center; }
+        .footer-inner { max-width: 720px; padding: 20px 28px; }
+        .footer p { margin: 0 0 5px; }
+        .footer a { color: #ffe0a8; }
+        @media only screen and (max-width: 600px) {
+            .content { padding: 20px 16px; }
+            .order-table th, .order-table td { padding: 8px 5px; font-size: 12px; }
         }
     </style>
 </head>
 <body>
-<table class="header" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<table class="brand-header" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#c62828">
     <tr>
-        <td>
-            <h1>Reserveringsbevestiging<br>#{{ order_number }}</h1>
+        <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: 720px;">
+                <tr>
+                    <td class="brand-inner">
+                        <p class="brand-name">Jeugdcircus Il Grigio</p>
+                        <p class="brand-caption">Reserveringsbevestiging · #{{ order_number }}</p>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>
-<container>
-    <row class="content">
-        <columns>
-            <p class="intro-text">Hartelijk dank voor jouw reservering bij Il Grigio!</p>
+<container class="email-background">
+    <row class="email-card">
+        <columns class="content">
+            <p class="greeting">{% if customer_name %}Bedankt voor je reservering, {{ customer_name }}!{% else %}Bedankt voor je reservering!{% endif %}</p>
+            <p class="intro">Je tickets zijn als PDF bijgevoegd bij deze e-mail. Je kunt ze ook downloaden via de beveiligde link hieronder.</p>
 
-            <p class="intro-text highlight">
-                <strong>Let op: In de bijlage tref je je tickets. Deze kun je ook downloaden via onderstaande link.</strong>
-            </p>
+            <div class="notice"><strong>Bewaar je tickets goed.</strong> Elk ticket bevat een unieke QR-code en geeft toegang aan één persoon. Je kunt de QR-code vanaf je telefoon laten scannen.</div>
 
-            <p class="download-link">
-                <a href="{{ download_url }}">Download je e-tickets &raquo;</a>
-            </p>
-
-            <p class="intro-text">Print de tickets of sla ze op in je telefoon en neem deze mee als toegangsbewijs. Elk ticket bevat een unieke QR-code die toegang geeft aan één persoon.</p>
-
-            <p class="intro-text">Heb je meerdere tickets besteld? Deze staan onder elkaar in hetzelfde bestand. Zorg ervoor dat je bij de toegangscontrole snel alle tickets bij de hand hebt, waarbij vooral de QR-codes goed zichtbaar moeten zijn voor onze scanners.</p>
-
-            <p class="intro-text">Controleer de reservering op aantal tickets, datum, en soort (kind/volwassenen). </p>
-
-            <p class="intro-text">Bij afwijkingen kun je tijdens de circus-periode bellen naar <strong>0411 - 62 12 15</strong> (zie voor openingstijden onze website <a href="http://www.ilgrigio.nl">www.ilgrigio.nl</a>). Heb je deze kaarten eerder besteld dan 15 juli, dan kun je mailen naar <a href="mailto:reserveringen@ilgrigio.nl">reserveringen@ilgrigio.nl</a>.</p>
-
-            <p class="intro-text">Annuleren van tickets is helaas niet mogelijk. Je mag tickets wel overdragen aan iemand anders.</p>
-
-            <div class="info-list">
-                <p><strong>Kijk op <a href="http://www.ilgrigio.nl">www.ilgrigio.nl</a> voor:</strong></p>
-                <ul>
-                    <li>Een routebeschrijving</li>
-                    <li>Meer informatie over parkeren en OV-mogelijkheden</li>
-                    <li>Faciliteiten voor mensen met een beperking</li>
-                    <li>Veel gestelde vragen</li>
-                </ul>
+            <div class="download-wrap">
+                <a class="download-button" href="{{ download_url }}">Download je e-tickets</a>
             </div>
 
-            <p class="intro-text">Wil je op de hoogte blijven van nieuws en updates van Il Grigio? Like onze <a href="https://www.facebook.com/IlGrigio.jeugdcircus">Facebook-pagina</a>.</p>
+            <p class="intro">Controleer je reservering op het aantal tickets en de ticketsoorten. Annuleren is helaas niet mogelijk; je mag tickets wel aan iemand anders overdragen.</p>
 
-            <p class="intro-text"><strong>Wij wensen je een fijne voorstelling!</strong></p>
-
-            <div class="order-details">
-                <h3>[Reservering #{{ order_number }}] ({{ order_date|date('d F Y') }})</h3>
-
-                <table class="order-table">
+            <div class="details">
+                <h2 class="details-title">Reservering #{{ order_number }} · {{ order_date|date('d-m-Y') }}</h2>
+                <table class="order-table" role="presentation">
                     <thead>
-                        <tr>
-                            <th>Ticket</th>
-                            <th class="text-center">Aantal</th>
-                            <th class="text-right">Prijs</th>
-                        </tr>
+                        <tr><th>Ticket</th><th>Aantal</th><th class="align-right">Prijs</th></tr>
                     </thead>
                     <tbody>
-                    {% if order_data.line_items %}
-                        {% for item in order_data.line_items %}
-                            <tr>
-                                <td>
-                                    {{ item.name }}
-                                    {% if item.meta_data is defined and item.meta_data %}
-                                        {% for meta in item.meta_data %}
-                                            {% if meta.key is defined and meta.key == 'Type' and meta.value is defined %}
-                                                <br><small style="color: #6c757d;"><strong>Type:</strong> {{ meta.value }}</small>
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">{{ item.quantity }}</td>
-                                {# Pre-coupon line price, incl. BTW. Using subtotal (not total)
-                                   keeps the coupon discount out of this line — it's shown separately
-                                   in the Korting row — so it isn't double-counted. #}
-                                <td class="text-right">€{{ ((item.subtotal|default(item.total|default(0))) + (item.subtotal_tax|default(0)))|number_format(2, '.', '') }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% endif %}
-
-                        {% set coupon_total = 0 %}
-                        {% if order_data.coupon_lines is defined and order_data.coupon_lines %}
-                            {% for coupon in order_data.coupon_lines %}
-                                {% set coupon_total = coupon_total + (coupon.discount|default(0)) + (coupon.discount_tax|default(0)) %}
-                            {% endfor %}
-                        {% endif %}
-
+                    {% for item in order_data.line_items %}
                         <tr>
-                            <td colspan="2"><strong>Subtotaal:</strong></td>
-                            <td class="text-right"><strong>€{{ (order_total + coupon_total)|number_format(2, '.', '') }}</strong></td>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td class="align-right">€{{ item.total|replace({'.': ','}) }}</td>
                         </tr>
-
-                        {% if order_data.coupon_lines is defined and order_data.coupon_lines %}
-                            {% for coupon in order_data.coupon_lines %}
-                            <tr>
-                                <td colspan="2"><strong>Korting ({{ coupon.code }}):</strong></td>
-                                <td class="text-right">-€{{ ((coupon.discount|default(0)) + (coupon.discount_tax|default(0)))|number_format(2, '.', '') }}</td>
-                            </tr>
-                            {% endfor %}
-                        {% endif %}
-
-                        <tr>
-                            <td colspan="2"><strong>Betaalmethode:</strong></td>
-                            <td class="text-right">{{ order_data.payment_method_title|default('iDEAL') }}</td>
+                    {% endfor %}
+                        <tr class="summary-row">
+                            <td colspan="2">Subtotaal</td>
+                            <td class="align-right">€{{ order_subtotal|replace({'.': ','}) }}</td>
                         </tr>
-
+                    {% for coupon in order_data.coupon_lines %}
+                        <tr class="summary-row">
+                            <td colspan="2">Korting ({{ coupon.code }})</td>
+                            <td class="align-right">−€{{ coupon.discount|replace({'.': ','}) }}</td>
+                        </tr>
+                    {% endfor %}
+                        <tr class="summary-row">
+                            <td colspan="2">Betaalmethode</td>
+                            <td class="align-right">{{ order_data.payment_method_title }}</td>
+                        </tr>
+                        <tr class="summary-row">
+                            <td colspan="2">BTW inbegrepen</td>
+                            <td class="align-right">€{{ total_tax|replace({'.': ','}) }}</td>
+                        </tr>
                         <tr class="total-row">
-                            <td colspan="2"><strong>Totaal:</strong></td>
-                            <td class="text-right">
-                                <strong>€{{ order_total }}</strong>
-                            </td>
+                            <td colspan="2">Totaal</td>
+                            <td class="align-right">€{{ order_total|replace({'.': ','}) }}</td>
                         </tr>
-
-                        {% if total_tax %}
-                        <tr>
-                            <td colspan="3" class="text-right"><small style="color: #6c757d;">(waarvan €{{ total_tax|number_format(2, '.', '') }} BTW)</small></td>
-                        </tr>
-                        {% endif %}
                     </tbody>
                 </table>
+            </div>
+
+            <div class="help-box">
+                <p><strong>Geen e-mail ontvangen of vragen?</strong></p>
+                <p>Controleer je spam- of ongewenste map. Neem contact met ons op via <a href="mailto:reserveringen@ilgrigio.nl">reserveringen@ilgrigio.nl</a> of bel tijdens de circusperiode naar <strong>0411 - 62 12 15</strong>.</p>
+                <p>Praktische informatie vind je op <a href="http://www.ilgrigio.nl">www.ilgrigio.nl</a>.</p>
             </div>
         </columns>
     </row>
 </container>
-<table class="footer" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<table class="footer" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#34272a">
     <tr>
-        <td>
-            <p><strong>Bedankt voor uw reservering!</strong></p>
-            <p>Dit is een automatische bevestiging. Bewaar deze voor je administratie.</p>
+        <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: 720px;">
+                <tr>
+                    <td class="footer-inner">
+                        <p><strong>Bedankt voor je reservering!</strong></p>
+                        <p>Stichting Haarens Jeugdcircus Il Grigio · <a href="http://www.ilgrigio.nl">www.ilgrigio.nl</a></p>
+                        <p>Dit is een automatische bevestiging. Bewaar deze e-mail voor je administratie.</p>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>

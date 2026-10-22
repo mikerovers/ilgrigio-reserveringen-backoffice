@@ -1,46 +1,26 @@
+JEUGDCIRCUS IL GRIGIO
 Reserveringsbevestiging #{{ order_number }}
 
-Hartelijk dank voor jouw reservering.
+{% if customer_name %}Bedankt voor je reservering, {{ customer_name }}!{% else %}Bedankt voor je reservering!{% endif %}
 
-Je tickets moet je nog downloaden!! Lees onderstaande instructie goed!
+Je tickets zijn als PDF bijgevoegd bij deze e-mail. Je kunt ze ook downloaden via deze beveiligde link:
+{{ download_url }}
 
-Download je e-tickets: {{ download_url }}
+Elk ticket bevat een unieke QR-code en geeft toegang aan één persoon. Je kunt de QR-code vanaf je telefoon laten scannen.
+Controleer je reservering op het aantal tickets en de ticketsoorten. Annuleren is helaas niet mogelijk; je mag tickets wel aan iemand anders overdragen.
 
-Hieronder tref je de downloadlink(s) van jouw e-ticket(s). Print deze e-tickets uit en neem ze mee als toegangsbewijs. Elk document heeft een unieke QR-code en geeft toegang aan één persoon. Indien je meerdere toegangsbewijzen hebt gekocht, print dan ieder toegangsbewijs (op A4 formaat) afzonderlijk uit, ontmoet je het afdrukken of de QR-code slecht leesbaar is! We kunnen deze QR-code(s) ook scannen vanaf je telefoon. Zorg dan wel (bij meerdere tickets) dat je deze codes alvast hebt opgeslagen in jouw telefoon.
-
-Controleer de bestelling op aantal tickets, datum, en soort (kind/volwassenen). Bij afwijkingen kun je tijdens de circus-periode bellen naar 0411 - 62 12 15 (zie voor openingstijden onze website www.ilgrigio.nl). Heb je deze kaarten eerder besteld dan 10 juli, dan kun je mailen naar reservering@ilgrigio.nl.
-
-Annuleren van aangekochte tickets is helaas niet mogelijk. Je kunt ze wel overdragen aan iemand anders.
-
-Kijk op www.ilgrigio.nl voor:
-- Een routebeschrijving
-- Meer informatie over parkeren en OV-mogelijkheden
-- Faciliteiten voor minder validen
-- Veel gestelde vragen
-
-Wil je op de hoogte blijven van nieuws van Il Grigio? Like onze Facebook-pagina.
-
-Wij wensen je een fijne voorstelling!
-
-[Reservering #{{ order_number }}] ({{ order_date|date('d F Y') }})
-
-Reserveringsdetails:
-{% if order_data.line_items %}
+RESERVERING #{{ order_number }} · {{ order_date|date('d-m-Y') }}
 {% for item in order_data.line_items %}
-- {{ item.name }}
-{% if item.meta_data is defined and item.meta_data %}{% for meta in item.meta_data %}{% if meta.key is defined and meta.key == 'Type' and meta.value is defined %}  Type: {{ meta.value }}{% endif %}{% endfor %}{% endif %}
-  Aantal: {{ item.quantity }} | Prijs: €{{ ((item.subtotal|default(item.total|default(0))) + (item.subtotal_tax|default(0)))|number_format(2, '.', '') }}
+- {{ item.name }} | Aantal: {{ item.quantity }} | €{{ item.total|replace({'.': ','}) }}
 {% endfor %}
-{% endif %}
+Subtotaal: €{{ order_subtotal|replace({'.': ','}) }}
+{% for coupon in order_data.coupon_lines %}Korting ({{ coupon.code }}): −€{{ coupon.discount|replace({'.': ','}) }}
+{% endfor %}Betaalmethode: {{ order_data.payment_method_title }}
+BTW inbegrepen: €{{ total_tax|replace({'.': ','}) }}
+Totaal: €{{ order_total|replace({'.': ','}) }}
 
-{% set coupon_total = 0 %}{% if order_data.coupon_lines is defined and order_data.coupon_lines %}{% for coupon in order_data.coupon_lines %}{% set coupon_total = coupon_total + (coupon.discount|default(0)) + (coupon.discount_tax|default(0)) %}{% endfor %}{% endif %}Subtotaal: €{{ (order_total + coupon_total)|number_format(2, '.', '') }}
-{% if order_data.coupon_lines is defined and order_data.coupon_lines %}{% for coupon in order_data.coupon_lines %}Korting ({{ coupon.code }}): -€{{ ((coupon.discount|default(0)) + (coupon.discount_tax|default(0)))|number_format(2, '.', '') }}
-{% endfor %}{% endif %}Betaalmethode: {{ order_data.payment_method_title|default('iDEAL') }}
-Totaal: €{{ order_total }}
-{% if total_tax %}(waarvan €{{ total_tax|number_format(2, '.', '') }} BTW){% endif %}
+Geen e-mail ontvangen of vragen? Controleer je spam- of ongewenste map. Mail naar reserveringen@ilgrigio.nl of bel tijdens de circusperiode naar 0411 - 62 12 15.
 
-Download je e-tickets: {{ download_url }}
-
----
-Bedankt voor uw reservering!
-Dit is een automatische bevestiging. Bewaar deze voor uw administratie.
+Praktische informatie: http://www.ilgrigio.nl
+Stichting Haarens Jeugdcircus Il Grigio
+Dit is een automatische bevestiging. Bewaar deze e-mail voor je administratie.
