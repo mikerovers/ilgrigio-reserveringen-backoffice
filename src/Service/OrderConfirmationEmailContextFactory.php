@@ -26,7 +26,7 @@ final class OrderConfirmationEmailContextFactory
         return [
             'order_number' => $order->orderNumber,
             'order_date' => $order->createdAt ?? new \DateTimeImmutable(),
-            'customer_name' => trim($order->billing->firstName . ' ' . $order->billing->lastName),
+            'customer_name' => trim($order->billing->firstName),
             'customer_email' => $order->billing->email,
             'download_url' => $this->securePdfStorageService->generateDownloadUrl(
                 $request,
