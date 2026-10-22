@@ -61,6 +61,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Events', 'fa fa-book');
         yield MenuItem::linkTo(EventCrudController::class, 'Events', 'fa fa-calendar')
             ->setPermission('ROLE_ADMIN');
+        yield MenuItem::linkTo(SitePageCrudController::class, 'Website pages', 'fa fa-file-alt')
+            ->setPermission('ROLE_ADMIN');
         yield MenuItem::linkTo(EventCategoryCrudController::class, 'Event categories', 'fa fa-tags')
             ->setPermission('ROLE_ADMIN');
         yield MenuItem::linkTo(SharedStockCrudController::class, 'Shared stock', 'fa fa-cubes')

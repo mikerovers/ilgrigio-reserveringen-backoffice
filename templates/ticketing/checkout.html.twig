@@ -6,22 +6,31 @@
 {% endblock %}
 
 {% block body %}
-	{{ include('components/hero.html.twig', {
-    'title': 'Reservering afronden',
-    'subtitle': 'Vul je gegevens in om je reservering af te ronden',
-    'show_back_nav': true,
-    'back_text': 'Terug naar shows'
-}) }}
+	<header class="bg-[#c62828] text-white border-b-8 border-[#a91f24]">
+		<div class="container mx-auto px-4 py-4 flex items-center justify-between gap-5">
+			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
+				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-14 md:h-16 w-auto">
+			</a>
+			<a href="{{ path('app_tickets') }}" class="text-sm md:text-base text-white/90 hover:text-white transition-colors"><span aria-hidden="true">←</span> Terug naar shows</a>
+		</div>
+	</header>
+	<section class="bg-[#fffaf2] border-b border-[#eadfd1]">
+		<div class="container mx-auto px-4 py-8 md:py-10 max-w-6xl">
+			<p class="text-sm font-bold uppercase tracking-[.16em] text-red-700 mb-2">Jeugdcircus Il Grigio <span class="text-[#c89f75] px-1">/</span> Reserveren</p>
+			<h1 class="font-serif text-4xl md:text-5xl text-[#34272a]">Reservering afronden</h1>
+			<p class="mt-2 text-gray-700">Vul je gegevens in om je reservering af te ronden.</p>
+		</div>
+	</section>
 
 	<!-- Main Content -->
-	<div class="bg-gray-50 min-h-screen py-8">
+	<div class="bg-[#fffaf2] min-h-screen py-8">
 		<div class="container mx-auto px-4">
 			<div
 				class="max-w-4xl mx-auto">
 
 				<!-- Event Information Section -->
 				{% if event %}
-					<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+					<div class="bg-white border border-[#eadfd1] p-6 mb-8">
 						<div class="flex flex-col md:flex-row md:items-start space-y-4 md:space-y-0 md:space-x-4">
 							{% if event.image_url %}
 								<div class="flex-shrink-0 mx-auto md:mx-0">
@@ -71,7 +80,7 @@
 					</div>
 				{% elseif cart_items and cart_items|length > 0 %}
 					<!-- Fallback if no event data but we have cart items -->
-					<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+					<div class="bg-white border border-[#eadfd1] p-6 mb-8">
 						<div class="flex items-center">
 							<i class="fas fa-ticket-alt mr-3 text-red-600"></i>
 							<h2 class="text-2xl font-bold text-gray-800">{{ cart_items[0].event_name|default('Event Tickets') }}</h2>
@@ -90,7 +99,7 @@
 
 					<!-- Left Column - Checkout Form -->
 					<div class="lg:col-span-2">
-						<div class="bg-white rounded-lg shadow-lg p-6">
+						<div class="bg-white border border-[#eadfd1] p-6">
 							<h2 class="text-2xl font-bold text-gray-800 mb-6">
 								<i class="fas fa-user-edit mr-2 text-red-600"></i>
 								Persoonlijke Gegevens
@@ -118,14 +127,14 @@
 											Voornaam
 											<span class="text-red-500">*</span>
 										</label>
-										<input type="text" id="firstName" name="firstName" required data-frontend--checkout-target="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je voornaam in">
+										<input type="text" id="firstName" name="firstName" required data-frontend--checkout-target="firstName" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je voornaam in">
 									</div>
 									<div>
 										<label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">
 											Achternaam
 											<span class="text-red-500">*</span>
 										</label>
-										<input type="text" id="lastName" name="lastName" required data-frontend--checkout-target="lastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je achternaam in">
+										<input type="text" id="lastName" name="lastName" required data-frontend--checkout-target="lastName" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je achternaam in">
 									</div>
 								</div>
 
@@ -135,7 +144,7 @@
 										Bedrijfsnaam
 										<span class="text-gray-400">(optioneel)</span>
 									</label>
-									<input type="text" id="companyName" name="companyName" data-frontend--checkout-target="companyName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je bedrijfsnaam in (optioneel)">
+									<input type="text" id="companyName" name="companyName" data-frontend--checkout-target="companyName" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je bedrijfsnaam in (optioneel)">
 								</div>
 
 								<!-- City -->
@@ -144,7 +153,7 @@
 										Plaats
 										<span class="text-red-500">*</span>
 									</label>
-									<input type="text" id="city" name="city" required data-frontend--checkout-target="city" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je woonplaats in">
+					<input type="text" id="city" name="city" required data-frontend--checkout-target="city" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je woonplaats in">
 								</div>
 
 								<!-- Phone Number (Optional) -->
@@ -153,7 +162,7 @@
 										Telefoonnummer
 										<span class="text-gray-400">(optioneel)</span>
 									</label>
-									<input type="tel" id="phoneNumber" name="phoneNumber" data-frontend--checkout-target="phoneNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je telefoonnummer in (optioneel)">
+					<input type="tel" id="phoneNumber" name="phoneNumber" data-frontend--checkout-target="phoneNumber" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je telefoonnummer in (optioneel)">
 								</div>
 
 								<!-- Email -->
@@ -162,7 +171,7 @@
 										E-mailadres
 										<span class="text-red-500">*</span>
 									</label>
-									<input type="email" id="email" name="email" required data-frontend--checkout-target="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je e-mailadres in">
+					<input type="email" id="email" name="email" required data-frontend--checkout-target="email" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Voer je e-mailadres in">
 								</div>
 
 								<!-- Email Confirmation -->
@@ -171,7 +180,7 @@
 										Bevestig e-mailadres
 										<span class="text-red-500">*</span>
 									</label>
-									<input type="email" id="emailConfirm" name="emailConfirm" required data-frontend--checkout-target="emailConfirm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Bevestig je e-mailadres">
+					<input type="email" id="emailConfirm" name="emailConfirm" required data-frontend--checkout-target="emailConfirm" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors" placeholder="Bevestig je e-mailadres">
 									<div id="email-match-error" data-frontend--checkout-target="emailMatchError" class="text-red-500 text-sm mt-1 hidden">
 										E-mailadressen komen niet overeen
 									</div>
@@ -194,7 +203,7 @@
 
 					<!-- Right Column - Order Summary -->
 					<div class="lg:col-span-1">
-						<div class="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+						<div class="bg-white border border-[#eadfd1] p-6 sticky top-4">
 							<h3 class="text-xl font-bold text-gray-800 mb-4">
 								<i class="fas fa-shopping-cart mr-2 text-red-600"></i>
 								Bestelling
@@ -242,8 +251,8 @@
 									Kortingscode
 								</label>
 								<div class="space-y-2">
-									<input type="text" id="couponCode" name="couponCode" data-frontend--checkout-target="couponInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors text-sm" placeholder="Voer code in" value="{{ applied_coupon ? applied_coupon.code : '' }}">
-									<button type="button" data-frontend--checkout-target="applyCouponButton" data-action="click->frontend--checkout#applyCoupon" class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition duration-200 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed">
+										<input type="text" id="couponCode" name="couponCode" data-frontend--checkout-target="couponInput" class="w-full px-3 py-2 border border-[#d6c4b1] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors text-sm" placeholder="Voer code in" value="{{ applied_coupon ? applied_coupon.code : '' }}">
+										<button type="button" data-frontend--checkout-target="applyCouponButton" data-action="click->frontend--checkout#applyCoupon" class="w-full px-3 py-2 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-semibold transition-colors text-sm disabled:bg-gray-300 disabled:cursor-not-allowed">
 										Toepassen
 									</button>
 								</div>
@@ -272,7 +281,7 @@
 
 							<!-- Checkout Button -->
 							<div class="mt-6">
-								<button type="submit" form="checkout-form" data-frontend--checkout-target="submitButton" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+								<button type="submit" form="checkout-form" data-frontend--checkout-target="submitButton" class="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold py-3 px-4 transition-colors flex items-center justify-center">
 									<i class="fas fa-credit-card mr-2"></i>
 									Doorgaan naar betaling
 								</button>

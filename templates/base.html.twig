@@ -28,6 +28,13 @@
             html {
                 touch-action: manipulation;
                 -webkit-text-size-adjust: 100%;
+                scroll-behavior: smooth;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                html {
+                    scroll-behavior: auto;
+                }
             }
         </style>
 
@@ -86,29 +93,24 @@
         </script>
 
         <!-- Footer -->
-        <footer class="bg-gray-800 text-white py-8 mt-12">
-            <div class="container mx-auto px-4 text-center">
-                <div class="mb-4">
-                    <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" class="h-16 w-auto mx-auto mb-2">
-                    <h3 class="text-lg font-semibold">Il Grigio</h3>
+        <footer class="bg-[#c62828] text-white border-t-8 border-[#a91f24]">
+            <div class="container mx-auto px-5 py-10 md:py-12 max-w-6xl grid gap-8 md:grid-cols-[1fr_1.5fr_auto] md:items-center">
+                <a href="http://ilgrigio.nl" target="_blank" aria-label="Jeugdcircus Il Grigio" class="flex flex-col items-center md:items-start">
+                    <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-16 w-auto mb-3">
+                    <span class="font-serif text-xl">Jeugdcircus Il Grigio</span>
+                </a>
+
+                <div class="text-sm leading-7 text-white text-center md:text-left">
+                    <p class="font-semibold text-white">Stichting Haarens Jeugdcircus Il Grigio</p>
+                    <p>E-mail: <a href="mailto:info@ilgrigio.nl" class="text-amber-200 underline underline-offset-4 hover:text-white">info@ilgrigio.nl</a></p>
+                    <p>BTW: NL006137155B01 <span class="px-1 text-red-400">·</span> KvK: 41081727</p>
+                    <p>Website: <a href="http://www.ilgrigio.nl" target="_blank" class="text-amber-200 underline underline-offset-4 hover:text-white">www.ilgrigio.nl</a></p>
+                    <button type="button" class="js-open-modal text-amber-200 underline underline-offset-4 hover:text-white bg-transparent border-none cursor-pointer text-sm p-0" data-modal-open="terms">Algemene voorwaarden</button>
                 </div>
-                
-                <!-- Organization Information -->
-                <div class="mb-6 text-gray-300 text-sm space-y-1">
-                    <p class="font-medium">Stichting Haarens Jeugdcircus Il Grigio</p>
-                    <p>E-mail: <a href="mailto:info@ilgrigio.nl" class="text-blue-400 hover:text-blue-300">info@ilgrigio.nl</a></p>
-                    <p>BTW: NL006137155B01</p>
-                    <p>KvK: 41081727</p>
-                    <p>Website: <a href="http://www.ilgrigio.nl" target="_blank" class="text-blue-400 hover:text-blue-300">www.ilgrigio.nl</a></p>
-                    <p><button type="button" class="js-open-modal text-blue-400 hover:text-blue-300 underline bg-transparent border-none cursor-pointer text-sm p-0" data-modal-open="terms">Algemene Voorwaarden: klik hier</button></p>
-                </div>
-                
-                <!-- Back to Main Website Link -->
-                <div class="mb-4">
-                    <a href="http://ilgrigio.nl" target="_blank" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300">
-                        Terug naar Jeugdcircus Il Grigio
-                    </a>
-                </div>
+
+                <a href="http://ilgrigio.nl" target="_blank" class="justify-self-center md:justify-self-end inline-flex items-center gap-2 bg-white hover:bg-amber-50 text-[#a91f24] font-bold px-5 py-3 transition-colors">
+                    Naar de circuswebsite <span aria-hidden="true">→</span>
+                </a>
             </div>
         </footer>
     </body>

@@ -17,6 +17,7 @@ use App\Event\PaymentStatusChangedEvent;
 use App\Payment\PaymentInitiatorInterface;
 use App\Repository\EventRepository;
 use App\Repository\OrderRepository;
+use App\Repository\SitePageRepository;
 use App\Service\CheckoutService;
 use App\Service\CouponResolver;
 use App\Service\MoneyService;
@@ -41,6 +42,7 @@ final class TicketingController extends AbstractController
     public function __construct(
         private EventRepository $eventRepository,
         private OrderRepository $orderRepository,
+        private SitePageRepository $sitePageRepository,
         private CouponResolver $couponResolver,
         private CheckoutService $checkoutService,
         private OrderPricingService $orderPricingService,
@@ -66,6 +68,7 @@ final class TicketingController extends AbstractController
 
         return $this->render('ticketing/index.html.twig', [
             'events' => $events,
+            'homepage' => $this->sitePageRepository->findHomepage(),
         ]);
     }
 
