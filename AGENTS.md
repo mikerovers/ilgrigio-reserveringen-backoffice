@@ -73,6 +73,7 @@ src/
   Enum/               # PHP enums (OrderStatus, TicketStatus, PaymentStatus, etc.)
   Event/              # Domain events (OrderCreatedEvent, OrderCompletedEvent, etc.)
   EventListener/      # Symfony event listeners (OrderFulfilmentListener, OrderHistoryListener, TokenRefreshRateLimitListener)
+  Exception/          # Domain exceptions (CouponUnavailableException, RegisterOrderException)
   Message/            # Symfony Messenger message classes
   MessageHandler/     # Async message handlers
   Payment/            # Payment integration (OmnipayMolliePaymentInitiator, PaymentInitiatorInterface)
@@ -97,7 +98,7 @@ config/
   Mollie API before updating the order.
 - A paid (or zero-total) order dispatches `OrderCompletedEvent`.
   `OrderFulfilmentListener` issues tickets idempotently, creates a signed PDF
-  token, and queues `SendOrderEmailMessage` on the Doctrine-backed `async`
+  token, and queues `SendOrderEmailMessage` on the Doctrine-backed `email`
   transport.
 - The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
   use the API-key authenticator; check-in and order reprocessing require a JWT.
@@ -137,6 +138,15 @@ config/
   PAID re-takes it via `reacquireForOrder()`. Run
   `bin/console app:orders:expire-pending` every minute from cron;
   `ORDER_RESERVATION_TTL_MINUTES` (default 30) sets how long unpaid orders hold stock.
+- **Coupons:** `DiscountType` is `percent` (basis points, 1000 = 10%),
+  `fixed_cart` (cents off the cart), or `by_ticket` (count of highest-priced
+  ticket units made free; `Coupon.amount` is that count). Register ad-hoc
+  discounts stay `percent` or `fixed` only; `REGISTER_MAX_DISCOUNT_PERCENT`
+  (default 100) caps a percent discount. Redemptions on failed, cancelled, or
+  refunded orders do not count toward `usageLimit`.
+- **Dev-only previews** (`when@dev` in `config/routes/dev_email_preview.yaml`):
+  `GET /_dev/orders/{orderNumber}/email-preview` and
+  `GET /_dev/tickets/{ticketCode}/preview`. They are not registered outside `dev`.
 - `/bedankt` (`TicketingController::thankYou`) resolves the order strictly from
   the session (`order_number`), never from a query parameter — do not
   reintroduce a `?order=`-driven lookup, as that previously allowed anyone to
@@ -209,15 +219,19 @@ config/
 - Use `#[Route(...)]` attribute on controller actions
 - Use `#[AsRemoteEventConsumer('name')]` for webhook consumers implementing `ConsumerInterface`
 - Use `#[AsMessageHandler]` on message handler classes
-- Use `#[AsMessage('async')]` on message classes
+- Use `#[AsMessage('email')]` (or `async`) on message classes so they match `messenger.yaml` routing. `SendOrderEmailMessage` is `email`.
 - Use Symfony Validator `#[Assert\...]` attributes on DTOs for input validation
 - Throw `$this->createNotFoundException(...)` from controllers; re-throw domain exceptions
 
 ### Messenger queues
 
-- The `async` and `failed` Messenger transports share the database-backed
+- The `async`, `email`, and `failed` Messenger transports share the database-backed
   `messenger_messages` table; distinguish them by `queue_name`.
-- The worker consumes only `async`. It retries operational failures five times
+- Order confirmation mail is the `email` transport (`SendOrderEmailMessage`).
+  Run `bin/console messenger:consume email -vv` (add `async` if something is
+  routed there). Local `.env` sets `MESSENGER_EMAIL_TRANSPORT_DSN=sync://`, so
+  mail is sent in-process unless that DSN is a Doctrine queue.
+- The worker retries operational failures five times
   with exponential backoff (starting at five minutes and capped at one hour),
   then moves the message to `failed`.
 - Successful messages are acknowledged and removed. Inspect queued counts with
@@ -273,7 +287,7 @@ config/
 - Mock intersection types: `MockObject|InterfaceName $dependency`
 - Assert specific HTTP status codes, content types, and body content in controller tests
 - Replace container services with mocks via `static::getContainer()->set(ClassName::class, $mock)` in functional tests
-- PHPUnit version: **11.5** (configured in `phpunit.xml.dist`)
+- PHPUnit version: **11.5** (configured in `phpunit.dist.xml`, which PHPUnit 11 loads when `phpunit.xml` is absent)
 - Functional tests use a real Postgres database. `phpunit.dist.xml` points at
   port 5432; if your local DB runs elsewhere (e.g. the docker container on
   32768), export `DATABASE_URL` for a separate test database and run
@@ -308,9 +322,12 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `PDF_TOKEN_EXPIRATION_DAYS` | Token validity in days (default 150) |
 | `MOLLIE_API_KEY` | Mollie payment API key |
 | `MAX_TICKETS_PER_ORDER` | Ticket purchase limit per order |
+| `REGISTER_MAX_DISCOUNT_PERCENT` | Cap on register ad-hoc percent discounts (default `100`) |
+| `ORDER_RESERVATION_TTL_MINUTES` | How long an unpaid web order holds stock (default `30`) |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |
 | `API_KEY` | API key for `OrderApiController` authentication |
 | `MESSENGER_TRANSPORT_DSN` | Doctrine DSN for the `async` queue, e.g. `doctrine://default?queue_name=async` |
+| `MESSENGER_EMAIL_TRANSPORT_DSN` | DSN for order emails (`email` transport). `sync://` sends inline; a Doctrine DSN queues them |
 | `MESSENGER_FAILED_TRANSPORT_DSN` | Doctrine DSN for exhausted messages, e.g. `doctrine://default?queue_name=failed` |
 | `NEW_RELIC_LICENSE_KEY` | New Relic license key for APM/logging |
 | `NEW_RELIC_APP_NAME` | New Relic application name |

@@ -3,7 +3,7 @@
 Symfony 7.4 application for event reservations, ticket sales, payments, and
 backoffice operations. Orders are created and stored in this application.
 Online payments use Mollie; completed orders issue tickets and send confirmation
-emails through the database-backed Messenger queue. The register API supports
+emails through the Messenger `email` transport. The register API supports
 in-person cash sales.
 
 ## Local setup
@@ -30,11 +30,12 @@ guidance.
    symfony server:start
    ```
 
-4. To deliver queued order emails, run a Messenger worker in a separate
-   terminal:
+4. Order emails use `MESSENGER_EMAIL_TRANSPORT_DSN`. The default `.env` value
+   is `sync://`, so they are sent in the request that queues them. When that
+   DSN is a Doctrine queue, run a worker in a separate terminal:
 
    ```bash
-   bin/console messenger:consume async -vv
+   bin/console messenger:consume email -vv
    ```
 
 ## Common commands
@@ -56,7 +57,8 @@ running them.
 - Mollie sends payment updates to `/webhook/mollie`; the application retrieves
   authoritative payment status from Mollie before changing the order.
 - Paid and zero-total orders are fulfilled idempotently, with tickets and a
-  signed PDF download link, and confirmation mail is queued for delivery.
+  signed PDF download link, and confirmation mail is dispatched on the `email`
+  transport.
 - The backoffice uses EasyAdmin. The authenticated register API supports cash
   sales, order lookup and cancellation, notes, reprocessing, event and coupon
   lookup, and sale reports.
