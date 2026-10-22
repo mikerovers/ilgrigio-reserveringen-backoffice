@@ -32,28 +32,60 @@ final class OrderPricingService
     public function calculate(array $cart, Coupon|Discount|null $coupon, float $taxRatePercent): OrderTotals
     {
         $subtotalGross = Money::EUR(0);
+        $ticketRows = [];
 
         foreach ($cart as $row) {
             $lineGross = $row['ticketType']->price->multiply($row['quantity']);
             $subtotalGross = $subtotalGross->add($lineGross);
+            $ticketRows[] = ['price' => $row['ticketType']->price, 'quantity' => $row['quantity']];
         }
 
-        return $this->calculateFromCartGross($subtotalGross, $coupon, $taxRatePercent);
+        return $this->calculateTotals($subtotalGross, $coupon, $taxRatePercent, $ticketRows);
     }
 
     /**
-     * Preview calculation when only a pre-computed gross total is available
-     * (e.g. cart items stored as floats in the session). Uses the same
-     * discount and net/tax split logic as calculate().
+     * @param array<array{price: Money, quantity: int}> $ticketRows
      */
-    public function calculateFromCartGross(Money $cartGross, Coupon|Discount|null $coupon, float $taxRatePercent): OrderTotals
-    {
+    public function calculateFromTicketRows(
+        array $ticketRows,
+        Coupon|Discount|null $coupon,
+        float $taxRatePercent,
+    ): OrderTotals {
+        $cartGross = Money::EUR(0);
+        foreach ($ticketRows as $row) {
+            $cartGross = $cartGross->add($row['price']->multiply($row['quantity']));
+        }
+
+        return $this->calculateTotals($cartGross, $coupon, $taxRatePercent, $ticketRows);
+    }
+
+    /**
+     * Preview calculation when only a pre-computed gross total is available.
+     * By-ticket coupons require calculateFromTicketRows() or calculate().
+     */
+    public function calculateFromCartGross(
+        Money $cartGross,
+        Coupon|Discount|null $coupon,
+        float $taxRatePercent,
+    ): OrderTotals {
+        return $this->calculateTotals($cartGross, $coupon, $taxRatePercent);
+    }
+
+    /**
+     * @param array<array{price: Money, quantity: int}>|null $ticketRows
+     */
+    private function calculateTotals(
+        Money $cartGross,
+        Coupon|Discount|null $coupon,
+        float $taxRatePercent,
+        ?array $ticketRows = null,
+    ): OrderTotals {
         $discountGross = Money::EUR(0);
         $discountNet = Money::EUR(0);
         $discountTax = Money::EUR(0);
 
         if ($coupon !== null) {
-            $discountGross = $this->discountCalculator->discountGross($coupon, $cartGross);
+            $discountGross = $this->discountCalculator->discountGross($coupon, $cartGross, $ticketRows);
             [$discountNet, $discountTax] = $this->discountCalculator->splitDiscount($discountGross, $taxRatePercent);
         }
 

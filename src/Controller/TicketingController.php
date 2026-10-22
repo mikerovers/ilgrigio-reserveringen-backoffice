@@ -24,7 +24,6 @@ use App\Service\MoneyService;
 use App\Service\OrderPricingService;
 use App\Service\StockReservationService;
 use App\Service\VenueTime;
-use Money\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -127,7 +126,7 @@ final class TicketingController extends AbstractController
         }
 
         $cartItems = [];
-        $grossTotal = Money::EUR(0);
+        $pricingCart = [];
         foreach ($ticketOrder->tickets as $ticketTypeId => $data) {
             $quantity = (int) ($data['quantity'] ?? 0);
             if ($quantity <= 0) {
@@ -140,7 +139,6 @@ final class TicketingController extends AbstractController
             }
 
             $lineGross = $ticketType->price->multiply($quantity);
-            $grossTotal = $grossTotal->add($lineGross);
             $cartItems[] = [
                 'id' => (string) $ticketType->id,
                 'name' => $ticketType->name,
@@ -151,6 +149,7 @@ final class TicketingController extends AbstractController
                 'event_name' => $event->name,
                 'date' => VenueTime::toLocal($event->startsAt)->format('d-m-Y'),
             ];
+            $pricingCart[] = ['ticketType' => $ticketType, 'quantity' => $quantity];
         }
 
         if ($cartItems === []) {
@@ -164,7 +163,7 @@ final class TicketingController extends AbstractController
             $this->addFlash('error', 'De kortingscode is ongeldig, verlopen of al gebruikt en is niet toegepast.');
         }
 
-        $totals = $this->orderPricingService->calculateFromCartGross($grossTotal, $coupon, $this->taxRate);
+        $totals = $this->orderPricingService->calculate($pricingCart, $coupon, $this->taxRate);
 
         $session = $request->getSession();
         if (!$session->isStarted()) {
@@ -198,7 +197,31 @@ final class TicketingController extends AbstractController
             $session->set('checkout_token', $checkoutToken);
         }
 
-        $cartGross = $this->cartGross($cartItems);
+        $eventSlug = $session->get('event_slug');
+        $event = is_string($eventSlug) ? $this->eventRepository->findOneBySlug($eventSlug) : null;
+        if ($event !== null) {
+            $ticketTypesById = [];
+            foreach ($event->ticketTypes as $ticketType) {
+                $ticketTypesById[(string) $ticketType->id] = $ticketType;
+            }
+
+            foreach ($cartItems as &$item) {
+                $ticketType = $ticketTypesById[(string) ($item['id'] ?? '')] ?? null;
+                if ($ticketType === null) {
+                    continue;
+                }
+
+                $item['price'] = $this->moneyService->toFloat($ticketType->price);
+                $item['total'] = $this->moneyService->toFloat($ticketType->price->multiply((int) $item['quantity']));
+            }
+            unset($item);
+            $session->set('cart_items', $cartItems);
+        }
+
+        $ticketRows = array_map(fn (array $item): array => [
+            'price' => $this->moneyService->eurosToMoney((float) ($item['price'] ?? 0)),
+            'quantity' => (int) ($item['quantity'] ?? 0),
+        ], $cartItems);
         $couponCode = $session->get('applied_coupon_code');
         $coupon = $this->couponResolver->resolve($couponCode);
         if ($couponCode !== null && $coupon === null) {
@@ -206,7 +229,7 @@ final class TicketingController extends AbstractController
             $this->addFlash('error', 'Je kortingscode is niet meer geldig en is verwijderd. Controleer het totaalbedrag.');
         }
 
-        $totals = $this->orderPricingService->calculateFromCartGross($cartGross, $coupon, $this->taxRate);
+        $totals = $this->orderPricingService->calculateFromTicketRows($ticketRows, $coupon, $this->taxRate);
 
         return $this->render('ticketing/checkout.html.twig', [
             'cart_items' => $cartItems,
@@ -411,19 +434,6 @@ final class TicketingController extends AbstractController
             $session->remove($key);
         }
         $session->set('discount', 0);
-    }
-
-    /**
-     * @param array<array{total?: float|int}> $cartItems
-     */
-    private function cartGross(array $cartItems): Money
-    {
-        $total = Money::EUR(0);
-        foreach ($cartItems as $item) {
-            $total = $total->add($this->moneyService->eurosToMoney((float) ($item['total'] ?? 0)));
-        }
-
-        return $total;
     }
 
     /**

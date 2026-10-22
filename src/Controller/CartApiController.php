@@ -68,14 +68,14 @@ final class CartApiController extends AbstractController
         }
 
         $session = $httpRequest->getSession();
-        $cartGross = $this->cartGross($session->get('cart_items', []));
+        $ticketRows = $this->ticketRows($session->get('cart_items', []), $session->get('event_slug'));
 
         $coupon = $this->couponResolver->resolve($request->code);
         if ($coupon === null) {
             return $this->json(CouponResponse::invalid('Coupon is ongeldig, verlopen of al gebruikt.'));
         }
 
-        $totals = $this->orderPricingService->calculateFromCartGross($cartGross, $coupon, $this->taxRatePercent);
+        $totals = $this->orderPricingService->calculateFromTicketRows($ticketRows, $coupon, $this->taxRatePercent);
 
         $session->set('applied_coupon_code', $coupon->code);
         $session->set('applied_coupon', ['code' => $coupon->code]);
@@ -99,7 +99,10 @@ final class CartApiController extends AbstractController
         $session->remove('applied_coupon');
         $session->set('discount', 0);
 
-        $cartGross = $this->cartGross($session->get('cart_items', []));
+        $ticketRows = $this->ticketRows($session->get('cart_items', []), $session->get('event_slug'));
+        $cartGross = $this->orderPricingService
+            ->calculateFromTicketRows($ticketRows, null, $this->taxRatePercent)
+            ->subtotalGross;
 
         return $this->json(new CouponResponse(
             valid: true,
@@ -110,15 +113,26 @@ final class CartApiController extends AbstractController
     }
 
     /**
-     * @param array<array{total?: float|int}> $cartItems
+     * @param array<array{id?: string, price?: float|int, quantity?: int}> $cartItems
+     * @return array<array{price: Money, quantity: int}>
      */
-    private function cartGross(array $cartItems): Money
+    private function ticketRows(array $cartItems, mixed $eventSlug): array
     {
-        $total = Money::EUR(0);
-        foreach ($cartItems as $item) {
-            $total = $total->add($this->moneyService->eurosToMoney((float) ($item['total'] ?? 0)));
+        $ticketTypesById = [];
+        if (is_string($eventSlug)) {
+            $event = $this->eventRepository->findOneBySlug($eventSlug);
+            foreach ($event?->ticketTypes ?? [] as $ticketType) {
+                $ticketTypesById[(string) $ticketType->id] = $ticketType;
+            }
         }
 
-        return $total;
+        $rows = [];
+        foreach ($cartItems as $item) {
+            $ticketType = $ticketTypesById[(string) ($item['id'] ?? '')] ?? null;
+            $price = $ticketType?->price ?? $this->moneyService->eurosToMoney((float) ($item['price'] ?? 0));
+            $rows[] = ['price' => $price, 'quantity' => (int) ($item['quantity'] ?? 0)];
+        }
+
+        return $rows;
     }
 }

@@ -11,4 +11,7 @@ enum DiscountType: string
 
     /** Coupon amount is expressed in cents off the cart total. */
     case FIXED_CART = 'fixed_cart';
+
+    /** Coupon amount is the number of highest-priced ticket units made free. */
+    case BY_TICKET = 'by_ticket';
 }

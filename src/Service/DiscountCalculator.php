@@ -11,8 +11,8 @@ use Money\Money;
 
 /**
  * Discounts apply to the tax-inclusive (gross) cart total. PERCENT coupons
- * store basis points (1000 = 10%), FIXED_CART coupons store cents. The result
- * never exceeds the cart total.
+ * store basis points (1000 = 10%), FIXED_CART coupons store cents, and
+ * BY_TICKET coupons store a ticket count. The result never exceeds the cart total.
  */
 final class DiscountCalculator
 {
@@ -32,13 +32,17 @@ final class DiscountCalculator
     /**
      * The gross discount, capped at the cart total.
      */
-    public function discountGross(Coupon|Discount $source, Money $cartGross): Money
+    /**
+     * @param array<array{price: Money, quantity: int}>|null $ticketRows
+     */
+    public function discountGross(Coupon|Discount $source, Money $cartGross, ?array $ticketRows = null): Money
     {
         $rule = $source instanceof Coupon ? $source->toDiscount() : $source;
 
         $discount = match ($rule->type) {
             DiscountType::PERCENT => $cartGross->multiply($rule->amount)->divide(10000),
             DiscountType::FIXED_CART => Money::EUR($rule->amount),
+            DiscountType::BY_TICKET => $this->discountHighestPricedTickets($rule->amount, $ticketRows),
         };
 
         if ($discount->isNegative()) {
@@ -46,6 +50,32 @@ final class DiscountCalculator
         }
 
         return $discount->greaterThan($cartGross) ? $cartGross : $discount;
+    }
+
+    /**
+     * @param array<array{price: Money, quantity: int}>|null $ticketRows
+     */
+    private function discountHighestPricedTickets(int $ticketCount, ?array $ticketRows): Money
+    {
+        if ($ticketRows === null) {
+            throw new \LogicException('By-ticket discounts require ticket prices and quantities.');
+        }
+
+        usort($ticketRows, static fn (array $a, array $b): int => $b['price']->compare($a['price']));
+
+        $remaining = $ticketCount;
+        $discount = Money::EUR(0);
+        foreach ($ticketRows as $row) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $discountedQuantity = min($remaining, $row['quantity']);
+            $discount = $discount->add($row['price']->multiply($discountedQuantity));
+            $remaining -= $discountedQuantity;
+        }
+
+        return $discount;
     }
 
     /**

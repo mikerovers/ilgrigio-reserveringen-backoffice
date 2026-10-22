@@ -20,6 +20,9 @@ enum RegisterDiscountType: string
         return match ($type) {
             DiscountType::PERCENT => self::PERCENT,
             DiscountType::FIXED_CART => self::FIXED,
+            DiscountType::BY_TICKET => throw new \LogicException(
+                'By-ticket coupons are not manual register discounts.',
+            ),
         };
     }
 

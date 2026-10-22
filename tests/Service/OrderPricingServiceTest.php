@@ -74,6 +74,53 @@ final class OrderPricingServiceTest extends TestCase
         $this->assertTrue($totals->subtotalNet->add($totals->tax)->equals($totals->totalGross));
     }
 
+    public function testByTicketCouponMakesHighestPricedTicketUnitsFree(): void
+    {
+        $cart = [
+            ['ticketType' => $this->ticketType(1200), 'quantity' => 2],
+            ['ticketType' => $this->ticketType(800), 'quantity' => 3],
+            ['ticketType' => $this->ticketType(1000), 'quantity' => 1],
+        ];
+        $coupon = new Coupon('TWO-FREE', DiscountType::BY_TICKET, 3);
+
+        $totals = $this->service->calculate($cart, $coupon, 9.0);
+
+        $this->assertSame('5800', $totals->subtotalGross->getAmount());
+        $this->assertSame('3400', $totals->discountGross->getAmount());
+        $this->assertSame('2400', $totals->totalGross->getAmount());
+    }
+
+    public function testOneByTicketCouponMakesOneTenEuroTicketFree(): void
+    {
+        $coupon = new Coupon('ONE-FREE', DiscountType::BY_TICKET, 1);
+        $totals = $this->service->calculate([
+            ['ticketType' => $this->ticketType(1000), 'quantity' => 1],
+        ], $coupon, 9.0);
+
+        $this->assertSame('1000', $totals->discountGross->getAmount());
+        $this->assertTrue($totals->totalGross->isZero());
+    }
+
+    public function testByTicketCouponCapsDiscountAtCartQuantityAndPreviewUsesCurrentPrices(): void
+    {
+        $coupon = new Coupon('ALL-FREE', DiscountType::BY_TICKET, 5);
+        $cart = [
+            ['ticketType' => $this->ticketType(1200), 'quantity' => 1],
+            ['ticketType' => $this->ticketType(800), 'quantity' => 1],
+        ];
+
+        $initial = $this->service->calculate($cart, $coupon, 9.0);
+        $preview = $this->service->calculateFromTicketRows([
+            ['price' => Money::EUR(1500), 'quantity' => 1],
+            ['price' => Money::EUR(800), 'quantity' => 1],
+        ], $coupon, 9.0);
+
+        $this->assertSame('2000', $initial->discountGross->getAmount());
+        $this->assertSame('2300', $preview->subtotalGross->getAmount());
+        $this->assertSame('2300', $preview->discountGross->getAmount());
+        $this->assertTrue($preview->totalGross->isZero());
+    }
+
     public function testFullDiscountProducesZeroTotal(): void
     {
         $cart = [['ticketType' => $this->ticketType(5000), 'quantity' => 1]];

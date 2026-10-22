@@ -50,6 +50,14 @@
                                    data-action="change->admin--coupon-bulk-create#discountTypeChanged">
                             <label class="form-check-label" for="discountTypeFixed">Fixed amount</label>
                         </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="discountType" id="discountTypeByTicket"
+                                   value="by_ticket"
+                                   {% if bulk_request is defined and bulk_request.discountType.value == 'by_ticket' %}checked{% endif %}
+                                   data-admin--coupon-bulk-create-target="discountType"
+                                   data-action="change->admin--coupon-bulk-create#discountTypeChanged">
+                            <label class="form-check-label" for="discountTypeByTicket">By ticket</label>
+                        </div>
                     </div>
 
                     <div class="col-md-4">
@@ -80,11 +88,11 @@
                     </div>
 
                     <div class="col-12">
-                        <label for="amount" class="form-label">Amount</label>
+                        <label for="amount" class="form-label" data-admin--coupon-bulk-create-target="amountLabel">Amount</label>
                         <input type="number" class="form-control" id="amount" name="amount" min="1"
                                value="{{ bulk_request is defined ? bulk_request.amount : '' }}" required
                                data-admin--coupon-bulk-create-target="amount">
-                        <div class="form-text">10 = 10% or &euro;10, depending on discount type. Percentage cannot exceed 100. Applies to every code below.</div>
+                        <div class="form-text" data-admin--coupon-bulk-create-target="amountHelp">10 = 10%, &euro;10, or 10 tickets, depending on discount type. By-ticket coupons make the highest-priced tickets free. Percentage cannot exceed 100.</div>
                     </div>
 
                     <div class="col-12">

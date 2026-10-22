@@ -38,4 +38,6 @@
 # test-only keypair used solely via when@test env overrides.
 /config/jwt/private.pem
 /config/jwt/public.pem
+/config/jwt/local-private.pem
+/config/jwt/local-public.pem
 ###< lexik/jwt-authentication-bundle ###

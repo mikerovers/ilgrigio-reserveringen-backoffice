@@ -6,7 +6,7 @@ import { Controller } from "@hotwired/stimulus"
 // textarea; the request is never trusted to generate codes client-side, so
 // uniqueness is always checked against existing coupons.
 export default class extends Controller {
-    static targets = ["prefix", "amount", "quantity", "codes", "prefillButton", "discountType"]
+    static targets = ["prefix", "amount", "quantity", "codes", "prefillButton", "discountType", "amountLabel", "amountHelp"]
 
     static values = {
         generateUrl: String,
@@ -25,8 +25,16 @@ export default class extends Controller {
 
         if (selected?.value === "percent") {
             this.amountTarget.setAttribute("max", "100")
+            this.amountLabelTarget.textContent = "Percentage"
+            this.amountHelpTarget.textContent = "Enter a whole percentage from 1 to 100. Applies to every code below."
+        } else if (selected?.value === "by_ticket") {
+            this.amountTarget.removeAttribute("max")
+            this.amountLabelTarget.textContent = "Tickets to make free"
+            this.amountHelpTarget.textContent = "The highest-priced tickets in the cart will be free. Applies to every code below."
         } else {
             this.amountTarget.removeAttribute("max")
+            this.amountLabelTarget.textContent = "Amount"
+            this.amountHelpTarget.textContent = "Enter a whole euro amount. Applies to every code below."
         }
     }
 

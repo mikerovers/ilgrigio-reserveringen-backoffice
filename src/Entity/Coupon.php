@@ -36,7 +36,7 @@ class Coupon
     #[ORM\Column(enumType: DiscountType::class)]
     public DiscountType $discountType = DiscountType::PERCENT;
 
-    /** Basis points for PERCENT (1000 = 10%), cents for FIXED_CART. */
+    /** Basis points for PERCENT, cents for FIXED_CART, ticket count for BY_TICKET. */
     #[ORM\Column(type: 'integer')]
     #[Assert\Positive(message: 'Amount must be greater than zero.')]
     public int $amount = 0;

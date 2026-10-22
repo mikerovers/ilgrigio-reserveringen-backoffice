@@ -163,6 +163,7 @@ class CouponBulkCreateController extends AbstractController
         return match ($discountType) {
             DiscountType::PERCENT => $displayAmount * 100,
             DiscountType::FIXED_CART => $displayAmount * 100,
+            DiscountType::BY_TICKET => $displayAmount,
         };
     }
 }

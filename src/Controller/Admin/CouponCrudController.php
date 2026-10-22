@@ -68,18 +68,28 @@ class CouponCrudController extends AbstractCrudController
             ->setChoices([
                 'Percentage (basis points)' => DiscountType::PERCENT,
                 'Fixed cart (cents)' => DiscountType::FIXED_CART,
+                'By ticket (highest-priced tickets free)' => DiscountType::BY_TICKET,
             ])
             ->renderAsBadges([
                 DiscountType::PERCENT->value => 'success',
                 DiscountType::FIXED_CART->value => 'primary',
+                DiscountType::BY_TICKET->value => 'warning',
             ]);
         yield IntegerField::new('amount')
-            ->setHelp('Percentage: basis points (1000 = 10%). Fixed: cents (500 = €5,00).')
+            ->setHelp(
+                'Percentage: basis points (100 = 1%, 1000 = 10%, 10000 = 100%). '
+                . 'Fixed: cents (500 = €5,00). '
+                . 'By ticket: number of highest-priced tickets made free.',
+            )
             ->formatValue(function (mixed $value, Coupon $coupon): string {
                 if ($coupon->discountType === DiscountType::FIXED_CART) {
                     $formatter = new DecimalMoneyFormatter(new ISOCurrencies());
 
                     return '€' . $formatter->format(Money::EUR($coupon->amount));
+                }
+
+                if ($coupon->discountType === DiscountType::BY_TICKET) {
+                    return sprintf('%d ticket(s)', $coupon->amount);
                 }
 
                 return number_format($coupon->amount / 100, 2) . '%';

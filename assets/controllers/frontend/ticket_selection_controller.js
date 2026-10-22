@@ -319,12 +319,37 @@ export default class extends Controller {
 
         // The server's discountCents was computed against whatever cart was in
         // the session, not the current selection, so recompute from the coupon's
-        // type/amount (percent = basis points, fixed_cart = cents).
+        // type/amount (percent = basis points, fixed_cart = cents, by_ticket = count).
         const subtotalCents = Math.round(subtotal * 100);
-        const discountCents =
-            this.appliedCoupon.discountType === "percent"
-                ? Math.round((subtotalCents * this.appliedCoupon.amount) / 10000)
-                : this.appliedCoupon.amount;
+        let discountCents;
+
+        if (this.appliedCoupon.discountType === "percent") {
+            discountCents = Math.round((subtotalCents * this.appliedCoupon.amount) / 10000);
+        } else if (this.appliedCoupon.discountType === "by_ticket") {
+            let ticketsToDiscount = Math.max(0, Math.floor(Number(this.appliedCoupon.amount) || 0));
+            discountCents = 0;
+
+            const selectedTickets = this.quantityTargets
+                .filter((input) => !input.disabled)
+                .map((input) => ({
+                    priceCents: Math.round(parseFloat(input.dataset.price) * 100),
+                    quantity: Math.max(0, parseInt(input.value, 10) || 0),
+                }))
+                .filter((ticket) => ticket.quantity > 0 && Number.isFinite(ticket.priceCents))
+                .sort((a, b) => b.priceCents - a.priceCents);
+
+            for (const ticket of selectedTickets) {
+                if (ticketsToDiscount === 0) {
+                    break;
+                }
+
+                const discountedQuantity = Math.min(ticketsToDiscount, ticket.quantity);
+                discountCents += ticket.priceCents * discountedQuantity;
+                ticketsToDiscount -= discountedQuantity;
+            }
+        } else {
+            discountCents = this.appliedCoupon.amount;
+        }
 
         return Math.min(Math.max(discountCents, 0), subtotalCents) / 100;
     }
