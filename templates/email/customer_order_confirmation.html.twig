@@ -1,4 +1,4 @@
-{% apply inky_to_html|inline_css %}
+{% apply inline_css %}
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -30,7 +30,7 @@
         .details-title { color: #a91f24; font-size: 17px; margin: 0 0 14px; }
         .order-table { border-collapse: collapse; width: 100%; }
         .order-table th { background-color: #c62828; color: #ffffff; font-size: 12px; padding: 10px 8px; text-align: left; }
-        .order-table td { border-bottom: 1px solid #eadfd1; padding: 10px 8px; vertical-align: top; }
+        .order-table td { border-bottom: 1px solid #eadfd1; padding: 10px 8px; text-align: left; vertical-align: top; }
         .align-right { text-align: right !important; }
         .summary-row td { border-bottom: 0; padding-bottom: 5px; }
         .total-row td { border-top: 2px solid #c62828; color: #a91f24; font-size: 16px; font-weight: bold; padding-top: 12px; }
@@ -63,9 +63,12 @@
         </td>
     </tr>
 </table>
-<container class="email-background">
-    <row class="email-card">
-        <columns class="content">
+<table class="email-background" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#fffaf2">
+    <tr>
+        <td align="center" style="padding: 28px 12px;">
+            <table class="email-card" width="700" align="center" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#ffffff" style="width: 100%; max-width: 700px;">
+                <tr>
+                    <td class="content">
             <p class="greeting">{% if customer_name %}Bedankt voor je reservering, {{ customer_name }}!{% else %}Bedankt voor je reservering!{% endif %}</p>
             <p class="intro">Je tickets zijn als PDF bijgevoegd bij deze e-mail. Je kunt ze ook downloaden via de beveiligde link hieronder.</p>
 
@@ -121,9 +124,12 @@
                 <p>Vragen of opmerkingen? Neem contact met ons op via <a href="mailto:reserveringen@ilgrigio.nl">reserveringen@ilgrigio.nl</a> of bel tijdens de circusperiode naar <strong>0411 - 62 12 15</strong>.</p>
                 <p>Praktische informatie vind je op <a href="http://www.ilgrigio.nl/faq" target="_blank">www.ilgrigio.nl/faq</a>.</p>
             </div>
-        </columns>
-    </row>
-</container>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 <table class="footer" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#c62828">
     <tr>
         <td align="center">
