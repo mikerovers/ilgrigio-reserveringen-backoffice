@@ -3,6 +3,8 @@ twig:
     # Stored instants are UTC; templates show venue (Amsterdam) wall-clock time.
     date:
         timezone: Europe/Amsterdam
+    globals:
+        ilgrigio_reserveringen_base_url: '%ilgrigio_reserveringen_base_url%'
 
 when@test:
     twig:

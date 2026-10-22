@@ -7,6 +7,7 @@ parameters:
     default_from_email: 'noreply@example.com'
     default_admin_email: 'admin@example.com'
     admin_host: '%env(ADMIN_HOST)%'
+    ilgrigio_reserveringen_base_url: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
     env(ORDER_RESERVATION_TTL_MINUTES): '30'
     env(REGISTER_MAX_DISCOUNT_PERCENT): '100'
 

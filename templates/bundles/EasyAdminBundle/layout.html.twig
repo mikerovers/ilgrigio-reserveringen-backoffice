@@ -15,3 +15,13 @@
         <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Il Grigio" style="max-height:32px;vertical-align:middle;">
     </a>
 {% endblock responsive_header_logo %}
+
+{% block header_custom_menu_wrapper %}
+    <div class="navbar-custom-menu" style="display: flex; align-items: center; gap: 1rem;">
+        <twig:ea:Button onclick="window.open('{{ ilgrigio_reserveringen_base_url }}', '_blank')" title="Visit the website">
+            <twig:ea:Icon name="internal:detail" />
+            <span class="d-none d-lg-inline ms-2">Visit Site</span>
+        </twig:ea:Button>
+        {{ parent() }}
+    </div>
+{% endblock header_custom_menu_wrapper %}
