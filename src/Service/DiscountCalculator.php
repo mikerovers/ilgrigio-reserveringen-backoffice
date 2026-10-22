@@ -10,11 +10,9 @@ use App\Enum\DiscountType;
 use Money\Money;
 
 /**
- * Local replacement for WooCommerceCouponService discount math.
- *
- * Discounts apply to the tax-inclusive (gross) cart total, mirroring the
- * previous WooCommerce behaviour. PERCENT coupons store basis points (1000 =
- * 10%), FIXED_CART coupons store cents. The result never exceeds the cart total.
+ * Discounts apply to the tax-inclusive (gross) cart total. PERCENT coupons
+ * store basis points (1000 = 10%), FIXED_CART coupons store cents. The result
+ * never exceeds the cart total.
  */
 final class DiscountCalculator
 {

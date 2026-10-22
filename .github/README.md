@@ -19,15 +19,10 @@ To use this deployment workflow, you need to configure the following secrets in 
 - `MAILER_DSN` - Email server configuration
 - `MAILER_FROM_EMAIL` - From email address for notifications
 - `ADMIN_EMAIL` - Administrator email address
-- `WOOCOMMERCE_CONSUMER_KEY` - WooCommerce API consumer key
-- `WOOCOMMERCE_CONSUMER_SECRET` - WooCommerce API consumer secret
-- `WOOCOMMERCE_WEBHOOK_SECRET` - WooCommerce webhook verification secret
-- `ILGRIGIO_BASE_URL` - Base URL of your application
-- `ILGRIGIO_BASE_API_URL` - WooCommerce API base URL
+- `ILGRIGIO_RESERVERINGEN_BASE_URL` - Public base URL used for payment return and email links
+- `MOLLIE_API_KEY` - Mollie payment API key
 - `PDF_TOKEN_SECRET` - Secret key for PDF download tokens
 - `PDF_TOKEN_EXPIRATION_DAYS` - Token expiration in days (default: 150)
-- `ILGRIGIO_TICKET_API_URL` - Ticket API endpoint URL
-- `ILGRIGIO_TICKET_API_KEY` - Ticket API authentication key
 - `MAX_TICKETS_PER_ORDER` - Maximum tickets per order (default: 10)
 - `TAX_RATE` - Tax rate (default: 0.21)
 

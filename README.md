@@ -1,84 +1,66 @@
 # Il Grigio Reservations Backoffice
 
-Symfony application that integrates with WooCommerce to handle event ticketing, order processing, and secure PDF invoice generation.
+Symfony 7.4 application for event reservations, ticket sales, payments, and
+backoffice operations. Orders are created and stored in this application.
+Online payments use Mollie; completed orders issue tickets and send confirmation
+emails through the database-backed Messenger queue. The register API supports
+in-person cash sales.
 
-## Setup
+## Local setup
 
-### 1. Install Dependencies
+Requirements: PHP 8.2+, Composer, and PostgreSQL. See `AGENTS.md` for the
+application architecture, API behavior, security boundaries, and coding
+guidance.
 
-```bash
-composer install
-```
+1. Install PHP dependencies:
 
-### 2. Configure Environment
+   ```bash
+   composer install
+   ```
 
-Copy `.env` to `.env.local` and configure:
+2. Copy `.env` to `.env.local` and configure the local database, application
+   secret, mail transport, Mollie API key, JWT keys, PDF token secret, and the
+   application base URL. Do not commit secrets. The complete variable list is
+   in `AGENTS.md` and defaults/examples are in `.env`.
 
-```env
-# Email
-MAILER_DSN=smtp://your-smtp-server:587
-MAILER_FROM_EMAIL=noreply@yourdomain.com
-ADMIN_EMAIL=admin@yourdomain.com
+3. Apply database migrations, then start the development server:
 
-# WooCommerce
-WOOCOMMERCE_CONSUMER_KEY=ck_xxx
-WOOCOMMERCE_CONSUMER_SECRET=cs_xxx
-WOOCOMMERCE_WEBHOOK_SECRET=webhook_secret
-ILGRIGIO_BASE_URL=https://yourdomain.com
-ILGRIGIO_BASE_API_URL=https://yourdomain.com/wp-json
+   ```bash
+   bin/console doctrine:migrations:migrate
+   symfony server:start
+   ```
 
-# PDF Security
-PDF_TOKEN_SECRET=your-super-secret-key-change-this
-PDF_TOKEN_EXPIRATION_DAYS=150
+4. To deliver queued order emails, run a Messenger worker in a separate
+   terminal:
 
-# Ticket API
-ILGRIGIO_TICKET_API_URL=https://api.example.com/tickets
-ILGRIGIO_TICKET_API_KEY=your_api_key
-```
+   ```bash
+   bin/console messenger:consume async -vv
+   ```
 
-### 3. Configure WooCommerce Webhook
-
-In WooCommerce admin:
-- Go to **Settings > Advanced > Webhooks**
-- Add webhook for **Order created**
-- Set URL: `https://yourdomain.com/api/webhook/woocommerce-order-created`
-
-## Running
+## Common commands
 
 ```bash
-# Start development server
-symfony server:start
-
-# Run tests
 ./bin/phpunit
-
-# Check code style
 ./vendor/bin/phpcs
-
-# Fix code style
 ./vendor/bin/phpcbf
+bin/console debug:router
 ```
 
-## Background email queue
+Run a focused test with `./bin/phpunit tests/Service/CheckoutServiceTest.php`.
+Functional tests use PostgreSQL; configure a separate test database before
+running them.
 
-Order confirmation emails are stored in the database-backed Messenger queues.
-Use these commands from the worker environment to inspect and recover work:
+## Order and payment flow
 
-```bash
-# Pending messages per transport
-bin/console messenger:stats
+- The storefront creates a local order and starts a Mollie payment.
+- Mollie sends payment updates to `/webhook/mollie`; the application retrieves
+  authoritative payment status from Mollie before changing the order.
+- Paid and zero-total orders are fulfilled idempotently, with tickets and a
+  signed PDF download link, and confirmation mail is queued for delivery.
+- The backoffice uses EasyAdmin. The authenticated register API supports cash
+  sales, order lookup and cancellation, notes, reprocessing, event and coupon
+  lookup, and sale reports.
 
-# Inspect, retry, or remove exhausted email deliveries
-bin/console messenger:failed:show
-bin/console messenger:failed:retry
-bin/console messenger:failed:remove
-```
-
-
-## Features
-
-- WooCommerce order webhook processing
-- PDF invoice generation with secure signed tokens
-- Email notifications with attachments and download links
-- Event ticketing management
-- Multi-language support (NL, EN, DE)
+For queue inspection and failed-message recovery, use
+`bin/console messenger:stats`, `messenger:failed:show`,
+`messenger:failed:retry`, and `messenger:failed:remove`.

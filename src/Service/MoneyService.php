@@ -43,8 +43,8 @@ final class MoneyService
     }
 
     /**
-     * Format a Money value as a WooCommerce-ready decimal string (period
-     * decimal separator, no thousands separator), e.g. "66.06".
+     * Format a Money value as a decimal string (period decimal separator, no
+     * thousands separator), e.g. "66.06".
      */
     public function format(Money $money): string
     {

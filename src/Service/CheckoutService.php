@@ -22,9 +22,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Assembles a persisted local Order from a validated cart, replacing the
- * WooCommerce order-creation round-trip. All prices come from the TicketType
- * entities (never trusted from the client); money is frozen as a cents snapshot.
+ * Assembles a persisted local Order from a validated cart. All prices come from
+ * the TicketType entities (never trusted from the client); money is frozen as
+ * a cents snapshot.
  */
 final class CheckoutService
 {

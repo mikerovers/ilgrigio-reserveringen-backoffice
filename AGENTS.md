@@ -86,8 +86,6 @@ translations/         # i18n YAML files (currently Dutch: messages.nl.yaml)
 config/
   services.yaml       # Service definitions and environment variable bindings
   packages/           # Per-package Symfony configuration
-docs/
-  aws-webhook-ingress.md  # Historical WooCommerce/AWS ingress documentation
 ```
 
 ## Core Workflows
@@ -139,8 +137,6 @@ docs/
   PAID re-takes it via `reacquireForOrder()`. Run
   `bin/console app:orders:expire-pending` every minute from cron;
   `ORDER_RESERVATION_TTL_MINUTES` (default 30) sets how long unpaid orders hold stock.
-- `docs/aws-webhook-ingress.md` and the WooCommerce-related environment values
-  are legacy integration context, not part of the active application flow.
 - `/bedankt` (`TicketingController::thankYou`) resolves the order strictly from
   the session (`order_number`), never from a query parameter — do not
   reintroduce a `?order=`-driven lookup, as that previously allowed anyone to
@@ -240,9 +236,6 @@ docs/
 - Do not describe the parser as validating an HMAC signature: it currently only
   requires a POST request with an `id`. The API re-fetch in the consumer is the
   payment-status verification boundary.
-- `docs/aws-webhook-ingress.md` documents a historical WooCommerce/SQS setup;
-  it is not part of the active application flow. `webhook_ingest` is retired
-  and must not be reintroduced without an explicit product decision.
 
 ### Dates and timezones
 - The kernel forces PHP's default timezone to `UTC` (`Kernel::boot`); the database
@@ -323,7 +316,3 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `NEW_RELIC_APP_NAME` | New Relic application name |
 | `NEW_RELIC_LOGS_ENDPOINT` | New Relic logs API endpoint |
 | `LOCK_DSN` | Symfony Lock store DSN backing the rate limiters (e.g. `flock`) |
-
-Legacy WooCommerce and ticket-API variables may still occur in existing
-deployment files. They are not consumed by the current application
-configuration and should not be treated as required for new work.

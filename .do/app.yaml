@@ -27,21 +27,6 @@ envs:
     - key: ADMIN_EMAIL
       value: reserveringen@ilgrigio.nl
       scope: RUN_AND_BUILD_TIME
-    - key: WOOCOMMERCE_CONSUMER_KEY
-      scope: RUN_AND_BUILD_TIME
-      type: SECRET
-    - key: WOOCOMMERCE_CONSUMER_SECRET
-      scope: RUN_AND_BUILD_TIME
-      type: SECRET
-    - key: WOOCOMMERCE_WEBHOOK_SECRET
-      scope: RUN_AND_BUILD_TIME
-      type: SECRET
-    - key: ILGRIGIO_BASE_URL
-      value: https://backoffice.ilgrigio.nl
-      scope: RUN_AND_BUILD_TIME
-    - key: ILGRIGIO_BASE_API_URL
-      value: https://backoffice.ilgrigio.nl/wp-json
-      scope: RUN_AND_BUILD_TIME
     - key: ILGRIGIO_RESERVERINGEN_BASE_URL
       value: https://reserveringen.ilgrigio.nl
       scope: RUN_AND_BUILD_TIME
@@ -54,12 +39,6 @@ envs:
     - key: PDF_TOKEN_EXPIRATION_DAYS
       value: "150"
       scope: RUN_AND_BUILD_TIME
-    - key: ILGRIGIO_TICKET_API_URL
-      value: https://backoffice.ilgrigio.nl/wp-json/tc-custom-endpoint/order/get
-      scope: RUN_AND_BUILD_TIME
-    - key: ILGRIGIO_TICKET_API_KEY
-      scope: RUN_AND_BUILD_TIME
-      type: SECRET
     - key: MOLLIE_API_KEY
       scope: RUN_AND_BUILD_TIME
       type: SECRET

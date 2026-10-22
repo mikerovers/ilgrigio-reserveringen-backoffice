@@ -15,10 +15,6 @@ class HealthController extends AbstractController
         return new JsonResponse([
             'status' => 'healthy',
             'timestamp' => date('c'),
-            'services' => [
-                'webhook_endpoint' => '/api/webhook/woocommerce-order-created',
-                'test_endpoint' => '/test/order-pdf'
-            ]
         ]);
     }
 
@@ -26,8 +22,8 @@ class HealthController extends AbstractController
     public function webhookHealthCheck(): Response
     {
         return new JsonResponse([
-            'webhook_status' => 'ready',
-            'endpoint' => '/api/webhook/woocommerce-order-created',
+            'status' => 'ready',
+            'payment_webhook' => '/webhook/mollie',
             'methods' => ['POST'],
             'timestamp' => date('c')
         ]);

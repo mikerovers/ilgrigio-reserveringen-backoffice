@@ -60,7 +60,7 @@ class MoneyServiceTest extends TestCase
         $this->assertTrue($netTotal->add($taxTotal)->equals($grossTotal));
     }
 
-    public function testFormatProducesWooCommerceDecimalString(): void
+    public function testFormatProducesDecimalString(): void
     {
         $this->assertSame("66.06", $this->moneyService->format(Money::EUR(6606)));
         $this->assertSame("0.83", $this->moneyService->format(Money::EUR(83)));
