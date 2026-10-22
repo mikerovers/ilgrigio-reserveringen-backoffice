@@ -14,6 +14,7 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use App\Entity\Order;
+use App\Entity\Ticket;
 use App\Repository\OrderRepository;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -64,6 +65,14 @@ class SecurePdfStorageService
     public function getOrderByToken(string $token): ?Order
     {
         return $this->orderByToken($token);
+    }
+
+    /**
+     * Generate a PDF containing only the supplied ticket.
+     */
+    public function generatePdfForTicket(Ticket $ticket): string
+    {
+        return $this->generateTicketsPdf($ticket->order, [$ticket]);
     }
 
     private function orderByToken(string $token): ?Order
@@ -117,6 +126,14 @@ class SecurePdfStorageService
      */
     private function generateOrderPdf(Order $order): string
     {
+        return $this->generateTicketsPdf($order, $order->tickets);
+    }
+
+    /**
+     * @param iterable<Ticket> $ticketEntities
+     */
+    private function generateTicketsPdf(Order $order, iterable $ticketEntities): string
+    {
         $options = new Options();
         $options->set('defaultFont', 'Arial');
         $options->set('isRemoteEnabled', true);
@@ -128,15 +145,15 @@ class SecurePdfStorageService
 
         // Build the view model the template expects (mirrors the old ticket-API
         // shape) directly from the order's issued tickets.
-        $tickets = [];
+        $ticketViews = [];
         $eventDateTime = null;
         $eventName = null;
 
-        foreach ($order->tickets as $ticket) {
+        foreach ($ticketEntities as $ticket) {
             $eventName ??= $ticket->eventNameSnapshot;
             $eventDateTime ??= VenueTime::toLocal($ticket->eventDateTimeSnapshot)->format('d-m-Y H:i');
 
-            $tickets[] = [
+            $ticketViews[] = [
                 'ticket_code' => $ticket->ticketCode,
                 'ticket_name' => $ticket->ticketName,
                 'short_ticket_name' => $this->ticketNameService->generateShortTicketName($ticket->ticketName),
@@ -144,10 +161,10 @@ class SecurePdfStorageService
             ];
         }
 
-        $ticketInfo = $tickets === [] ? null : [
+        $ticketInfo = $ticketViews === [] ? null : [
             'event_name' => $eventName,
             'event_date_time' => $eventDateTime,
-            'tickets' => $tickets,
+            'tickets' => $ticketViews,
         ];
 
         if ($ticketInfo === null) {

@@ -1,0 +1,10 @@
+when@dev:
+    dev_order_email_preview:
+        path: /_dev/orders/{orderNumber}/email-preview
+        controller: App\Controller\DevEmailPreviewController::preview
+        methods: [GET]
+
+    dev_ticket_preview:
+        path: /_dev/tickets/{ticketCode}/preview
+        controller: App\Controller\DevTicketPreviewController::preview
+        methods: [GET]

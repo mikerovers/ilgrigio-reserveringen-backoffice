@@ -7,11 +7,10 @@ namespace App\MessageHandler;
 use App\Entity\Order;
 use App\Message\SendOrderEmailMessage;
 use App\Repository\OrderRepository;
-use App\Service\MoneyService;
+use App\Service\OrderConfirmationEmailContextFactory;
 use App\Service\SecurePdfStorageService;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Address;
@@ -26,9 +25,7 @@ final class SendOrderEmailMessageHandler
         private TranslatorInterface $translator,
         private SecurePdfStorageService $securePdfStorageService,
         private OrderRepository $orderRepository,
-        private MoneyService $moneyService,
-        private RequestStack $requestStack,
-        private string $appBaseUrl,
+        private OrderConfirmationEmailContextFactory $emailContextFactory,
         private string $fromEmail = 'noreply@example.com',
         private string $fromName = 'Il Grigio',
         private string $adminEmail = 'admin@example.com',
@@ -87,24 +84,6 @@ final class SendOrderEmailMessageHandler
             return;
         }
 
-        $request = $this->requestStack->getCurrentRequest();
-        $downloadUrl = $this->securePdfStorageService->generateDownloadUrl(
-            $request,
-            $downloadToken,
-            $this->appBaseUrl,
-        );
-
-        $templateVars = [
-            'order_number' => $order->orderNumber,
-            'order_date' => $order->createdAt ?? new \DateTimeImmutable(),
-            'customer_name' => trim($order->billing->firstName . ' ' . $order->billing->lastName),
-            'customer_email' => $customerEmail,
-            'download_url' => $downloadUrl,
-            'order_total' => $this->moneyService->format($order->totalGross),
-            'total_tax' => $this->moneyService->format($order->tax),
-            'order_data' => $this->buildOrderView($order),
-        ];
-
         $customerSubject = $this->translator->trans(
             'email.customer.subject',
             ['%order_number%' => $order->orderNumber],
@@ -116,41 +95,12 @@ final class SendOrderEmailMessageHandler
             ->subject($customerSubject)
             ->htmlTemplate('email/customer_order_confirmation.html.twig')
             ->textTemplate('email/customer_order_confirmation.txt.twig')
-            ->context($templateVars);
+            ->context($this->emailContextFactory->create($order, $downloadToken));
 
         if ($pdfContent !== null) {
             $email->attach($pdfContent, 'tickets-' . $order->orderNumber . '.pdf', 'application/pdf');
         }
 
         $this->mailer->send($email);
-    }
-
-    /**
-     * View model matching the keys the email templates read off `order_data`.
-     */
-    private function buildOrderView(Order $order): array
-    {
-        $lineItems = [];
-        foreach ($order->lineItems as $lineItem) {
-            $lineItems[] = [
-                'name' => $lineItem->name,
-                'quantity' => $lineItem->quantity,
-                'total' => $this->moneyService->format($lineItem->lineGross),
-            ];
-        }
-
-        $couponLines = [];
-        if ($order->couponCode !== null && !$order->discountGross->isZero()) {
-            $couponLines[] = [
-                'code' => $order->couponCode,
-                'discount' => $this->moneyService->format($order->discountGross),
-            ];
-        }
-
-        return [
-            'line_items' => $lineItems,
-            'coupon_lines' => $couponLines,
-            'payment_method_title' => $order->payment?->method ?? 'iDEAL',
-        ];
     }
 }

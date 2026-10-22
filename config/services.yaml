@@ -46,10 +46,13 @@ services:
     # Email message handler configuration
     App\MessageHandler\SendOrderEmailMessageHandler:
         arguments:
-            $appBaseUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
             $fromEmail: '%env(default:default_from_email:MAILER_FROM_EMAIL)%'
             $fromName: '%env(MAILER_FROM_NAME)%'
             $adminEmail: '%env(default:default_admin_email:ADMIN_EMAIL)%'
+
+    App\Service\OrderConfirmationEmailContextFactory:
+        arguments:
+            $appBaseUrl: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
 
     # PDF Storage Service configuration
     App\Service\SecurePdfStorageService:
