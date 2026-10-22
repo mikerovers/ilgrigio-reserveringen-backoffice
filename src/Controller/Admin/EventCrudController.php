@@ -11,7 +11,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -64,7 +63,10 @@ class EventCrudController extends AbstractCrudController
         yield TextField::new('slug')
             ->hideOnForm()
             ->setHelp('Generated automatically from the name.');
-        yield TextareaField::new('description')->hideOnIndex();
+        yield TextField::new('description')
+            ->hideOnIndex()
+            ->setFormTypeOption('attr.maxlength', 255)
+            ->setHelp('Maximaal 255 tekens.');
         yield VenueDateTimeField::new('startsAt');
         yield VenueDateTimeField::new('endsAt');
         yield VenueDateTimeField::new('soldFrom')

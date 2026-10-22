@@ -11,6 +11,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: EventRepository::class)]
@@ -27,6 +28,7 @@ class Event
     public string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Assert\Length(max: 255)]
     public ?string $description = null;
 
     #[ORM\Column(name: 'starts_at', type: 'datetime_immutable')]

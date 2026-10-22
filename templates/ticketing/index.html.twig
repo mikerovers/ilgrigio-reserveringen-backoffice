@@ -10,7 +10,7 @@
 			<a href="http://ilgrigio.nl" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
 				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-16 md:h-20 w-auto">
 			</a>
-			<p class="hidden sm:block text-sm md:text-base text-amber-100">Jeugdcircus Il Grigio</p>
+			<p class="hidden sm:block text-sm md:text-base text-white">Jeugdcircus Il Grigio</p>
 		</div>
 	</header>
 
@@ -39,7 +39,7 @@
 						{% set in_stock = event.stock_status == 'instock' and (event.stock_quantity is null or event.stock_quantity > 0) %}
 						<div class="p-5 md:px-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 							<div>
-								<p class="text-lg font-bold text-[#34272a]">{{ event.date ? dutch_date(event.date) : 'events.date_tbd'|trans }}</p>
+								<p class="text-lg font-bold text-[#34272a]">{{ event.date ? dutch_date(event.date) : 'events.date_tbd'|trans }}{% if event.description|default('')|trim %} <span class="font-normal text-gray-600">– {{ event.description }}</span>{% endif %}</p>
 								<p class="text-gray-700">{{ event.time ? event.time ~ ' uur' : '' }}{% if event.location %} <span class="text-gray-400">·</span> {{ event.location }}{% endif %}</p>
 							</div>
 							{% if in_stock %}
