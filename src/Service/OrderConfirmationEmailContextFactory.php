@@ -23,7 +23,6 @@ final class OrderConfirmationEmailContextFactory
     public function create(Order $order, string $downloadToken): array
     {
         $request = $this->requestStack->getCurrentRequest();
-
         return [
             'order_number' => $order->orderNumber,
             'order_date' => $order->createdAt ?? new \DateTimeImmutable(),
