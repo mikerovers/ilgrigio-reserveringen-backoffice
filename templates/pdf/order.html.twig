@@ -19,9 +19,6 @@
 									{% if ticket.ticket_name %}
 										<br><small>{{ ticket.ticket_name }}</small>
 									{% endif %}
-									{% if ticket_info.event_date_time is defined and ticket_info.event_date_time %}
-										<br><small>Aanvang show: {{ ticket_info.event_date_time }}</small>
-									{% endif %}
 								</div>
 							</td>
 							<td class="qr-cell">
@@ -45,8 +42,19 @@
 				<!-- Date and time -->
 				{% if ticket_info.event_date is defined and ticket_info.event_date %}
 					<div class="datetime">
-						{{ 'pdf.ticket.show_start'|trans }}
-						{{ ticket_info.event_date }}
+						<div class="datetime-line">
+							{{ 'pdf.ticket.date'|trans }} {{ ticket_info.event_date }}{% if ticket_info.event_description is defined and ticket_info.event_description %} - {{ ticket_info.event_description }}{% endif %}
+						</div>
+						{% if ticket_info.event_doors_open is defined and ticket_info.event_doors_open %}
+							<div class="datetime-line">
+								{{ 'pdf.ticket.doors_open'|trans }} {{ ticket_info.event_doors_open }}
+							</div>
+						{% endif %}
+						{% if ticket_info.event_start_time is defined and ticket_info.event_start_time %}
+							<div class="datetime-line">
+								{{ 'pdf.ticket.show_start'|trans }} {{ ticket_info.event_start_time }}
+							</div>
+						{% endif %}
 					</div>
 				{% endif %}
 

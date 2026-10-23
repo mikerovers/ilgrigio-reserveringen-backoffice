@@ -129,6 +129,12 @@ config/
   create dedicated register users with
   `app:user:create <email> <password> --role=ROLE_REGISTER --name="Display Name"` (`--name` is required).
 - **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
+- **Manual completion:** `bin/console app:orders:complete <orderNumber>` marks a
+  pending/processing/failed order paid and completed (payment -> `PAID`,
+  `Order::completeNow()`), re-takes released stock for failed orders and
+  dispatches `OrderCompletedEvent` so tickets, PDF and the confirmation email
+  are issued. Cancelled/refunded orders are refused; `--force` re-runs
+  fulfilment for an already completed order.
   `CheckoutService::createOrder` takes stock with the single atomic
   `SharedStockRepository::reserve()` UPDATE inside a DB transaction (pools
   locked in id order) and records a `StockReservation` per pool. Never

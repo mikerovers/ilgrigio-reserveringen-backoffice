@@ -27,6 +27,7 @@ class EventFixtures extends Fixture
 
         // --- Event ---
         $event = new Event('Biblio Magico', VenueTime::fromLocal('2027-06-31 14:00:00'));
+        $event->doorsOpenAt = VenueTime::fromLocal('2027-06-31 13:00:00');
         $event->description = 'Avond';
         $event->location = 'Bossebaan 5B, Haaren NB.';
 

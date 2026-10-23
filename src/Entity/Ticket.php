@@ -53,6 +53,10 @@ class Ticket
     #[ORM\Column(name: 'event_datetime_snapshot', type: 'datetime_immutable')]
     public \DateTimeImmutable $eventDateTimeSnapshot;
 
+    /** Doors-open moment of the event at issuance time; null when not announced. */
+    #[ORM\Column(name: 'event_doors_open_snapshot', type: 'datetime_immutable', nullable: true)]
+    public ?\DateTimeImmutable $eventDoorsOpenSnapshot = null;
+
     #[ORM\Column(enumType: TicketStatus::class)]
     public TicketStatus $status = TicketStatus::ISSUED;
 
@@ -80,6 +84,7 @@ class Ticket
         \DateTimeImmutable $eventDateTimeSnapshot,
         \DateTimeImmutable $issuedAt,
         int $lineIndex = 0,
+        ?\DateTimeImmutable $eventDoorsOpenSnapshot = null,
     ) {
         $this->id = Uuid::v7();
         $this->ticketCode = $ticketCode;
@@ -90,6 +95,7 @@ class Ticket
         $this->ticketName = $ticketName;
         $this->eventNameSnapshot = $eventNameSnapshot;
         $this->eventDateTimeSnapshot = $eventDateTimeSnapshot;
+        $this->eventDoorsOpenSnapshot = $eventDoorsOpenSnapshot;
         $this->issuedAt = $issuedAt;
         $this->lineIndex = $lineIndex;
     }

@@ -20,6 +20,8 @@ final class AvailableEventResponse
         public string $name,
         #[OA\Property(description: 'Event start. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public string $startsAt,
+        #[OA\Property(description: 'Doors open. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
+        public ?string $doorsOpenAt,
         public ?string $location,
         public StockStatus $stockStatus,
         public ?int $stockQuantity,
@@ -42,6 +44,7 @@ final class AvailableEventResponse
             slug: (string) $event->slug,
             name: $event->name,
             startsAt: $event->startsAt->format(\DateTimeInterface::ATOM),
+            doorsOpenAt: $event->doorsOpenAt?->format(\DateTimeInterface::ATOM),
             location: $event->location,
             stockStatus: $event->displayStockStatus(),
             stockQuantity: $event->displayStockQuantity(),

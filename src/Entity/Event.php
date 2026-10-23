@@ -37,6 +37,9 @@ class Event
     #[ORM\Column(name: 'ends_at', type: 'datetime_immutable', nullable: true)]
     public ?\DateTimeImmutable $endsAt = null;
 
+    #[ORM\Column(name: 'doors_open_at', type: 'datetime_immutable', nullable: true)]
+    public ?\DateTimeImmutable $doorsOpenAt = null;
+
     #[ORM\Column(name: 'sold_from', type: 'datetime_immutable', nullable: true)]
     public ?\DateTimeImmutable $soldFrom = null;
 

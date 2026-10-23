@@ -68,6 +68,10 @@ class EventCrudController extends AbstractCrudController
             ->setFormTypeOption('attr.maxlength', 255)
             ->setHelp('Maximaal 255 tekens.');
         yield VenueDateTimeField::new('startsAt');
+        yield VenueDateTimeField::new('doorsOpenAt')
+            ->setHelp('Moment waarop de zaal opent. Wordt op het ticket en de website getoond '
+                . 'als "Zaal open"; alleen het tijdstip wanneer dit op dezelfde dag is als de '
+                . 'voorstelling. Laat leeg wanneer nog niet bekend.');
         yield VenueDateTimeField::new('endsAt');
         yield VenueDateTimeField::new('soldFrom')
             ->setHelp('Start of the ticket sale period. Leave empty for no start limit.');

@@ -146,12 +146,21 @@ class SecurePdfStorageService
         // Build the view model the template expects (mirrors the old ticket-API
         // shape) directly from the order's issued tickets.
         $ticketViews = [];
-        $eventDateTime = null;
+        $eventDate = null;
+        $eventDescription = null;
+        $eventStartTime = null;
+        $eventDoorsOpen = null;
         $eventName = null;
 
         foreach ($ticketEntities as $ticket) {
             $eventName ??= $ticket->eventNameSnapshot;
-            $eventDateTime ??= VenueTime::toLocal($ticket->eventDateTimeSnapshot)->format('d-m-Y H:i');
+            $eventDate ??= EventSchedule::date($ticket->eventDateTimeSnapshot);
+            $eventStartTime ??= EventSchedule::time($ticket->eventDateTimeSnapshot);
+            $eventDoorsOpen ??= EventSchedule::doorsOpen(
+                $ticket->eventDoorsOpenSnapshot,
+                $ticket->eventDateTimeSnapshot,
+            );
+            $eventDescription ??= $this->eventDescription($ticket);
 
             $ticketViews[] = [
                 'ticket_code' => $ticket->ticketCode,
@@ -163,7 +172,10 @@ class SecurePdfStorageService
 
         $ticketInfo = $ticketViews === [] ? null : [
             'event_name' => $eventName,
-            'event_date_time' => $eventDateTime,
+            'event_date' => $eventDate,
+            'event_description' => $eventDescription,
+            'event_start_time' => $eventStartTime,
+            'event_doors_open' => $eventDoorsOpen,
             'tickets' => $ticketViews,
         ];
 
@@ -189,6 +201,23 @@ class SecurePdfStorageService
         $dompdf->render();
 
         return $dompdf->output();
+    }
+
+    /**
+     * The description of the event a ticket was issued for, or null when the
+     * event has none.
+     */
+    private function eventDescription(Ticket $ticket): ?string
+    {
+        $description = $ticket->event->description;
+
+        if ($description === null) {
+            return null;
+        }
+
+        $description = trim($description);
+
+        return $description !== '' ? $description : null;
     }
 
     /**

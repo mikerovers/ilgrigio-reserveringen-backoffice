@@ -39,8 +39,8 @@
 						{% set in_stock = event.stock_status == 'instock' and (event.stock_quantity is null or event.stock_quantity > 0) %}
 						<div class="p-5 md:px-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 							<div>
-								<p class="text-lg font-bold text-[#34272a]">{{ event.date ? dutch_date(event.date) : 'events.date_tbd'|trans }}{% if event.description|default('')|trim %} <span class="font-normal text-gray-600">– {{ event.description }}</span>{% endif %}</p>
-								<p class="text-gray-700">{{ event.time ? event.time ~ ' uur' : '' }}{% if event.location %} <span class="text-gray-400">·</span> {{ event.location }}{% endif %}</p>
+								<p class="text-lg font-bold text-[#34272a]">{{ 'events.date'|trans }} {{ event.date ? dutch_date(event.date) : 'events.date_tbd'|trans }}{% if event.description|default('')|trim %} <span class="font-normal text-gray-600">- {{ event.description }}</span>{% endif %}</p>
+								<p class="text-gray-700">{% if event.doors_open %}{{ 'events.doors_open'|trans }} {{ event.doors_open }} <span class="text-gray-400">·</span> {% endif %}{% if event.time %}{{ 'events.show_start'|trans }} {{ event.time }} uur{% endif %}{% if event.location %} <span class="text-gray-400">·</span> {{ event.location }}{% endif %}</p>
 							</div>
 							{% if in_stock %}
 								<a href="{{ path('app_event_tickets', {'slug': event.slug}) }}" class="inline-flex items-center justify-center gap-2 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold px-5 py-3 transition-colors">Tickets <span aria-hidden="true">→</span></a>

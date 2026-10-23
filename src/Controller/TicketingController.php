@@ -20,6 +20,7 @@ use App\Repository\OrderRepository;
 use App\Repository\SitePageRepository;
 use App\Service\CheckoutService;
 use App\Service\CouponResolver;
+use App\Service\EventSchedule;
 use App\Service\MoneyService;
 use App\Service\OrderPricingService;
 use App\Service\StockReservationService;
@@ -451,6 +452,7 @@ final class TicketingController extends AbstractController
             'date' => $startsAt->format('d-m-Y'),
             'time' => $startsAt->format('H:i'),
             'formatted_date' => $startsAt->format('d M'),
+            'doors_open' => EventSchedule::doorsOpen($event->doorsOpenAt, $event->startsAt),
             'location' => $event->location,
             'image_url' => $event->imageUrl,
             'permalink' => $event->permalink,
