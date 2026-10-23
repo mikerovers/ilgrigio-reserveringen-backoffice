@@ -6,7 +6,6 @@ namespace DoctrineMigrations;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
-use Symfony\Component\Uid\Uuid;
 
 final class Version20261022110000 extends AbstractMigration
 {
@@ -26,18 +25,6 @@ final class Version20261022110000 extends AbstractMigration
             PRIMARY KEY(id)
         )');
         $this->addSql('CREATE UNIQUE INDEX uniq_site_page_key ON site_page (page_key)');
-        $this->addSql(<<<'SQL'
-            INSERT INTO site_page (id, page_key, hero_title, hero_date_text, hero_description)
-            VALUES (
-                ?,
-                'homepage',
-                'Biblio Magico!',
-                '31 juli t/m zondag 15 augustus 2027',
-                'Dit jaar presenteerden wij onze show Biblio Magico! De Bibliothecaresse en haar assistent probeerden '
-                || 'uit alle macht hun bibliotheek netjes op orde te houden. Dat bleek niet makkelijk met een Magisch '
-                || 'Boek dat verhalen tot leven bracht.'
-            )
-            SQL, [Uuid::v4()->toRfc4122()]);
     }
 
     public function down(Schema $schema): void

@@ -5,23 +5,17 @@ declare(strict_types=1);
 namespace App\DataFixtures;
 
 use App\Entity\Coupon;
-use App\Entity\Customer;
 use App\Entity\Event;
 use App\Entity\EventCategory;
-use App\Entity\Order;
-use App\Entity\OrderLineItem;
-use App\Entity\OrderNote;
 use App\Entity\SharedStock;
-use App\Entity\Ticket;
 use App\Entity\TicketType;
 use App\Enum\DiscountType;
-use App\Enum\OrderStatus;
 use App\Service\VenueTime;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Money\Money;
 
-class AppFixtures extends Fixture
+class EventFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
@@ -33,7 +27,7 @@ class AppFixtures extends Fixture
 
         // --- Event ---
         $event = new Event('Biblio Magico', VenueTime::fromLocal('2027-06-31 14:00:00'));
-        $event->description = 'Dit jaar presenteerden wij onze show Biblio Magico! De Bibliothecaresse en haar assistent probeerden uit alle macht hun bibliotheek netjes op orde te houden. Dat bleek niet makkelijk met een Magisch Boek dat verhalen tot leven bracht.';
+        $event->description = 'Avond';
         $event->location = 'Bossebaan 5B, Haaren NB.';
 
         $sharedStockRegular = new SharedStock('Il Grigio Biblio Magico 2026-06-31 — totaalcapaciteit');
