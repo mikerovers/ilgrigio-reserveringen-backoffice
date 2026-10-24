@@ -10,6 +10,7 @@ use App\Entity\OrderNote;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /** @extends ServiceEntityRepository<OrderNote> */
 class OrderNoteRepository extends ServiceEntityRepository
@@ -24,11 +25,12 @@ class OrderNoteRepository extends ServiceEntityRepository
      */
     public function findByOrderPaginated(Order $order, PageQuery $query): Paginator
     {
+        $direction = $query->orderDirection === 'ASC' ? SortDirection::Ascending : SortDirection::Descending;
         $qb = $this->createQueryBuilder('n')
             ->where('n.order = :order')
             ->setParameter('order', $order->id, 'uuid')
-            ->orderBy('n.createdAt', $query->orderDirection)
-            ->addOrderBy('n.id', $query->orderDirection)
+            ->orderBy('n.createdAt', $direction)
+            ->addOrderBy('n.id', $direction)
             ->setFirstResult(($query->page - 1) * $query->limit)
             ->setMaxResults($query->limit);
 

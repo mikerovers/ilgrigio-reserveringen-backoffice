@@ -10,6 +10,7 @@ use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<Coupon>
@@ -31,9 +32,10 @@ class CouponRepository extends ServiceEntityRepository
      */
     public function findPaginated(CouponListQuery $query): Paginator
     {
+        $direction = $query->orderDirection === 'ASC' ? SortDirection::Ascending : SortDirection::Descending;
         $qb = $this->createQueryBuilder('c')
-            ->orderBy('c.createdAt', $query->orderDirection)
-            ->addOrderBy('c.id', $query->orderDirection)
+            ->orderBy('c.createdAt', $direction)
+            ->addOrderBy('c.id', $direction)
             ->setFirstResult(($query->page - 1) * $query->limit)
             ->setMaxResults($query->limit);
 

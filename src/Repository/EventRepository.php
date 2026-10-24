@@ -9,6 +9,7 @@ use App\Entity\Event;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -44,7 +45,7 @@ class EventRepository extends ServiceEntityRepository
             ->andWhere('e.soldFrom IS NULL OR e.soldFrom <= :now')
             ->andWhere('e.soldUntil IS NULL OR e.soldUntil >= :now')
             ->setParameter('now', $now)
-            ->orderBy('e.startsAt', 'ASC')
+            ->orderBy('e.startsAt', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -61,6 +62,7 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findPaginated(EventListQuery $query, \DateTimeImmutable $now): Paginator
     {
+        $direction = $query->orderDirection === 'ASC' ? SortDirection::Ascending : SortDirection::Descending;
         $qb = $this->createQueryBuilder('e')
             ->leftJoin('e.ticketTypes', 't')->addSelect('t')
             ->leftJoin('t.sharedStock', 's')->addSelect('s')
@@ -68,7 +70,7 @@ class EventRepository extends ServiceEntityRepository
             ->andWhere('e.soldFrom IS NULL OR e.soldFrom <= :now')
             ->andWhere('e.soldUntil IS NULL OR e.soldUntil >= :now')
             ->setParameter('now', $now)
-            ->orderBy('e.startsAt', $query->orderDirection)
+            ->orderBy('e.startsAt', $direction)
             ->setFirstResult(($query->page - 1) * $query->limit)
             ->setMaxResults($query->limit);
 
