@@ -6,6 +6,9 @@ echo "Running post-deployment setup..."
 # Install JavaScript vendor assets
 php bin/console importmap:install
 
+# Publish bundle assets (EasyAdmin CSS/JS); public/bundles is gitignored and composer runs with --no-scripts
+php bin/console assets:install public --env=prod
+
 # Compile assets for production
 php bin/console asset-map:compile --env=prod
 
