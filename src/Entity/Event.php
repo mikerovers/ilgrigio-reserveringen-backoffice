@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use SortDirection;
 use App\Enum\StockStatus;
 use App\Repository\EventRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -69,7 +70,7 @@ class Event
 
     /** @var Collection<int, TicketType> */
     #[ORM\OneToMany(targetEntity: TicketType::class, mappedBy: 'event', cascade: ['persist'])]
-    #[ORM\OrderBy(['sortOrder' => 'ASC'])]
+    #[ORM\OrderBy(['sortOrder' => SortDirection::Ascending])]
     public Collection $ticketTypes;
 
     /** @var Collection<int, EventCategory> */
