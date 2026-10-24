@@ -101,9 +101,30 @@ final class CheckInJwtAuthTest extends WebTestCase
         ], content: json_encode(['ticketCode' => 'DOES-NOT-EXIST']));
 
         // A valid JWT clears authentication; the controller then processes
-        // the request normally and reports the ticket code wasn't found —
-        // this proves auth passed (a 401 would mean it didn't).
+        // the request normally and reports the outcome in the body. A 401
+        // would mean authentication failed.
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        $data = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame('NOT_FOUND', $data['result']);
+    }
+
+    public function testOrderCheckInAuthenticatesWithValidJwt(): void
+    {
+        $token = $this->obtainJwt();
+
+        $this->client->request('POST', '/api/orders/DOES-NOT-EXIST/check-in', server: [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+        ]);
+
+        // Auth passed; the unknown order is resolved by MapEntity.
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testOrderCheckInFailsWithNoCredentials(): void
+    {
+        $this->client->request('POST', '/api/orders/DOES-NOT-EXIST/check-in');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     public function testCheckInFailsWithInvalidJwt(): void

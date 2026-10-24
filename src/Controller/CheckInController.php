@@ -6,7 +6,9 @@ namespace App\Controller;
 
 use App\DTO\CheckInRequest;
 use App\DTO\CheckInResponse;
+use App\DTO\OrderCheckInResponse;
 use App\Entity\Event;
+use App\Entity\Order;
 use App\Service\CheckInResult;
 use App\Service\CheckInService;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -16,11 +18,15 @@ use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * Door check-in endpoints. The outcome of each attempt (admitted, already checked
+ * in, void, not found) is carried in the JSON body; these endpoints always
+ * answer 200 once the event or order is resolved.
+ */
 #[Route('/api', name: 'api_')]
 final class CheckInController extends AbstractController
 {
@@ -33,9 +39,10 @@ final class CheckInController extends AbstractController
     #[Route('/events/{eventId}/check-in', name: 'event_check_in', methods: ['POST'])]
     #[IsGranted('IS_AUTHENTICATED')]
     #[Security(name: 'BearerAuth')]
+    #[OA\Tag(name: 'Check-in')]
     #[OA\Response(
         response: 200,
-        description: 'Check-in result',
+        description: 'Check-in result. Inspect `result` for ADMITTED, ALREADY_CHECKED_IN, VOID or NOT_FOUND.',
         content: new Model(type: CheckInResponse::class),
     )]
     public function checkIn(
@@ -48,12 +55,6 @@ final class CheckInController extends AbstractController
             $this->clock->now(),
         );
 
-        $status = match ($result) {
-            CheckInResult::ADMITTED => Response::HTTP_OK,
-            CheckInResult::ALREADY_CHECKED_IN, CheckInResult::VOID => Response::HTTP_CONFLICT,
-            CheckInResult::NOT_FOUND => Response::HTTP_NOT_FOUND,
-        };
-
         $ticket = $this->checkInService->findTicket($event, $request->ticketCode);
 
         return $this->json(
@@ -63,7 +64,25 @@ final class CheckInController extends AbstractController
                 ticketName: $ticket?->ticketName,
                 checkedInAt: $ticket?->checkedInAt?->format(\DateTimeInterface::ATOM),
             ),
-            $status,
         );
+    }
+
+    #[Route('/orders/{orderNumber}/check-in', name: 'order_check_in', methods: ['POST'])]
+    #[IsGranted('IS_AUTHENTICATED')]
+    #[Security(name: 'BearerAuth')]
+    #[OA\Tag(name: 'Check-in')]
+    #[OA\Response(
+        response: 200,
+        description: 'Per-ticket check-in results. Issued tickets are admitted; '
+            . 'checked-in and void tickets are reported, not changed.',
+        content: new Model(type: OrderCheckInResponse::class),
+    )]
+    #[OA\Response(response: 404, description: 'Order not found')]
+    public function checkInOrder(
+        #[MapEntity(mapping: ['orderNumber' => 'orderNumber'])] Order $order,
+    ): JsonResponse {
+        $outcomes = $this->checkInService->checkInOrder($order, $this->clock->now());
+
+        return $this->json(OrderCheckInResponse::fromOutcomes($order, $outcomes));
     }
 }

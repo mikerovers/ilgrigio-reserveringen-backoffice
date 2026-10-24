@@ -57,7 +57,7 @@ security:
         # `api` firewall below — Symfony picks the first firewall whose
         # pattern matches.
         secure_api:
-            pattern: ^/api/(events/[^/]+/check-in|events$|event-categories$|me$|orders$|orders/[^/]+$|orders/[^/]+/(process|notes|tickets)$|sale-report$|coupons$|coupons/[^/]+/deactivate$)
+            pattern: ^/api/(events/[^/]+/check-in|events$|event-categories$|me$|orders$|orders/[^/]+$|orders/[^/]+/(process|notes|tickets|check-in)$|sale-report$|coupons$|coupons/[^/]+/deactivate$)
             stateless: true
             provider: app_user_provider
             jwt: ~
