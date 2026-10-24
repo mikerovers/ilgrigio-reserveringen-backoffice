@@ -28,7 +28,6 @@ final class SendOrderEmailMessageHandler
         private OrderConfirmationEmailContextFactory $emailContextFactory,
         private string $fromEmail = 'noreply@example.com',
         private string $fromName = 'Il Grigio',
-        private string $adminEmail = 'admin@example.com',
     ) {
     }
 
