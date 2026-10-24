@@ -1,4 +1,4 @@
-FROM php:8.2.35-fpm-alpine
+FROM php:8.4.11-fpm-alpine
 
 RUN apk add --no-cache \
     libpng-dev \
@@ -6,10 +6,11 @@ RUN apk add --no-cache \
     freetype-dev \
     icu-dev \
     libxslt-dev \
+    libpq-dev \
     nginx \
     supervisor \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd intl xsl bcmath
+    && docker-php-ext-install -j$(nproc) gd intl xsl bcmath pdo_pgsql
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
