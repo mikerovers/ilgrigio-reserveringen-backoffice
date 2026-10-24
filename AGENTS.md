@@ -113,6 +113,7 @@ config/
   free-text `note` (max 1000, stored on `Order.note`, separate from the `OrderNote` history), optional
   `Idempotency-Key` header; creates `Order.source = register`),
   `GET /api/orders/{orderNumber}` (same detail body as the create response),
+  `GET /api/orders/{orderNumber}/tickets` (all tickets issued for the order, in line-item order; empty before fulfilment),
   `DELETE /api/orders/{orderNumber}` (cancels a *register* order: releases stock, voids
   tickets, frees the coupon, keeps the row as `cancelled`; idempotent; 409 for web/Mollie
   orders or checked-in tickets; no refund is issued),
@@ -228,6 +229,19 @@ config/
 - Use `#[AsMessage('email')]` (or `async`) on message classes so they match `messenger.yaml` routing. `SendOrderEmailMessage` is `email`.
 - Use Symfony Validator `#[Assert\...]` attributes on DTOs for input validation
 - Throw `$this->createNotFoundException(...)` from controllers; re-throw domain exceptions
+
+### API response DTOs
+- Successful API responses are returned as DTOs from `src/DTO` (suffix `*Response`),
+  serialized with `$this->json($dto)` — never expose Doctrine entities or return an
+  ad-hoc success array from a controller. Error bodies may stay `['message' => ...]`.
+- Give each DTO a static factory that maps entities to the response shape
+  (`fromEntity()` / `fromEntities()`); keep this mapping out of controllers.
+- Paginated list endpoints use `PaginatedResponse`; wrap a nested collection in
+  its own DTO (e.g. `OrderTicketsResponse`, `OrderDetailResponse::$lineItems`)
+  instead of returning a bare array.
+- Document the DTO in the route's OpenAPI attribute with
+  `new Model(type: SomeResponse::class)`, and mark formatted dates with
+  `#[OA\Property(..., format: 'date-time')]` as ISO 8601 with an explicit UTC offset.
 
 ### Messenger queues
 

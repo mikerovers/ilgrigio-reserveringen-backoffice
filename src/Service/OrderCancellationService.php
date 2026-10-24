@@ -40,10 +40,6 @@ final class OrderCancellationService
             return false;
         }
 
-        if ($order->source !== OrderSource::REGISTER) {
-            throw new \DomainException('Only orders created at the register can be cancelled here.');
-        }
-
         if (!in_array($order->status, [OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::COMPLETED], true)) {
             throw new \DomainException(sprintf('Order %s cannot be cancelled (status: %s).', $order->orderNumber, $order->status->value));
         }

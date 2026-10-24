@@ -211,6 +211,42 @@ final class RegisterOrderApiTest extends WebTestCase
         self::assertCount(1, $detail['lineItems']);
     }
 
+    public function testOrderTicketsListsAllIssuedTickets(): void
+    {
+        $created = $this->post($this->payload());
+
+        $response = $this->get('/api/orders/' . $created['orderNumber'] . '/tickets');
+        $tickets = $response['tickets'];
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($created['orderNumber'], $response['orderNumber']);
+        self::assertCount(2, $tickets);
+        self::assertSame([0, 1], array_column($tickets, 'lineIndex'));
+        foreach ($tickets as $ticket) {
+            self::assertSame('issued', $ticket['status']);
+            self::assertSame('Regulier', $ticket['ticketName']);
+            self::assertSame($this->ticketTypeId, $ticket['ticketTypeId']);
+            self::assertSame(self::EVENT_NAME, $ticket['eventName']);
+            self::assertNotSame('', $ticket['ticketCode']);
+            self::assertNull($ticket['checkedInAt']);
+            self::assertNull($ticket['checkedInBy']);
+        }
+
+        $this->get('/api/orders/UNKNOWN-1/tickets');
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testOrderTicketsAuth(): void
+    {
+        $this->client->request('GET', '/api/orders/NOPE-1/tickets');
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+
+        $this->client->request('GET', '/api/orders/NOPE-1/tickets', server: [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwt(self::PLAIN_EMAIL),
+        ]);
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
     public function testOrderDetailAuthAndNotFound(): void
     {
         $this->client->request('GET', '/api/orders/NOPE-1');

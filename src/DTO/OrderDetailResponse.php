@@ -30,6 +30,9 @@ final class OrderDetailResponse
         #[OA\Property(description: 'When the order was paid. ISO 8601 with explicit UTC offset.', format: 'date-time', example: '2026-10-19T20:21:58+00:00')]
         public ?string $paidAt,
         public string $customerName,
+        public string $customerFirstName,
+        public string $customerLastName,
+        public ?string $customerCity,
         public ?string $customerEmail,
         public ?string $note,
         public array $lineItems,
@@ -55,6 +58,9 @@ final class OrderDetailResponse
             paymentMethod: $order->payment?->method,
             paidAt: $order->paidAt?->format(\DateTimeInterface::ATOM),
             customerName: (string) $order->customer,
+            customerFirstName: $order->customer->firstName,
+            customerLastName: $order->customer->lastName,
+            customerCity: $order->customer->city,
             customerEmail: $order->customer->email,
             note: $order->note,
             lineItems: array_map(

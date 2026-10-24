@@ -11,6 +11,7 @@ use App\DTO\OrderListQuery;
 use App\DTO\OrderNoteRequest;
 use App\DTO\OrderNoteResponse;
 use App\DTO\OrderProcessResponse;
+use App\DTO\OrderTicketsResponse;
 use App\DTO\PageQuery;
 use App\DTO\PaginatedResponse;
 use App\Entity\OrderNote;
@@ -18,6 +19,7 @@ use App\Event\OrderCompletedEvent;
 use App\Exception\RegisterOrderException;
 use App\Repository\OrderNoteRepository;
 use App\Repository\OrderRepository;
+use App\Repository\TicketRepository;
 use App\Entity\User;
 use App\Service\OrderCancellationService;
 use App\Service\RegisterOrderService;
@@ -44,6 +46,7 @@ final class OrderApiController extends AbstractController
     public function __construct(
         private OrderRepository $orderRepository,
         private OrderNoteRepository $orderNoteRepository,
+        private TicketRepository $ticketRepository,
         private EntityManagerInterface $entityManager,
         private EventDispatcherInterface $eventDispatcher,
         private LoggerInterface $logger,
@@ -206,10 +209,30 @@ final class OrderApiController extends AbstractController
         return $this->json(OrderDetailResponse::fromEntity($order));
     }
 
-    /**
-     * Cancel a register order: stock is returned, tickets are voided and the
-     * order is kept (status `cancelled`). Idempotent. No money is refunded by the API.
-     */
+    #[Route('/orders/{orderNumber}/tickets', name: 'order_tickets_list', methods: ['GET'])]
+    #[IsGranted('ROLE_REGISTER')]
+    #[Security(name: 'BearerAuth')]
+    #[OA\Tag(name: 'Orders')]
+    #[OA\Response(
+        response: 200,
+        description: 'All tickets of the order, in line-item order',
+        content: new Model(type: OrderTicketsResponse::class),
+    )]
+    #[OA\Response(response: 404, description: 'Order not found')]
+    public function listTickets(string $orderNumber): JsonResponse
+    {
+        $order = $this->orderRepository->findOneByOrderNumber($orderNumber);
+
+        if ($order === null) {
+            throw $this->createNotFoundException("Order {$orderNumber} could not be found");
+        }
+
+        return $this->json(OrderTicketsResponse::fromEntities(
+            $order,
+            $this->ticketRepository->findByOrder($order),
+        ));
+    }
+
     #[Route('/orders/{orderNumber}', name: 'order_cancel', methods: ['DELETE'])]
     #[IsGranted('ROLE_REGISTER')]
     #[Security(name: 'BearerAuth')]
