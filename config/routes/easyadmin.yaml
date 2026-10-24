@@ -1,3 +1,5 @@
 easyadmin:
     resource: .
     type: easyadmin.routes
+    # Backoffice routes are only served on the admin host; the public host must 404 them.
+    host: '%admin_host%'
