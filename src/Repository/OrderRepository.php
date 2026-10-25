@@ -57,6 +57,12 @@ class OrderRepository extends ServiceEntityRepository
             )->setParameter('eventId', Uuid::fromString($query->eventId));
         }
 
+        $statuses = $query->statuses();
+        if ($statuses !== []) {
+            $qb->andWhere('o.status IN (:statuses)')
+                ->setParameter('statuses', $statuses);
+        }
+
         // Every word must match the order number or the customer's first/last name.
         $words = preg_split('/\s+/', trim((string) $query->search), -1, PREG_SPLIT_NO_EMPTY);
         foreach ($words as $i => $word) {

@@ -159,6 +159,7 @@ final class OrderApiController extends AbstractController
     #[OA\Tag(name: 'Orders')]
     #[OA\Parameter(name: 'search', description: 'Case-insensitive match on (part of) the order number or the customer first/last name; every word must match', in: 'query', schema: new OA\Schema(type: 'string', maxLength: 64))]
     #[OA\Parameter(name: 'eventId', description: 'Only orders containing a ticket type of this event (UUID)', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid'))]
+    #[OA\Parameter(name: 'status', description: 'Only orders with one of these statuses (e.g. status[]=pending&status[]=completed)', in: 'query', schema: new OA\Schema(type: 'array', items: new OA\Items(type: 'string', enum: ['pending', 'processing', 'completed', 'cancelled', 'failed', 'refunded'])))]
     #[OA\Parameter(name: 'page', description: 'Page number', in: 'query', schema: new OA\Schema(type: 'integer', minimum: 1, default: 1))]
     #[OA\Parameter(name: 'limit', description: 'Items per page (max 100)', in: 'query', schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 20))]
     #[OA\Parameter(name: 'orderDirection', description: 'Order by createdAt', in: 'query', schema: new OA\Schema(type: 'string', enum: ['ASC', 'DESC'], default: 'DESC'))]

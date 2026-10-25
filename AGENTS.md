@@ -106,7 +106,7 @@ config/
   `ticketTypes` and `sharedStocks`; stock pools and ticket types carry `lowStockThreshold`
   and a derived `lowStock` flag, true when remaining quantity <= threshold), `GET /api/event-categories`,
   `GET /api/me` (current user: id, email, required name, roles; any authenticated JWT user),
-  `GET /api/orders` (optional `search`: case-insensitive, every word must match the order
+  `GET /api/orders` (optional `status[]` filter (repeatable, e.g. `status[]=pending&status[]=completed`) of `pending|processing|completed|cancelled|failed|refunded`; optional `search`: case-insensitive, every word must match the order
   number or the customer's first/last name; `OrderListQuery`), `POST /api/orders` (register sale: items by ticket-type UUID,
   `paymentMethod` (only `cash` for now, default; the order completes immediately), optional coupon *or* ad-hoc
   `discount` {type percent|fixed, amount as plain percent (`10` = 10%, max 2 decimals) | whole cents, reason}; stored internally as basis points, optional

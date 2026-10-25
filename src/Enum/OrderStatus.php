@@ -13,6 +13,14 @@ enum OrderStatus: string
     case FAILED = 'failed';
     case REFUNDED = 'refunded';
 
+    /**
+     * @return list<string>
+     */
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
     public function isFinal(): bool
     {
         return match ($this) {
