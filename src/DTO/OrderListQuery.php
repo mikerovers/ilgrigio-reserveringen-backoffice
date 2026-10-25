@@ -11,6 +11,8 @@ final class OrderListQuery
     public function __construct(
         #[Assert\Length(max: 64)]
         public ?string $search = null,
+        #[Assert\Uuid(message: 'eventId must be a valid UUID')]
+        public ?string $eventId = null,
         #[Assert\Range(min: 1, notInRangeMessage: 'page must be at least {{ min }}')]
         public int $page = 1,
         #[Assert\Range(min: 1, max: 100, notInRangeMessage: 'limit must be between {{ min }} and {{ max }}')]

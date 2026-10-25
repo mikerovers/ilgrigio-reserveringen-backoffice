@@ -6,10 +6,12 @@ namespace App\Repository;
 
 use App\DTO\OrderListQuery;
 use App\Entity\Order;
+use App\Entity\OrderLineItem;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 use SortDirection;
 
 /**
@@ -45,6 +47,15 @@ class OrderRepository extends ServiceEntityRepository
             ->addOrderBy('o.id', $direction)
             ->setFirstResult(($query->page - 1) * $query->limit)
             ->setMaxResults($query->limit);
+
+        // Only orders with at least one line item for a ticket type of the given event.
+        if ($query->eventId !== null) {
+            $qb->andWhere(
+                'EXISTS (SELECT li.id FROM ' . OrderLineItem::class . ' li'
+                . ' JOIN li.ticketType tt'
+                . ' WHERE li.order = o AND tt.event = :eventId)',
+            )->setParameter('eventId', Uuid::fromString($query->eventId));
+        }
 
         // Every word must match the order number or the customer's first/last name.
         $words = preg_split('/\s+/', trim((string) $query->search), -1, PREG_SPLIT_NO_EMPTY);
