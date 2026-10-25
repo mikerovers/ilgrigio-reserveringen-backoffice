@@ -1,12 +1,14 @@
 import { Controller } from "@hotwired/stimulus";
-import {
-    renderCouponError,
-    renderCouponSuccess,
-    validateCoupon,
-    removeCoupon as removeCouponRequest,
-} from "./coupon.js";
+import { getComponent } from "@symfony/ux-live-component";
+
+// Delay before recalculating coupon totals after quantity changes.
+const TOTALS_REFRESH_DELAY_MS = 300;
 
 // Connects to data-controller="frontend--ticket-selection"
+//
+// Steppers, the item list and the no-coupon totals run locally. Validation and
+// coupon handling run on the server through the TicketSelection Live Component;
+// its JSON state (data-ticket-selection-state) drives row errors and totals.
 export default class extends Controller {
     static targets = [
         "quantity",
@@ -18,12 +20,10 @@ export default class extends Controller {
         "errorContainer",
         "errorMessage",
         "couponInput",
-        "applyCouponButton",
-        "couponStatus",
+        "appliedCouponField",
         "discountRow",
         "discountAmount",
         "couponDescription",
-        "appliedCouponField",
         "discountAmountField",
         "maxTicketsWarning",
         "taxAmount",
@@ -37,99 +37,82 @@ export default class extends Controller {
     };
 
     connect() {
-        this.appliedCoupon = null;
+        this.requestSeq = 0;
+        this.refreshTimer = null;
+        this.transientMessage = null;
+        // Last totals returned by the server; null until the first response arrives.
+        this.serverTotals = null;
 
-        // Check if there's a pre-applied coupon from session
-        this.updateOrderSummary();
-
-        const appliedCouponField = this.appliedCouponFieldTarget;
-        if (appliedCouponField && appliedCouponField.value) {
-            this.restoreCoupon(appliedCouponField.value);
-        }
-    }
-
-    // The field only carries the code; re-validate it to get its type/amount.
-    async restoreCoupon(code) {
-        try {
-            const result = await validateCoupon(code);
-
-            if (result.valid) {
-                this.appliedCoupon = result;
-                this.showCouponSuccess(result);
-            } else {
-                this.appliedCouponFieldTarget.value = "";
-            }
-        } catch (error) {
-            console.error("Error restoring coupon:", error);
-        }
+        const liveRoot = this.element.querySelector("[data-live-name-value]");
+        this.componentPromise = liveRoot ? getComponent(liveRoot) : Promise.reject(new Error("Live component missing"));
+        // Avoid unhandled rejection if the component is missing; callers handle the error.
+        this.componentPromise.catch(() => {});
 
         this.updateOrderSummary();
+        // Totals always come from the server, so fetch them for the current selection.
+        this.refreshTotals();
     }
+
+    disconnect() {
+        clearTimeout(this.refreshTimer);
+    }
+
+    // ---- Steppers -------------------------------------------------------
 
     decreaseQuantity(event) {
-        const ticketId = event.currentTarget.dataset.ticketId;
-        const input = this.element.querySelector(`#quantity-${ticketId}`);
+        const input = this.inputFor(event);
 
         if (parseInt(input.value) > 0) {
             input.value = parseInt(input.value) - 1;
-            this.updateOrderSummary();
+            this.selectionChanged();
         }
     }
 
     increaseQuantity(event) {
-        const ticketId = event.currentTarget.dataset.ticketId;
-        const input = this.element.querySelector(`#quantity-${ticketId}`);
-
-        // Check if increasing would exceed maximum allowed per order
+        const input = this.inputFor(event);
         const currentTotal = this.calculateTotalTickets();
+
         if (currentTotal + 1 > this.maxTicketsPerOrderValue) {
+            this.showTransientMessage(
+                `Je kunt maximaal ${this.maxTicketsPerOrderValue} tickets per bestelling kiezen.`,
+            );
             return;
         }
 
-        // Check if increasing would exceed shared stock
         if (this.sharedStockValue && currentTotal + 1 > this.sharedStockValue) {
-            this.showStockWarning();
+            this.showTransientMessage(
+                `Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.`,
+            );
             return;
         }
 
         input.value = parseInt(input.value) + 1;
-        this.updateOrderSummary();
+        this.selectionChanged();
     }
 
     quantityChanged(event) {
         const input = event.target;
-        let value = parseInt(input.value) || 0;
-        const min = parseInt(input.getAttribute("min")) || 0;
+        const value = Math.max(0, parseInt(input.value) || 0);
+        input.value = value;
 
-        // Ensure value is not below minimum (0)
-        if (value < min) {
-            value = min;
-            input.value = value;
+        // Largest value this row may take given the other rows.
+        const others = this.calculateTotalTickets() - value;
+        const maxForRow = Math.max(0, this.maxTicketsPerOrderValue - others);
+        const stockForRow = this.sharedStockValue
+            ? Math.max(0, this.sharedStockValue - others)
+            : Infinity;
+        const allowed = Math.min(maxForRow, stockForRow);
+
+        let message = null;
+        if (value > allowed) {
+            input.value = allowed;
+            message =
+                allowed === maxForRow
+                    ? `Je kunt maximaal ${this.maxTicketsPerOrderValue} tickets per bestelling kiezen.`
+                    : `Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.`;
         }
 
-        // Check if total tickets would exceed shared stock
-        const currentTotal = this.calculateTotalTickets();
-        if (this.sharedStockValue && currentTotal > this.sharedStockValue) {
-            // If the total exceeds shared stock, reduce this input to stay within limit
-            const excessAmount = currentTotal - this.sharedStockValue;
-            const adjustedValue = Math.max(0, value - excessAmount);
-            if (adjustedValue !== value) {
-                input.value = adjustedValue;
-                this.showStockWarning();
-            }
-        }
-
-        // Check if total tickets would exceed maximum allowed per order
-        if (currentTotal > this.maxTicketsPerOrderValue) {
-            // If the total exceeds, reduce this input to stay within limit
-            const excessAmount = currentTotal - this.maxTicketsPerOrderValue;
-            const adjustedValue = Math.max(0, value - excessAmount);
-            if (adjustedValue !== value) {
-                input.value = adjustedValue;
-            }
-        }
-
-        this.updateOrderSummary();
+        this.selectionChanged(message);
     }
 
     calculateTotalTickets() {
@@ -142,225 +125,243 @@ export default class extends Controller {
         return total;
     }
 
-    validateForm(event) {
+    // Any change to the selection clears stale errors and refreshes local totals.
+    selectionChanged(transientMessage = null) {
+        this.transientMessage = transientMessage;
+        this.clearRowErrors();
+        this.hideError();
+        this.updateOrderSummary();
+        this.scheduleTotalsRefresh();
+    }
+
+    // ---- Submit ---------------------------------------------------------
+
+    // Row errors come from the server on every change (see refreshTotals), so submit only
+    // needs to stop on what is already shown. The server re-validates on the POST regardless.
+    async validateForm(event) {
         event.preventDefault();
 
-        // Hide previous errors
+        if (this.submitting) {
+            return;
+        }
+
         this.hideError();
 
-        // Check if at least one ticket is selected
-        const totalTickets = this.calculateTotalTickets();
-
-        if (totalTickets === 0) {
+        if (this.calculateTotalTickets() === 0) {
             this.showError("Selecteer minimaal één ticket om door te gaan.");
-            return false;
+            return;
         }
 
-        // Check if total tickets exceed shared stock
-        if (this.sharedStockValue && totalTickets > this.sharedStockValue) {
-            this.showError(
-                "Niet genoeg tickets beschikbaar. Er zijn nog " +
-                    this.sharedStockValue +
-                    " tickets beschikbaar.",
-            );
-            return false;
+        this.submitting = true;
+        try {
+            // Run a pending debounced refresh now, then wait for the latest one, so the
+            // row errors checked below describe the selection the customer is submitting.
+            if (this.refreshTimer !== null) {
+                clearTimeout(this.refreshTimer);
+                this.refreshTimer = null;
+                this.refreshTotals();
+            }
+            await this.refreshPromise;
+
+            const firstVisibleRowError = this.element.querySelector("[data-row-error]:not([hidden])");
+            if (firstVisibleRowError) {
+                const input = this.quantityTargets.find(
+                    (el) => el.dataset.ticketId === firstVisibleRowError.dataset.rowError,
+                );
+                this.showError("Pas het aantal aan voordat je doorgaat.");
+                input?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+            }
+
+            this.element.submit();
+        } finally {
+            this.submitting = false;
+        }
+    }
+
+    // ---- Coupons --------------------------------------------------------
+
+    // Do not toggle `disabled` on the apply button: it lives inside the Live root, and
+    // Live re-applies DOM changes made during a request onto the re-rendered element,
+    // which left the button disabled after an invalid code. Track the pending state here.
+    async applyCoupon() {
+        if (this.couponPending) {
+            return;
+        }
+        this.couponPending = true;
+
+        try {
+            const state = await this.callLive("applyCoupon", {
+                code: this.couponInputTarget.value.trim(),
+                tickets: this.selectionPayload(),
+            });
+            this.applyServerState(state);
+        } catch (error) {
+            console.error("Error applying coupon:", error);
+            this.showError("Kortingscode kon niet worden gecontroleerd. Probeer het opnieuw.", {
+                scroll: false,
+            });
+        } finally {
+            this.couponPending = false;
+        }
+    }
+
+    async removeCoupon() {
+        try {
+            const state = await this.callLive("removeCoupon", {
+                tickets: this.selectionPayload(),
+            });
+            this.applyServerState(state);
+        } catch (error) {
+            console.error("Error removing coupon:", error);
+        }
+    }
+
+    // Every selection change re-prices on the server; debounced to avoid a request per click.
+    scheduleTotalsRefresh() {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = setTimeout(() => {
+            this.refreshTimer = null;
+            this.refreshTotals();
+        }, TOTALS_REFRESH_DELAY_MS);
+    }
+
+    // Starts a refresh and remembers it, so submit can wait for the latest one.
+    refreshTotals() {
+        const seq = ++this.requestSeq;
+        this.refreshPromise = this.performRefresh(seq);
+        return this.refreshPromise;
+    }
+
+    async performRefresh(seq) {
+        this.setTotalsBusy(true);
+
+        try {
+            const state = await this.callLive("refreshTotals", {
+                tickets: this.selectionPayload(),
+            });
+
+            // Only the latest response is applied; earlier ones may describe an old selection.
+            if (seq === this.requestSeq) {
+                this.applyServerState(state);
+                // Row errors (sold-out tickets, per-row stock) come back with every refresh.
+                // Form-level messages are not shown on change, so an emptied selection is not flagged.
+                this.clearRowErrors();
+                this.applyRowErrors(state.rowErrors, { scroll: false });
+            }
+        } catch (error) {
+            console.error("Error refreshing totals:", error);
+        } finally {
+            if (seq === this.requestSeq) {
+                this.setTotalsBusy(false);
+            }
+        }
+    }
+
+    // Dims the totals while a refresh is in flight, so a lagging figure is not read as final.
+    setTotalsBusy(busy) {
+        [this.subtotalPriceTarget, this.taxAmountTarget, this.totalPriceTarget, this.discountAmountTarget].forEach(
+            (el) => {
+                el.classList.toggle("opacity-50", busy);
+                el.setAttribute("aria-busy", String(busy));
+            },
+        );
+    }
+
+    // ---- Live plumbing --------------------------------------------------
+
+    async callLive(name, args) {
+        const component = await this.componentPromise;
+        const response = await component.action(name, args);
+        const html = await response.getBody();
+
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const stateNode = doc.querySelector("[data-ticket-selection-state]");
+        if (!stateNode) {
+            throw new Error(`Live action "${name}" returned no state`);
         }
 
-        // Check if total tickets exceed maximum allowed per order
-        if (totalTickets > this.maxTicketsPerOrderValue) {
-            this.showError(
-                "Groepen vanaf 25 personen kunnen in aanmerking komen voor korting mits zij van tevoren gereserveerd hebben. Voor informatie over groepskortingen ontvangen wij graag een e-mail (info@ilgrigio.nl).",
-            );
-            return false;
-        }
+        return JSON.parse(stateNode.dataset.ticketSelectionState);
+    }
 
-        // Validate individual ticket quantities (only check minimum)
-        let hasError = false;
+    // Quantities for every enabled row, including zeros, so the server sees the full selection.
+    selectionPayload() {
+        const tickets = {};
         this.quantityTargets.forEach((input) => {
             if (!input.disabled) {
-                const quantity = parseInt(input.value) || 0;
-                const min = parseInt(input.getAttribute("min"));
+                tickets[input.dataset.ticketId] = input.value || "0";
+            }
+        });
+        return JSON.stringify(tickets);
+    }
 
-                if (quantity < min) {
-                    hasError = true;
-                }
+    applyServerState(state) {
+        this.serverTotals = state.totals;
+        this.serverCouponCode = state.couponCode ?? null;
+        this.updateOrderSummary();
+    }
+
+    // ---- Feedback -------------------------------------------------------
+
+    applyRowErrors(rowErrors, { scroll = true } = {}) {
+        let first = null;
+
+        Object.entries(rowErrors).forEach(([ticketTypeId, message]) => {
+            const input = this.quantityTargets.find((el) => el.dataset.ticketId === ticketTypeId);
+            const messageEl = this.element.querySelector(`[data-row-error="${ticketTypeId}"]`);
+
+            if (messageEl) {
+                messageEl.textContent = message;
+                messageEl.hidden = false;
+            }
+            if (input) {
+                input.setAttribute("aria-invalid", "true");
+                first = first ?? input;
             }
         });
 
-        if (hasError) {
-            this.showError(
-                "Controleer de geselecteerde aantallen. Sommige waarden zijn ongeldig.",
-            );
-            return false;
+        if (first && scroll) {
+            first.scrollIntoView({ behavior: "smooth", block: "center" });
         }
-
-        // If validation passes, submit the form
-        this.element.submit();
     }
 
-    showError(message) {
+    clearRowErrors() {
+        this.element.querySelectorAll("[data-row-error]").forEach((el) => {
+            el.textContent = "";
+            el.hidden = true;
+        });
+        this.quantityTargets.forEach((input) => input.removeAttribute("aria-invalid"));
+    }
+
+    showError(message, { scroll = true } = {}) {
         this.errorMessageTarget.textContent = message;
         this.errorContainerTarget.classList.remove("hidden");
 
-        // Scroll to error
-        this.errorContainerTarget.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-        });
+        if (scroll) {
+            this.errorContainerTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
     }
 
     hideError() {
         this.errorContainerTarget.classList.add("hidden");
     }
 
-    showStockWarning() {
-        if (this.hasMaxTicketsWarningTarget) {
-            this.maxTicketsWarningTarget.innerHTML = `
-                <i class="fas fa-info-circle mr-1"></i>
-                Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.
-            `;
-            this.maxTicketsWarningTarget.classList.remove(
-                "hidden",
-                "text-gray-500",
-                "bg-gray-50",
-                "text-amber-600",
-                "bg-amber-50",
-                "border-amber-200",
-            );
-            this.maxTicketsWarningTarget.classList.add(
-                "text-red-600",
-                "bg-red-50",
-                "border-red-200",
-            );
-        }
+    showTransientMessage(message) {
+        this.transientMessage = message;
+        this.renderWarning(0);
     }
 
-    async applyCoupon() {
-        const couponCode = this.couponInputTarget.value.trim();
+    // ---- Summary --------------------------------------------------------
 
-        if (!couponCode) {
-            this.showCouponError("Voer een kortingscode in");
-            return;
-        }
-
-        // Disable button and show loading state
-        this.applyCouponButtonTarget.disabled = true;
-        this.applyCouponButtonTarget.textContent = "Valideren...";
-        this.proceedButtonTarget.disabled = true;
-
-        try {
-            const result = await validateCoupon(couponCode);
-
-            if (result.valid) {
-                this.appliedCoupon = result;
-                this.showCouponSuccess(result);
-                this.updateOrderSummary();
-
-                // Update hidden form fields
-                this.appliedCouponFieldTarget.value = result.code;
-            } else {
-                this.showCouponError(result.message || "Kortingscode niet geldig");
-            }
-        } catch (error) {
-            console.error("Error validating coupon:", error);
-            this.showCouponError("Fout bij het valideren van kortingscode");
-        } finally {
-            // Reset button state
-            this.applyCouponButtonTarget.disabled = false;
-            this.applyCouponButtonTarget.textContent = "Toepassen";
-            // Restore proceed button state based on current ticket count
-            this.updateOrderSummary();
-        }
-    }
-
-    showCouponSuccess(coupon) {
-        renderCouponSuccess(this.couponStatusTarget, coupon, "frontend--ticket-selection");
-        this.couponInputTarget.disabled = true;
-        this.applyCouponButtonTarget.disabled = true;
-    }
-
-    showCouponError(message) {
-        renderCouponError(this.couponStatusTarget, message);
-    }
-
-    async removeCoupon() {
-        try {
-            const result = await removeCouponRequest();
-
-            if (result.success) {
-                // Clear frontend state
-                this.appliedCoupon = null;
-                this.couponStatusTarget.classList.add("hidden");
-                this.couponInputTarget.value = "";
-                this.couponInputTarget.disabled = false;
-                this.applyCouponButtonTarget.disabled = false;
-                this.appliedCouponFieldTarget.value = "";
-                this.updateOrderSummary();
-            } else {
-                console.error("Failed to remove coupon:", result.message);
-            }
-        } catch (error) {
-            console.error("Error removing coupon:", error);
-            // Fallback to frontend-only removal
-            this.appliedCoupon = null;
-            this.couponStatusTarget.classList.add("hidden");
-            this.couponInputTarget.value = "";
-            this.couponInputTarget.disabled = false;
-            this.applyCouponButtonTarget.disabled = false;
-            this.appliedCouponFieldTarget.value = "";
-            this.updateOrderSummary();
-        }
-    }
-
-    calculateDiscount(subtotal) {
-        if (!this.appliedCoupon || !this.appliedCoupon.valid) {
-            return 0;
-        }
-
-        // The server's discountCents was computed against whatever cart was in
-        // the session, not the current selection, so recompute from the coupon's
-        // type/amount (percent = basis points, fixed_cart = cents, by_ticket = count).
-        const subtotalCents = Math.round(subtotal * 100);
-        let discountCents;
-
-        if (this.appliedCoupon.discountType === "percent") {
-            discountCents = Math.round((subtotalCents * this.appliedCoupon.amount) / 10000);
-        } else if (this.appliedCoupon.discountType === "by_ticket") {
-            let ticketsToDiscount = Math.max(0, Math.floor(Number(this.appliedCoupon.amount) || 0));
-            discountCents = 0;
-
-            const selectedTickets = this.quantityTargets
-                .filter((input) => !input.disabled)
-                .map((input) => ({
-                    priceCents: Math.round(parseFloat(input.dataset.price) * 100),
-                    quantity: Math.max(0, parseInt(input.value, 10) || 0),
-                }))
-                .filter((ticket) => ticket.quantity > 0 && Number.isFinite(ticket.priceCents))
-                .sort((a, b) => b.priceCents - a.priceCents);
-
-            for (const ticket of selectedTickets) {
-                if (ticketsToDiscount === 0) {
-                    break;
-                }
-
-                const discountedQuantity = Math.min(ticketsToDiscount, ticket.quantity);
-                discountCents += ticket.priceCents * discountedQuantity;
-                ticketsToDiscount -= discountedQuantity;
-            }
-        } else {
-            discountCents = this.appliedCoupon.amount;
-        }
-
-        return Math.min(Math.max(discountCents, 0), subtotalCents) / 100;
+    inputFor(event) {
+        return this.element.querySelector(`#quantity-${event.currentTarget.dataset.ticketId}`);
     }
 
     updateOrderSummary() {
         let totalTickets = 0;
-        let subtotalPrice = 0;
         let orderHTML = "";
 
         this.quantityTargets.forEach((input) => {
-            // Skip disabled inputs (sold out tickets)
             if (input.disabled) {
                 return;
             }
@@ -369,13 +370,10 @@ export default class extends Controller {
             if (quantity > 0) {
                 const ticketId = input.dataset.ticketId;
                 const price = parseFloat(input.dataset.price);
-                const ticketType = this.ticketTypesValue.find(
-                    (t) => t.id == ticketId,
-                );
+                const ticketType = this.ticketTypesValue.find((t) => t.id == ticketId);
 
                 if (ticketType) {
                     totalTickets += quantity;
-                    subtotalPrice += quantity * price;
 
                     orderHTML += `
                         <div class="flex justify-between items-center">
@@ -391,109 +389,77 @@ export default class extends Controller {
         });
 
         if (totalTickets === 0) {
-            orderHTML =
-                '<p class="text-gray-500 text-center">Geen tickets geselecteerd</p>';
+            orderHTML = '<p class="text-gray-500 text-center">Geen tickets geselecteerd</p>';
         }
 
-        // Calculate discount on the total (which includes tax)
-        const discountAmount = this.calculateDiscount(subtotalPrice);
-        const totalAfterDiscount = subtotalPrice - discountAmount;
-
-        // Calculate tax components (tax is included in the total)
-        const taxRate = (this.taxRateValue || 9) / 100; // Convert percentage to decimal, default to 9%
-        const taxAmount =
-            totalAfterDiscount - totalAfterDiscount / (1 + taxRate);
-        const subtotalWithoutTax = totalAfterDiscount - taxAmount;
-
-        const finalTotal = totalAfterDiscount;
-
-        // Update display
+        // Totals are never computed in the browser: they show the server's figures for
+        // the last priced selection. Until the first response arrives they stay as rendered.
         this.orderItemsTarget.innerHTML = orderHTML;
         this.totalTicketsTarget.textContent = totalTickets;
-        this.subtotalPriceTarget.textContent = `€${subtotalWithoutTax.toFixed(2)}`;
-        this.taxAmountTarget.textContent = `€${taxAmount.toFixed(2)}`;
-        this.totalPriceTarget.textContent = `€${finalTotal.toFixed(2)}`;
 
-        // Update discount display
-        if (discountAmount > 0 && this.appliedCoupon) {
-            this.discountAmountTarget.textContent = `-€${discountAmount.toFixed(2)}`;
-            this.couponDescriptionTarget.textContent = this.appliedCoupon.code;
-            this.discountRowTarget.classList.remove("hidden");
-            this.discountAmountFieldTarget.value = discountAmount.toFixed(2);
-        } else {
-            this.discountRowTarget.classList.add("hidden");
-            this.discountAmountFieldTarget.value = "0";
-        }
+        if (this.serverTotals) {
+            const { subtotalNet, tax, totalGross, discountGross } = this.serverTotals;
 
-        // Enable/disable proceed button
-        this.proceedButtonTarget.disabled = totalTickets === 0;
+            this.subtotalPriceTarget.textContent = `€${subtotalNet.toFixed(2)}`;
+            this.taxAmountTarget.textContent = `€${tax.toFixed(2)}`;
+            this.totalPriceTarget.textContent = `€${totalGross.toFixed(2)}`;
 
-        // Show/hide maximum tickets warning
-        if (this.hasMaxTicketsWarningTarget) {
-            // Check if we're near or at shared stock limit
-            if (
-                this.sharedStockValue &&
-                totalTickets >= this.sharedStockValue
-            ) {
-                this.maxTicketsWarningTarget.innerHTML = `
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.
-                `;
-                this.maxTicketsWarningTarget.classList.remove(
-                    "hidden",
-                    "text-gray-500",
-                    "bg-gray-50",
-                    "text-amber-600",
-                    "bg-amber-50",
-                    "border-amber-200",
-                );
-                this.maxTicketsWarningTarget.classList.add(
-                    "text-red-600",
-                    "bg-red-50",
-                    "border-red-200",
-                );
-            } else if (totalTickets >= this.maxTicketsPerOrderValue - 5) {
-                // Show warning when within 5 tickets of limit
-                this.maxTicketsWarningTarget.innerHTML = `
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Maximum ${this.maxTicketsPerOrderValue} tickets per bestelling. Groepen vanaf 25 personen kunnen in aanmerking komen voor korting mits zij van tevoren gereserveerd hebben. Voor informatie over groepskortingen ontvangen wij graag een e-mail (info@ilgrigio.nl).
-                `;
-                this.maxTicketsWarningTarget.classList.remove("hidden");
-                if (totalTickets >= this.maxTicketsPerOrderValue) {
-                    this.maxTicketsWarningTarget.classList.add(
-                        "text-red-600",
-                        "bg-red-50",
-                        "border-red-200",
-                    );
-                    this.maxTicketsWarningTarget.classList.remove(
-                        "text-gray-500",
-                        "bg-gray-50",
-                        "text-amber-600",
-                        "bg-amber-50",
-                        "border-amber-200",
-                    );
-                } else {
-                    this.maxTicketsWarningTarget.classList.add(
-                        "text-amber-600",
-                        "bg-amber-50",
-                        "border-amber-200",
-                    );
-                    this.maxTicketsWarningTarget.classList.remove(
-                        "text-gray-500",
-                        "bg-gray-50",
-                        "text-red-600",
-                        "bg-red-50",
-                        "border-red-200",
-                    );
-                }
+            if (discountGross > 0 && this.serverCouponCode) {
+                this.discountAmountTarget.textContent = `-€${discountGross.toFixed(2)}`;
+                this.couponDescriptionTarget.textContent = this.serverCouponCode;
+                this.discountRowTarget.classList.remove("hidden");
             } else {
-                this.maxTicketsWarningTarget.classList.add("hidden");
+                this.discountRowTarget.classList.add("hidden");
             }
+            this.discountAmountFieldTarget.value = discountGross.toFixed(2);
         }
 
-        // Hide errors when user makes changes
-        if (this.hasErrorContainerTarget) {
-            this.hideError();
+        this.proceedButtonTarget.disabled = totalTickets === 0;
+        this.renderWarning(totalTickets);
+    }
+
+    // Warning box near the totals. Shows a transient message (limit reached) if set,
+    // otherwise the standing stock/limit notice.
+    renderWarning(totalTickets) {
+        if (!this.hasMaxTicketsWarningTarget) {
+            return;
+        }
+
+        const warning = this.maxTicketsWarningTarget;
+        const tone = {
+            error: ["text-red-600", "bg-red-50", "border-red-200"],
+            warning: ["text-amber-600", "bg-amber-50", "border-amber-200"],
+        };
+        const allToneClasses = [
+            "text-gray-500",
+            "bg-gray-50",
+            ...tone.error,
+            ...tone.warning,
+        ];
+        warning.classList.remove(...allToneClasses);
+
+        if (this.transientMessage) {
+            warning.innerHTML = `<i class="fas fa-info-circle mr-1"></i> ${this.transientMessage}`;
+            warning.classList.add(...tone.error);
+            warning.classList.remove("hidden");
+            return;
+        }
+
+        const remaining = this.sharedStockValue ? this.sharedStockValue - totalTickets : null;
+        if (this.sharedStockValue && totalTickets >= this.sharedStockValue) {
+            warning.innerHTML = `<i class="fas fa-info-circle mr-1"></i> Er zijn nog maar ${this.sharedStockValue} kaarten beschikbaar voor deze show.`;
+            warning.classList.add(...tone.error);
+            warning.classList.remove("hidden");
+        } else if (this.sharedStockValue && remaining <= 5 && totalTickets > 0) {
+            warning.innerHTML = `<i class="fas fa-info-circle mr-1"></i> Nog ${remaining} kaarten beschikbaar voor deze show.`;
+            warning.classList.add(...tone.warning);
+            warning.classList.remove("hidden");
+        } else if (totalTickets >= this.maxTicketsPerOrderValue - 5) {
+            warning.innerHTML = `<i class="fas fa-info-circle mr-1"></i> Maximum ${this.maxTicketsPerOrderValue} tickets per bestelling. Groepen vanaf ${this.maxTicketsPerOrderValue} personen kunnen in aanmerking komen voor korting mits zij van tevoren gereserveerd hebben. Voor informatie over groepskortingen ontvangen wij graag een e-mail (info@ilgrigio.nl).`;
+            warning.classList.add(...(totalTickets >= this.maxTicketsPerOrderValue ? tone.error : tone.warning));
+            warning.classList.remove("hidden");
+        } else {
+            warning.classList.add("hidden");
         }
     }
 }

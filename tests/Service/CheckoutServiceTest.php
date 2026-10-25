@@ -163,7 +163,7 @@ class CheckoutServiceTest extends TestCase
         $this->connection->expects($this->never())->method('commit');
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('ticket(s) remaining');
+        $this->expectExceptionMessage('ticket(s) beschikbaar');
 
         $ticketType = $this->ticketType('Regulier', 1200);
         $ticketType->sharedStock->stockQuantity = 1;

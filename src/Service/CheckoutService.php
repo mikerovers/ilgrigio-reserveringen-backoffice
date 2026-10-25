@@ -82,7 +82,7 @@ final class CheckoutService
             }
 
             if ($ticketType->event->stockStatus() === StockStatus::OUT_OF_STOCK) {
-                throw new \RuntimeException('This event is sold out.');
+                throw new \RuntimeException('Deze show is uitverkocht en er kunnen geen tickets meer worden besteld.');
             }
 
             $pool = $ticketType->sharedStock;
@@ -91,7 +91,7 @@ final class CheckoutService
             }
 
             if ($pool->stockStatus === StockStatus::OUT_OF_STOCK) {
-                throw new \RuntimeException(sprintf('Shared stock pool "%s" is out of stock.', $pool->name));
+                throw new \RuntimeException('Helaas, een of meer tickets in je bestelling zijn inmiddels uitverkocht. Pas je selectie aan.');
             }
 
             $poolId = (string) $pool->id;
@@ -126,9 +126,8 @@ final class CheckoutService
                     $this->entityManager->refresh($pool);
 
                     throw new \RuntimeException(sprintf(
-                        'Only %d ticket(s) remaining in pool "%s".',
-                        $pool->stockQuantity ?? 0,
-                        $pool->name,
+                        'Er zijn nog maar %d ticket(s) beschikbaar. Pas je selectie aan.',
+                        max(0, $pool->stockQuantity ?? 0),
                     ));
                 }
 

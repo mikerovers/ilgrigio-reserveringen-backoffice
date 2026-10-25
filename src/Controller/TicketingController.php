@@ -24,6 +24,7 @@ use App\Service\EventSchedule;
 use App\Service\MoneyService;
 use App\Service\OrderPricingService;
 use App\Service\StockReservationService;
+use App\Service\TicketSelectionValidator;
 use App\Service\VenueTime;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -53,6 +54,7 @@ final class TicketingController extends AbstractController
         private ValidatorInterface $validator,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private TicketSelectionValidator $ticketSelectionValidator,
         private int $maxTicketsPerOrder,
         private float $taxRate,
     ) {
@@ -85,20 +87,33 @@ final class TicketingController extends AbstractController
         }
 
         $session = $request->getSession();
-        $cartItems = $session->get('cart_items', []);
+
+        // A rejected submission leaves its quantities and per-row errors behind for one render.
+        $draft = $session->remove('ticket_selection_draft');
+        $rowErrors = [];
         $existingQuantities = [];
-        foreach ($cartItems as $item) {
-            if (($item['event_id'] ?? null) === (string) $event->id) {
-                $existingQuantities[$item['id']] = $item['quantity'];
+        if (is_array($draft)) {
+            $rowErrors = is_array($draft['rowErrors'] ?? null) ? $draft['rowErrors'] : [];
+            foreach (is_array($draft['quantities'] ?? null) ? $draft['quantities'] : [] as $id => $quantity) {
+                $existingQuantities[(string) $id] = is_scalar($quantity) ? (string) $quantity : '0';
+            }
+        } else {
+            foreach ($session->get('cart_items', []) as $item) {
+                if (($item['event_id'] ?? null) === (string) $event->id) {
+                    $existingQuantities[$item['id']] = $item['quantity'];
+                }
             }
         }
+
+        $appliedCoupon = $session->get('applied_coupon');
 
         return $this->render('ticketing/tickets.html.twig', [
             'event' => $this->eventView($event),
             'ticketTypes' => array_map(fn (TicketType $t) => $this->ticketTypeView($t), $event->ticketTypes->toArray()),
             'maxTicketsPerOrder' => $this->maxTicketsPerOrder,
             'existingQuantities' => $existingQuantities,
-            'appliedCoupon' => $session->get('applied_coupon'),
+            'rowErrors' => $rowErrors,
+            'appliedCoupon' => $appliedCoupon,
             'taxRate' => $this->taxRate,
             'sharedStock' => $event->displayStockQuantity(),
             'stockStatus' => $event->displayStockStatus()->value,
@@ -120,43 +135,40 @@ final class TicketingController extends AbstractController
             return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
         }
 
-        // Map selected ticket types to a cart, pricing from entities only.
-        $ticketTypesById = [];
-        foreach ($event->ticketTypes as $ticketType) {
-            $ticketTypesById[(string) $ticketType->id] = $ticketType;
+        $quantities = [];
+        foreach ($ticketOrder->tickets as $ticketTypeId => $data) {
+            $quantities[(string) $ticketTypeId] = is_array($data) ? ($data['quantity'] ?? 0) : 0;
+        }
+
+        // Same rules the Live Component applies on submit: limit, stock, availability.
+        $selection = $this->ticketSelectionValidator->validate($event, $quantities);
+        if (!$selection->isValid()) {
+            $request->getSession()->set('ticket_selection_draft', [
+                'quantities' => $quantities,
+                'rowErrors' => $selection->rowErrors,
+            ]);
+            foreach ($selection->formErrors as $message) {
+                $this->addFlash('error', $message);
+            }
+
+            return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
         }
 
         $cartItems = [];
         $pricingCart = [];
-        foreach ($ticketOrder->tickets as $ticketTypeId => $data) {
-            $quantity = (int) ($data['quantity'] ?? 0);
-            if ($quantity <= 0) {
-                continue;
-            }
-
-            $ticketType = $ticketTypesById[(string) $ticketTypeId] ?? null;
-            if ($ticketType === null || $ticketType->disabled) {
-                continue;
-            }
-
-            $lineGross = $ticketType->price->multiply($quantity);
+        foreach ($selection->cart as $row) {
+            $ticketType = $row['ticketType'];
             $cartItems[] = [
                 'id' => (string) $ticketType->id,
                 'name' => $ticketType->name,
                 'price' => $this->moneyService->toFloat($ticketType->price),
-                'quantity' => $quantity,
-                'total' => $this->moneyService->toFloat($lineGross),
+                'quantity' => $row['quantity'],
+                'total' => $this->moneyService->toFloat($ticketType->price->multiply($row['quantity'])),
                 'event_id' => (string) $event->id,
                 'event_name' => $event->name,
                 'date' => VenueTime::toLocal($event->startsAt)->format('d-m-Y'),
             ];
-            $pricingCart[] = ['ticketType' => $ticketType, 'quantity' => $quantity];
-        }
-
-        if ($cartItems === []) {
-            $this->addFlash('error', 'Selecteer minimaal één ticket om door te gaan.');
-
-            return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
+            $pricingCart[] = $row;
         }
 
         $coupon = $this->couponResolver->resolve($ticketOrder->appliedCouponCode);

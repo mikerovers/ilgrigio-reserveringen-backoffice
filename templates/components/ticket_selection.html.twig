@@ -1,0 +1,37 @@
+<div {{ attributes }}>
+	<div class="border-t pt-4 mb-4">
+		<label for="coupon-code" class="block text-sm font-medium text-gray-700 mb-2">
+			{{ 'tickets.coupon_code'|trans }}
+		</label>
+
+		{% if appliedCouponCode %}
+			<div class="flex items-center justify-between bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded text-sm" role="status">
+				<span class="flex items-center">
+					<i class="fas fa-check-circle mr-2" aria-hidden="true"></i>
+					Kortingscode toegepast: <strong class="ml-1">{{ appliedCouponCode }}</strong>
+				</span>
+				<button type="button" class="text-green-600 hover:text-green-800" aria-label="Kortingscode verwijderen" data-action="click->frontend--ticket-selection#removeCoupon">
+					<i class="fas fa-times" aria-hidden="true"></i>
+				</button>
+			</div>
+		{% else %}
+			<div class="flex space-x-2">
+				<input type="text" id="coupon-code" class="flex-1 min-w-0 border border-[#d6c4b1] px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600" placeholder="{{ 'tickets.enter_coupon_code'|trans }}" value="{{ couponInput }}" data-frontend--ticket-selection-target="couponInput">
+				<button type="button" class="bg-[#dc2626] text-white hover:bg-[#b91c1c] font-semibold py-2 px-4 text-sm transition-colors" data-action="click->frontend--ticket-selection#applyCoupon">
+					{{ 'tickets.apply'|trans }}
+				</button>
+			</div>
+		{% endif %}
+
+		{% if couponError %}
+			<div class="mt-2 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm" role="alert">
+				<i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>{{ couponError }}
+			</div>
+		{% endif %}
+	</div>
+
+	<input type="hidden" name="appliedCouponCode" value="{{ appliedCouponCode }}" data-frontend--ticket-selection-target="appliedCouponField">
+
+	{# Read by the Stimulus controller after each Live action. #}
+	<div hidden data-ticket-selection-state="{{ state|json_encode|e('html_attr') }}"></div>
+</div>
