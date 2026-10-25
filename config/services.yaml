@@ -6,9 +6,11 @@
 parameters:
     default_from_email: 'noreply@example.com'
     admin_host: '%env(ADMIN_HOST)%'
+    scanner_host: '%env(SCANNER_HOST)%'
     ilgrigio_reserveringen_base_url: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
     env(ORDER_RESERVATION_TTL_MINUTES): '30'
     env(REGISTER_MAX_DISCOUNT_PERCENT): '100'
+    env(MERCURE_ENABLED): '0'
 
 services:
     # default configuration for services in *this* file
@@ -74,6 +76,11 @@ services:
         arguments:
             $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
             $maxDiscountPercent: '%env(float:REGISTER_MAX_DISCOUNT_PERCENT)%'
+
+    # Mercure check-in publisher (best-effort; disabled unless MERCURE_ENABLED=1)
+    App\Mercure\CheckInPublisher:
+        arguments:
+            $enabled: '%env(bool:MERCURE_ENABLED)%'
 
     # Ticketing Controller configuration
     App\Controller\TicketingController:

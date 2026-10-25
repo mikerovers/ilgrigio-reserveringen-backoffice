@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
+    <title>Il Grigio - Scanner</title>
+    {% block stylesheets %}{% endblock %}
+    {% block importmap %}{{ importmap('scanner') }}{% endblock %}
+</head>
+<body>
+    <div id="scanner-app">
+        <header class="scanner-header">
+            <h1>Il Grigio - Scanner</h1>
+        </header>
+        <main class="scanner-main"></main>
+    </div>
+</body>
+</html>

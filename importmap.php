@@ -20,6 +20,10 @@ return [
         'path' => './assets/admin/admin.js',
         'entrypoint' => true,
     ],
+    'scanner' => [
+        'path' => './assets/scanner/app.js',
+        'entrypoint' => true,
+    ],
     '@hotwired/stimulus' => [
         'version' => '3.2.2',
     ],

@@ -26,7 +26,34 @@ services:
             # - ./docker/db/data:/var/lib/postgresql/data:rw
 ###< doctrine/doctrine-bundle ###
 
+###> symfony/mercure-bundle ###
+    mercure:
+        build:
+            context: .
+            dockerfile: Dockerfile.mercure
+        restart: unless-stopped
+        environment:
+            # Same value as MERCURE_JWT_SECRET in .env (Symfony signs with it)
+            MERCURE_PUBLISHER_JWT_KEY: '${MERCURE_JWT_SECRET:?set MERCURE_JWT_SECRET in .env}'
+            MERCURE_SUBSCRIBER_JWT_KEY: '${MERCURE_JWT_SECRET:?set MERCURE_JWT_SECRET in .env}'
+            MERCURE_TRUSTED_ISSUERS: '${MERCURE_JWT_ISSUER:-https://scan.ilgrigio.nl}'
+            # Only answer for the scanner host; reject any other Host header
+            MERCURE_EXTRA_DIRECTIVES: |
+                public_urls https://scan.ilgrigio.nl
+        # Published on loopback only; the host reverse proxy (TLS) forwards /.well-known/mercure here
+        ports:
+            - '127.0.0.1:8000:80'
+        volumes:
+            - mercure_data:/data
+            - mercure_config:/config
+###< symfony/mercure-bundle ###
+
 volumes:
     ###> doctrine/doctrine-bundle ###
     database_data:
 ###< doctrine/doctrine-bundle ###
+
+###> symfony/mercure-bundle ###
+    mercure_data:
+    mercure_config:
+###< symfony/mercure-bundle ###

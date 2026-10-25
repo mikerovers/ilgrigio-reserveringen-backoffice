@@ -6,9 +6,11 @@ namespace App\Controller;
 
 use App\DTO\CheckInRequest;
 use App\DTO\CheckInResponse;
+use App\DTO\CheckInUpdate;
 use App\DTO\OrderCheckInResponse;
 use App\Entity\Event;
 use App\Entity\Order;
+use App\Mercure\CheckInPublisher;
 use App\Service\CheckInResult;
 use App\Service\CheckInService;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -32,6 +34,7 @@ final class CheckInController extends AbstractController
 {
     public function __construct(
         private CheckInService $checkInService,
+        private CheckInPublisher $checkInPublisher,
         private ClockInterface $clock,
     ) {
     }
@@ -56,6 +59,13 @@ final class CheckInController extends AbstractController
         );
 
         $ticket = $this->checkInService->findTicket($event, $request->ticketCode);
+
+        if ($result->isAdmitted() && $ticket !== null) {
+            $this->checkInPublisher->publishCheckIn(
+                (string) $event->id,
+                CheckInUpdate::fromTicket($result, $ticket),
+            );
+        }
 
         return $this->json(
             new CheckInResponse(

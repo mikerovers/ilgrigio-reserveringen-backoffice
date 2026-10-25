@@ -1,0 +1,11 @@
+# Mercure hub for the scanner (scan.ilgrigio.nl).
+#
+# Plain HTTP inside the container: TLS is terminated by the host reverse proxy,
+# which forwards /.well-known/mercure to this container on 127.0.0.1.
+# Secrets and per-environment values come from compose.yaml / .env, never from this file.
+FROM dunglas/mercure:v1.1.5
+
+ENV SERVER_NAME=:80 \
+    MERCURE_TRUSTED_ISSUERS=https://scan.ilgrigio.nl
+
+EXPOSE 80

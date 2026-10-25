@@ -1,0 +1,178 @@
+:root {
+    --scanner-bg: #0f172a;
+    --scanner-card: #1e293b;
+    --scanner-accent: #38bdf8;
+    --scanner-admitted: #22c55e;
+    --scanner-denied: #ef4444;
+    --scanner-muted: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--scanner-bg);
+    color: #f8fafc;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+#scanner-app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.scanner-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #334155;
+    background: #0f172a;
+}
+
+.scanner-header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.scanner-header .event {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--scanner-muted);
+}
+
+.scanner-main {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.scan-card {
+    background: var(--scanner-card);
+    border: 1px solid #334155;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.scan-input-wrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+#ticket-code {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    font-size: 1.125rem;
+    font-family: monospace;
+    text-transform: uppercase;
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 0.75rem;
+    color: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#ticket-code:focus {
+    border-color: var(--scanner-accent);
+}
+
+.scan-hint {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--scanner-muted);
+}
+
+.result {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: none;
+    text-align: center;
+    font-weight: 600;
+}
+
+.result.admitted {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid var(--scanner-admitted);
+    color: var(--scanner-admitted);
+    display: block;
+}
+
+.result.denied {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid var(--scanner-denied);
+    color: var(--scanner-denied);
+    display: block;
+}
+
+.result.notice {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid var(--scanner-accent);
+    color: var(--scanner-accent);
+    display: block;
+}
+
+.scan-button {
+    width: 100%;
+    padding: 0.875rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--scanner-accent);
+    color: #0f172a;
+    border: none;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.scan-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--scanner-muted);
+    margin-bottom: 1rem;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #64748b;
+    animation: pulse 2s infinite;
+}
+
+.live-indicator.connected .live-dot {
+    background: var(--scanner-admitted);
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.hidden {
+    display: none !important;
+}

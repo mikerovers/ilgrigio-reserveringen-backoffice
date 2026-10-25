@@ -1,0 +1,14 @@
+mercure:
+    hubs:
+        default:
+            url: '%env(default::MERCURE_URL)%'
+            public_url: '%env(default::MERCURE_PUBLIC_URL)%'
+            jwt:
+                # Shared with the hub (MERCURE_PUBLISHER_JWT_KEY / MERCURE_SUBSCRIBER_JWT_KEY)
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                publish: ['*']
+                claims:
+                    # Must equal the hub's MERCURE_TRUSTED_ISSUERS
+                    iss: '%env(MERCURE_JWT_ISSUER)%'
+                    sub: 'app'
+                    client_id: 'app'
