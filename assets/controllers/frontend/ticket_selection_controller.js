@@ -20,6 +20,7 @@ export default class extends Controller {
         "errorContainer",
         "errorMessage",
         "couponInput",
+        "applyButton",
         "appliedCouponField",
         "discountRow",
         "discountAmount",
@@ -42,6 +43,8 @@ export default class extends Controller {
         this.transientMessage = null;
         // Last totals returned by the server; null until the first response arrives.
         this.serverTotals = null;
+        // True while a totals refresh is in flight; keeps the proceed button disabled.
+        this.totalsBusy = false;
 
         const liveRoot = this.element.querySelector("[data-live-name-value]");
         this.componentPromise = liveRoot ? getComponent(liveRoot) : Promise.reject(new Error("Live component missing"));
@@ -219,6 +222,8 @@ export default class extends Controller {
 
     // Every selection change re-prices on the server; debounced to avoid a request per click.
     scheduleTotalsRefresh() {
+        // Totals are stale from the moment the selection changes, not only once the request starts.
+        this.setTotalsBusy(true);
         clearTimeout(this.refreshTimer);
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
@@ -260,12 +265,22 @@ export default class extends Controller {
 
     // Dims the totals while a refresh is in flight, so a lagging figure is not read as final.
     setTotalsBusy(busy) {
+        this.totalsBusy = busy;
         [this.subtotalPriceTarget, this.taxAmountTarget, this.totalPriceTarget, this.discountAmountTarget].forEach(
             (el) => {
                 el.classList.toggle("opacity-50", busy);
                 el.setAttribute("aria-busy", String(busy));
             },
         );
+        this.syncBusyControls();
+    }
+
+    // Checkout and apply must not act on a total that is about to change.
+    syncBusyControls() {
+        if (this.hasApplyButtonTarget) {
+            this.applyButtonTarget.disabled = this.totalsBusy;
+        }
+        this.proceedButtonTarget.disabled = this.totalsBusy || this.calculateTotalTickets() === 0;
     }
 
     // ---- Live plumbing --------------------------------------------------
@@ -274,6 +289,8 @@ export default class extends Controller {
         const component = await this.componentPromise;
         const response = await component.action(name, args);
         const html = await response.getBody();
+        // Live may have re-rendered the coupon form from the response, so re-apply our busy state.
+        this.syncBusyControls();
 
         const doc = new DOMParser().parseFromString(html, "text/html");
         const stateNode = doc.querySelector("[data-ticket-selection-state]");
@@ -414,7 +431,7 @@ export default class extends Controller {
             this.discountAmountFieldTarget.value = discountGross.toFixed(2);
         }
 
-        this.proceedButtonTarget.disabled = totalTickets === 0;
+        this.syncBusyControls();
         this.renderWarning(totalTickets);
     }
 
