@@ -1,6 +1,8 @@
 email:
     customer:
         subject: "Reserveringsbevestiging #%order_number%"
+    login_code:
+        subject: "Je inlogcode voor Il Grigio: %code%"
 
 pdf:
     ticket:

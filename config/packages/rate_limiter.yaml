@@ -13,6 +13,24 @@ framework:
             limit: 10
             interval: '1 minute'
 
+        # Passwordless customer login (email code). Request limiters stop email
+        # bombing (per IP and per address); the verify limiter caps guessing
+        # across codes for one address (each code also has its own attempt cap).
+        login_code_request_ip:
+            policy: sliding_window
+            limit: 10
+            interval: '15 minutes'
+
+        login_code_request_email:
+            policy: sliding_window
+            limit: 3
+            interval: '15 minutes'
+
+        login_code_verify:
+            policy: sliding_window
+            limit: 10
+            interval: '15 minutes'
+
         # Guards against refresh-token guessing/brute force. Enforced by
         # TokenRefreshRateLimitListener since gesdinet/jwt-refresh-token-bundle
         # has no login_throttling-style hook of its own.
@@ -29,3 +47,12 @@ framework:
             policy: sliding_window
             limit: 120
             interval: '1 minute'
+
+when@test:
+    framework:
+        rate_limiter:
+            # Every test client shares 127.0.0.1; keep the per-IP guard out of the way.
+            login_code_request_ip:
+                policy: sliding_window
+                limit: 100000
+                interval: '15 minutes'

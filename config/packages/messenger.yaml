@@ -39,6 +39,7 @@ framework:
 
         routing:
             'App\Message\SendOrderEmailMessage': email
+            'App\Message\SendLoginCodeMessage': email
 
 when@test:
     framework:

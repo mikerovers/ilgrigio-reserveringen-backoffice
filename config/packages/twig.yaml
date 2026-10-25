@@ -5,6 +5,7 @@ twig:
         timezone: Europe/Amsterdam
     globals:
         ilgrigio_reserveringen_base_url: '%ilgrigio_reserveringen_base_url%'
+        customer_login_enabled: '%env(bool:CUSTOMER_LOGIN_ENABLED)%'
 
 when@test:
     twig:

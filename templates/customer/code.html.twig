@@ -1,0 +1,28 @@
+{% extends 'customer/layout.html.twig' %}
+
+{% block title %}Vul je code in - Il Grigio{% endblock %}
+
+{% block content %}
+	<h1 class="font-stopbuck text-3xl md:text-4xl text-[#c62828] mb-3">Vul je code in</h1>
+	<p class="text-[#3d3535] mb-6">
+		Als <strong>{{ email }}</strong> bij ons bekend is, hebben we een code van 6 cijfers gestuurd. Die is {{ ttl_minutes }} minuten geldig.
+	</p>
+
+	{% for error in errors %}
+		<p class="mb-4 border-l-4 border-red-600 bg-red-50 px-4 py-3 text-red-800" role="alert">{{ error }}</p>
+	{% endfor %}
+
+	<form method="post" action="{{ path('customer_login_code') }}" class="space-y-4">
+		<input type="hidden" name="_csrf_token" value="{{ csrf_token('customer_login_code') }}">
+		<div>
+			<label for="code" class="block font-semibold text-[#34272a] mb-1">Inlogcode</label>
+			<input type="text" id="code" name="code" required autofocus inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7"
+				class="w-full border border-[#eadfd1] px-4 py-3 text-2xl tracking-[0.4em] text-center focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+		</div>
+		<button type="submit" class="w-full bg-[#dc2626] hover:bg-[#c62828] text-white font-bold px-5 py-3">Inloggen</button>
+	</form>
+
+	<p class="mt-6 text-sm text-[#6b5b5e]">
+		Geen e-mail ontvangen? Controleer je spam of <a href="{{ path('customer_login') }}" class="text-[#b91c1c] underline">vraag een nieuwe code aan</a>.
+	</p>
+{% endblock %}

@@ -1,0 +1,6 @@
+{# Top-right header link to the customer area; only shown when CUSTOMER_LOGIN_ENABLED is on. #}
+{% if customer_login_enabled %}
+	<a href="{{ path('customer_orders') }}" class="inline-flex items-center gap-2 text-sm md:text-base font-semibold text-white hover:text-amber-100 underline-offset-4 hover:underline">
+		<i class="fas fa-user" aria-hidden="true"></i>{{ app.user is not null ? 'Mijn tickets' : 'Inloggen' }}
+	</a>
+{% endif %}

@@ -22,4 +22,15 @@ class CustomerRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['email' => $email]);
     }
+
+    /** Case-insensitive lookup used by the passwordless login. */
+    public function findOneByEmailIgnoreCase(string $email): ?Customer
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('LOWER(c.email) = :email')
+            ->setParameter('email', mb_strtolower(trim($email)))
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

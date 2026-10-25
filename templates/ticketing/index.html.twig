@@ -7,10 +7,10 @@
 {% block body %}
 	<header class="bg-[#c62828] text-white border-b-8 border-[#a91f24]">
 		<div class="container mx-auto px-4 py-5 flex items-center justify-between gap-6">
-			<a href="http://ilgrigio.nl" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
+			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
 				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-16 md:h-20 w-auto">
 			</a>
-			<p class="hidden sm:block text-sm md:text-base text-white">Jeugdcircus Il Grigio</p>
+			{% include 'customer/_header_link.html.twig' %}
 		</div>
 	</header>
 

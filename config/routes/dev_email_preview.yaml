@@ -4,6 +4,11 @@ when@dev:
         controller: App\Controller\DevEmailPreviewController::preview
         methods: [GET]
 
+    dev_login_code_email_preview:
+        path: /_dev/login-code/email-preview
+        controller: App\Controller\DevEmailPreviewController::loginCode
+        methods: [GET]
+
     dev_ticket_preview:
         path: /_dev/tickets/{ticketCode}/preview
         controller: App\Controller\DevTicketPreviewController::preview

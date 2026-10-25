@@ -1,0 +1,56 @@
+{% apply inline_css %}
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Je inlogcode</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #fffaf2; color: #34272a; font-family: Arial, Helvetica, sans-serif; line-height: 1.6; }
+        .brand-header { background-color: #c62828; border-bottom: 8px solid #a91f24; color: #ffffff; }
+        .brand-inner { max-width: 720px; padding: 26px 28px; }
+        .brand-name { color: #ffffff; font-size: 22px; font-weight: bold; margin: 0 0 4px; }
+        .brand-caption { color: #fff1df; font-size: 13px; margin: 0; }
+        .content { background-color: #ffffff; border: 1px solid #eadfd1; max-width: 720px; padding: 28px; }
+        .title { color: #34272a; font-size: 21px; font-weight: bold; margin: 0 0 10px; }
+        .code-wrap { margin: 24px 0; text-align: center; }
+        .code { background-color: #fff1df; border-left: 4px solid #c62828; color: #a91f24; display: inline-block; font-family: 'Courier New', monospace; font-size: 34px; font-weight: bold; letter-spacing: 8px; padding: 14px 22px; -webkit-user-select: all; user-select: all; }
+        .hint { color: #6b5b5e; font-size: 13px; margin: 0 0 6px; }
+    </style>
+</head>
+<body>
+<table class="brand-header" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#c62828">
+    <tr>
+        <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: 720px;">
+                <tr>
+                    <td class="brand-inner">
+                        <p class="brand-name">Jeugdcircus Il Grigio</p>
+                        <p class="brand-caption">Je inlogcode</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#fffaf2">
+    <tr>
+        <td align="center" style="padding: 28px 12px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: 720px;">
+                <tr>
+                    <td class="content">
+                        <p class="title">Log in om je tickets te downloaden</p>
+                        <p>Vul deze code in op de inlogpagina:</p>
+                        <div class="code-wrap"><span class="code">{{ code }}</span></div>
+                        <p class="hint" style="text-align: center;">Tik op de code om hem te selecteren en te kopiëren.</p>
+                        <p class="hint">De code is {{ ttl_minutes }} minuten geldig en kan maar één keer worden gebruikt.</p>
+                        <p class="hint">Heb je geen inlogcode aangevraagd? Dan kun je deze e-mail negeren.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
+{% endapply %}

@@ -68,6 +68,14 @@ class SecurePdfStorageService
     }
 
     /**
+     * Generate the PDF with all tickets of an order (for an already authenticated customer).
+     */
+    public function generatePdfForOrder(Order $order): string
+    {
+        return $this->generateOrderPdf($order);
+    }
+
+    /**
      * Generate a PDF containing only the supplied ticket.
      */
     public function generatePdfForTicket(Ticket $ticket): string

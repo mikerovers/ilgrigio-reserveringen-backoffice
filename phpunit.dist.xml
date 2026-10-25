@@ -16,6 +16,7 @@
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="KERNEL_CLASS" value="App\Kernel" />
+        <env name="CUSTOMER_LOGIN_ENABLED" value="1"/>
 
         <!-- ###+ doctrine/doctrine-bundle ### -->
         <!-- Format described at https://www.doctrine-project.org/projects/doctrine-dbal/en/latest/reference/configuration.html#connecting-using-a-url -->

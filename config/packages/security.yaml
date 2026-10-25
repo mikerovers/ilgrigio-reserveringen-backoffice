@@ -18,6 +18,11 @@ security:
             entity:
                 class: App\Entity\User
                 property: email
+        # backs the customer (email code) firewall — loads App\Entity\Customer by email
+        customer_provider:
+            entity:
+                class: App\Entity\Customer
+                property: email
 
     firewalls:
         dev:
@@ -71,6 +76,19 @@ security:
             custom_authenticators:
                 - App\Security\ApiKeyAuthenticator
 
+        # Passwordless customer login (emailed one-time code) for the public
+        # storefront's ticket download area. Own firewall, so the customer
+        # session is separate from the admin backoffice session.
+        customer:
+            pattern: ^/(inloggen|mijn-tickets|uitloggen)
+            lazy: true
+            provider: customer_provider
+            custom_authenticators:
+                - App\Security\EmailCodeAuthenticator
+            logout:
+                path: customer_logout
+                target: app_tickets
+
         # Session-based login for the /admin backoffice UI (EasyAdminBundle).
         main:
             lazy: true
@@ -112,6 +130,9 @@ security:
         - { host: '%admin_host%', path: ^/login, roles: PUBLIC_ACCESS }
         # Backoffice UI (EasyAdminBundle), served on its own subdomain — admins only
         - { host: '%admin_host%', path: ^/, roles: ROLE_ADMIN }
+        # Customer login (email code) is public; the ticket area needs a logged-in customer
+        - { path: '^/(inloggen|uitloggen)', roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
+        - { path: ^/mijn-tickets, roles: ROLE_CUSTOMER, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         # Force HTTPS on non-API routes (prod only, via SECURE_CHANNEL)
         - { path: ^/, requires_channel: '%env(default::SECURE_CHANNEL)%' }
 

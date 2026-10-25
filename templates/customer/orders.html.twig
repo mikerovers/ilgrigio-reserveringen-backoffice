@@ -1,0 +1,33 @@
+{% extends 'customer/layout.html.twig' %}
+
+{% block title %}Mijn tickets - Il Grigio{% endblock %}
+
+{% block content %}
+	<div class="flex items-start justify-between gap-4 mb-6">
+		<div>
+			<h1 class="font-stopbuck text-3xl md:text-4xl text-[#c62828]">Mijn tickets</h1>
+			<p class="text-[#3d3535]">Ingelogd als {{ customer.email }}</p>
+		</div>
+		<a href="{{ path('customer_logout') }}" class="text-sm text-[#b91c1c] underline shrink-0">Uitloggen</a>
+	</div>
+
+	{% for order in orders %}
+		{% set firstTicket = order.tickets|first %}
+		<article class="border border-[#eadfd1] p-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+			<div>
+				<p class="font-semibold text-[#34272a]">{{ firstTicket ? firstTicket.eventNameSnapshot : 'Reservering' }}</p>
+				{% if firstTicket %}
+					<p class="text-sm text-[#3d3535]">{{ firstTicket.eventDateTimeSnapshot|date('d-m-Y H:i') }}</p>
+				{% endif %}
+				<p class="text-sm text-[#6b5b5e]">Reservering #{{ order.orderNumber }} · {{ order.tickets|length }} {{ order.tickets|length == 1 ? 'ticket' : 'tickets' }}</p>
+			</div>
+			{% if order.tickets|length > 0 %}
+				<a href="{{ path('customer_order_pdf', {orderNumber: order.orderNumber}) }}" class="inline-block text-center bg-[#dc2626] hover:bg-[#c62828] text-white font-bold px-5 py-3">
+					<i class="fas fa-download mr-2" aria-hidden="true"></i>Download tickets
+				</a>
+			{% endif %}
+		</article>
+	{% else %}
+		<p class="text-[#3d3535]">We vonden geen bevestigde reserveringen voor dit e-mailadres.</p>
+	{% endfor %}
+{% endblock %}

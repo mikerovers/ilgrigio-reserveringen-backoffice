@@ -130,6 +130,15 @@ config/
   the check-in endpoints (`CheckInController`) require `ROLE_CHECK_IN`, which `ROLE_REGISTER` does not grant;
   create dedicated users interactively with `bin/console app:user:create` (prompts for email, name,
   hidden password and roles; `--role` is repeatable and skips the role prompt, e.g. `--role=ROLE_CHECK_IN`).
+- **Customer login (passwordless, behind `CUSTOMER_LOGIN_ENABLED`):** `/inloggen` takes an email,
+  `LoginCodeService` mails a 6-digit code (`SendLoginCodeMessage`, `email` transport; only an HMAC of the
+  code is stored in `LoginCode`; 10 min TTL, 5 attempts, single use, always the same response for unknown
+  addresses). `EmailCodeAuthenticator` on the separate `customer` firewall verifies the code at
+  `POST /inloggen/code`; `Customer` is the `ROLE_CUSTOMER` user. `/mijn-tickets` lists completed orders and
+  `/mijn-tickets/{orderNumber}/pdf` streams the PDF only for the logged-in customer's own orders (404
+  otherwise). Limiters `login_code_request_ip|email` and `login_code_verify`. Purge old codes with
+  `bin/console app:login-codes:purge` (cron). Dev preview of the code mail: `/_dev/login-code/email-preview`.
+  The test mailer is `null://null` so tests never send real mail.
 - **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
 - **Manual completion:** `bin/console app:orders:complete <orderNumber>` marks a
   pending/processing/failed order paid and completed (payment -> `PAID`,
@@ -343,6 +352,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `PDF_TOKEN_EXPIRATION_DAYS` | Token validity in days (default 150) |
 | `MOLLIE_API_KEY` | Mollie payment API key |
 | `MAX_TICKETS_PER_ORDER` | Ticket purchase limit per order |
+| `CUSTOMER_LOGIN_ENABLED` | `1` enables the passwordless customer login (`/inloggen`, `/mijn-tickets`); `0` (default in `.env`) makes those routes 404 |
 | `REGISTER_MAX_DISCOUNT_PERCENT` | Cap on register ad-hoc percent discounts (default `100`) |
 | `ORDER_RESERVATION_TTL_MINUTES` | How long an unpaid web order holds stock (default `30`) |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |

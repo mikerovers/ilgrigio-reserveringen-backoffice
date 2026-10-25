@@ -1,0 +1,22 @@
+{% extends 'customer/layout.html.twig' %}
+
+{% block title %}Inloggen - Il Grigio{% endblock %}
+
+{% block content %}
+	<h1 class="font-stopbuck text-3xl md:text-4xl text-[#c62828] mb-3">Download je tickets</h1>
+	<p class="text-[#3d3535] mb-6">Vul het e-mailadres in waarmee je hebt gereserveerd. We sturen je een inlogcode. Een wachtwoord is niet nodig.</p>
+
+	{% if error %}
+		<p class="mb-4 border-l-4 border-red-600 bg-red-50 px-4 py-3 text-red-800" role="alert">{{ error }}</p>
+	{% endif %}
+
+	<form method="post" action="{{ path('customer_login') }}" class="space-y-4">
+		<input type="hidden" name="_csrf_token" value="{{ csrf_token('customer_login_email') }}">
+		<div>
+			<label for="email" class="block font-semibold text-[#34272a] mb-1">E-mailadres</label>
+			<input type="email" id="email" name="email" value="{{ email }}" required autofocus autocomplete="email" maxlength="255"
+				class="w-full border border-[#eadfd1] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+		</div>
+		<button type="submit" class="w-full bg-[#dc2626] hover:bg-[#c62828] text-white font-bold px-5 py-3">Stuur me een code</button>
+	</form>
+{% endblock %}

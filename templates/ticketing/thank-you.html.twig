@@ -11,19 +11,17 @@
 {% block body %}
 	<header class="bg-[#c62828] text-white border-b-8 border-[#a91f24]">
 		<div class="container mx-auto px-4 py-4 flex items-center justify-between gap-6">
-			<a href="http://ilgrigio.nl" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
+			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
 				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-16 md:h-20 w-auto">
 			</a>
-			<p class="hidden sm:block text-sm md:text-base text-amber-100">Jeugdcircus Il Grigio <span class="text-red-200 px-2">/</span> Reservering</p>
+			{% include 'customer/_header_link.html.twig' %}
 		</div>
 	</header>
 	<section class="bg-[#fff1df] border-b border-[#eadfd1] text-center px-5 py-10 md:py-14">
 		{% if payment_info and payment_info.is_failed %}
 			<h1 class="font-stopbuck text-4xl md:text-6xl text-[#c62828]">Betaling mislukt</h1>
-			<p class="mt-3 text-lg md:text-xl text-[#34272a]">Je betaling kon niet worden verwerkt</p>
 		{% else %}
 			<h1 class="font-stopbuck text-4xl md:text-6xl text-[#c62828]">Bedankt voor je reservering!</h1>
-			<p class="mt-3 text-lg md:text-xl text-[#34272a]">Je reservering is succesvol geplaatst</p>
 		{% endif %}
 	</section>
 

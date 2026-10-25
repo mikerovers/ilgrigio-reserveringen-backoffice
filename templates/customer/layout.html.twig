@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<header class="bg-[#c62828] text-white border-b-8 border-[#a91f24]">
+		<div class="container mx-auto px-4 py-4 flex items-center justify-between gap-6">
+			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
+				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-16 md:h-20 w-auto">
+			</a>
+			{% include 'customer/_header_link.html.twig' %}
+		</div>
+	</header>
+	<section class="bg-[#fffaf2] min-h-[70vh] px-4 py-8 md:py-12">
+		<div class="max-w-2xl mx-auto bg-white border border-[#eadfd1] shadow-lg p-6 md:p-10">
+			{% block content %}{% endblock %}
+		</div>
+	</section>
+{% endblock %}
