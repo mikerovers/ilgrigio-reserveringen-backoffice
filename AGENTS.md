@@ -126,9 +126,10 @@ config/
   `PaginatedResponse`. Any new JWT-only route must also be added to the
   `secure_api` firewall pattern in `config/packages/security.yaml`, otherwise it
   falls through to the API-key firewall and a JWT gets a 401. `ROLE_ADMIN` inherits
-  `ROLE_REGISTER` via `role_hierarchy`, so admins can call every API endpoint;
-  create dedicated register users with
-  `app:user:create <email> <password> --role=ROLE_REGISTER --name="Display Name"` (`--name` is required).
+  `ROLE_REGISTER` and `ROLE_CHECK_IN` via `role_hierarchy`, so admins can call every API endpoint;
+  the check-in endpoints (`CheckInController`) require `ROLE_CHECK_IN`, which `ROLE_REGISTER` does not grant;
+  create dedicated users interactively with `bin/console app:user:create` (prompts for email, name,
+  hidden password and roles; `--role` is repeatable and skips the role prompt, e.g. `--role=ROLE_CHECK_IN`).
 - **Stock / overbooking:** capacity lives on `SharedStock.stockQuantity`.
 - **Manual completion:** `bin/console app:orders:complete <orderNumber>` marks a
   pending/processing/failed order paid and completed (payment -> `PAID`,

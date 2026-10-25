@@ -1,7 +1,8 @@
 security:
-    # Admins can call every register API endpoint too.
+    # Admins can call every register API endpoint and the check-in endpoints too.
+    # ROLE_CHECK_IN is intentionally NOT granted to ROLE_REGISTER.
     role_hierarchy:
-        ROLE_ADMIN: [ROLE_REGISTER]
+        ROLE_ADMIN: [ROLE_REGISTER, ROLE_CHECK_IN]
 
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:

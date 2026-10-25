@@ -37,7 +37,7 @@ final class CheckInController extends AbstractController
     }
 
     #[Route('/events/{eventId}/check-in', name: 'event_check_in', methods: ['POST'])]
-    #[IsGranted('IS_AUTHENTICATED')]
+    #[IsGranted('ROLE_CHECK_IN')]
     #[Security(name: 'BearerAuth')]
     #[OA\Tag(name: 'Check-in')]
     #[OA\Response(
@@ -68,7 +68,7 @@ final class CheckInController extends AbstractController
     }
 
     #[Route('/orders/{orderNumber}/check-in', name: 'order_check_in', methods: ['POST'])]
-    #[IsGranted('IS_AUTHENTICATED')]
+    #[IsGranted('ROLE_CHECK_IN')]
     #[Security(name: 'BearerAuth')]
     #[OA\Tag(name: 'Check-in')]
     #[OA\Response(

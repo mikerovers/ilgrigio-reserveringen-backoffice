@@ -14,6 +14,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 final class CreateUserCommandTest extends KernelTestCase
 {
     private const EMAIL = 'create-user-command-test@example.com';
+    private const PASSWORD = 'secret-password';
 
     private EntityManagerInterface $em;
     private CommandTester $tester;
@@ -38,28 +39,54 @@ final class CreateUserCommandTest extends KernelTestCase
         $this->em->clear();
     }
 
-    public function testCreatesUserWithName(): void
+    public function testCreatesUserWithNameRoleAndPasswordPrompts(): void
     {
+        // password, repeat password
+        $this->tester->setInputs([self::PASSWORD, self::PASSWORD]);
+
         $status = $this->tester->execute([
             'email' => self::EMAIL,
-            'password' => 'secret-password',
             '--name' => '  Rita Register ',
-            '--role' => 'ROLE_REGISTER',
+            '--role' => ['ROLE_REGISTER'],
         ]);
 
         self::assertSame(Command::SUCCESS, $status);
         $user = $this->em->getRepository(User::class)->findOneBy(['email' => self::EMAIL]);
         self::assertSame('Rita Register', $user->name);
+        self::assertContains('ROLE_REGISTER', $user->getRoles());
     }
 
-    public function testNameIsRequired(): void
+    public function testRejectsUnknownRole(): void
     {
-        foreach ([[], ['--name' => '   ']] as $options) {
-            $status = $this->tester->execute(['email' => self::EMAIL, 'password' => 'secret-password'] + $options);
+        $this->tester->setInputs([self::PASSWORD, self::PASSWORD]);
 
-            self::assertSame(Command::FAILURE, $status);
-            self::assertStringContainsString('--name', $this->tester->getDisplay());
-        }
+        $status = $this->tester->execute([
+            'email' => self::EMAIL,
+            '--name' => 'Rita',
+            '--role' => ['ROLE_NOPE'],
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('ROLE_NOPE', $this->tester->getDisplay());
+        self::assertNull($this->em->getRepository(User::class)->findOneBy(['email' => self::EMAIL]));
+    }
+
+    public function testNoUserIsCreatedWhenPasswordsDoNotMatch(): void
+    {
+        // three mismatching attempts exhaust the retry budget
+        $this->tester->setInputs([
+            'first-password', 'other-password',
+            'first-password', 'other-password',
+            'first-password', 'other-password',
+        ]);
+
+        $status = $this->tester->execute([
+            'email' => self::EMAIL,
+            '--name' => 'Rita',
+            '--role' => ['ROLE_REGISTER'],
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
         self::assertNull($this->em->getRepository(User::class)->findOneBy(['email' => self::EMAIL]));
     }
 }
