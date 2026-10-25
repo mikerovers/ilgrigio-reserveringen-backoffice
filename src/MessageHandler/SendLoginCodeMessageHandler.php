@@ -29,7 +29,7 @@ final class SendLoginCodeMessageHandler
         $email = (new TemplatedEmail())
             ->from(new Address($this->fromEmail, $this->fromName))
             ->to($message->email)
-            ->subject($this->translator->trans('email.login_code.subject', ['%code%' => $message->code]))
+            ->subject($this->translator->trans('email.login_code.subject'))
             ->htmlTemplate('email/login_code.html.twig')
             ->textTemplate('email/login_code.txt.twig')
             ->context([
