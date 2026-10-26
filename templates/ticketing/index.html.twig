@@ -6,9 +6,10 @@
 
 {% block body %}
 	<header class="bg-[#c62828] text-white border-b-8 border-[#a91f24]">
-		<div class="container mx-auto px-4 py-5 flex items-center justify-between gap-6">
-			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
-				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-16 md:h-20 w-auto">
+		<div class="px-4 py-3 flex items-center justify-between gap-6 max-w-6xl mx-auto">
+			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0 flex items-center gap-3">
+				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-10 md:h-12 w-auto">
+				<span class="text-white font-bold tracking-wider md:text-base sm:text-sm">Jeugdcircus Il Grigio</span>
 			</a>
 			{% include 'customer/_header_link.html.twig' %}
 		</div>

@@ -10,9 +10,10 @@
 
 {% block body %}
 	<header class="bg-[#c62828] text-white border-b-8 border-[#a91f24]">
-		<div class="container mx-auto px-4 py-4 flex items-center justify-between gap-5">
-			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0">
-				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-14 md:h-16 w-auto">
+		<div class="px-4 py-3 flex items-center justify-between gap-5 max-w-6xl mx-auto">
+			<a href="{{ path('app_tickets') }}" aria-label="Jeugdcircus Il Grigio" class="shrink-0 flex items-center gap-3">
+				<img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-10 md:h-12 w-auto">
+				<span class="text-white font-bold tracking-wider md:text-base sm:text-sm">Jeugdcircus Il Grigio</span>
 			</a>
 			<a href="{{ path('app_tickets') }}" class="text-sm md:text-base text-white/90 hover:text-white transition-colors">
 				<span aria-hidden="true">←</span> {{ 'tickets.back_to_events'|trans }}
