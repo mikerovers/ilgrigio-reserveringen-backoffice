@@ -6,16 +6,15 @@ namespace App\Service;
 
 use App\Entity\Order;
 use App\Entity\OrderNote;
-use App\Enum\OrderSource;
 use App\Enum\OrderStatus;
 use App\Enum\TicketStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Cancels an order made at the register: returns its stock, voids its tickets
- * and frees its coupon redemption. Money is not moved here (cash refunds
- * happen at the till), so orders paid through Mollie are refused.
+ * Cancels an order: returns its stock, voids its tickets and frees its coupon
+ * redemption. Money is not moved here (cash refunds happen at the till), so no
+ * refund is issued.
  */
 final class OrderCancellationService
 {

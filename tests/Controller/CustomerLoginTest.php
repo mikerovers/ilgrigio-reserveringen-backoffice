@@ -71,7 +71,7 @@ final class CustomerLoginTest extends WebTestCase
             $_SERVER['CUSTOMER_LOGIN_ENABLED'] = $_ENV['CUSTOMER_LOGIN_ENABLED'] = '1';
             putenv('CUSTOMER_LOGIN_ENABLED=1');
             self::ensureKernelShutdown();
-            self::bootKernel();
+            $this->client = static::createClient();
             $this->em = static::getContainer()->get(EntityManagerInterface::class);
         }
     }
@@ -92,7 +92,7 @@ final class CustomerLoginTest extends WebTestCase
             $_SERVER['CUSTOMER_LOGIN_ENABLED'] = $_ENV['CUSTOMER_LOGIN_ENABLED'] = '1';
             putenv('CUSTOMER_LOGIN_ENABLED=1');
             self::ensureKernelShutdown();
-            self::bootKernel();
+            $this->client = static::createClient();
             $this->em = static::getContainer()->get(EntityManagerInterface::class);
         }
     }
@@ -228,6 +228,9 @@ final class CustomerLoginTest extends WebTestCase
 
     private function cleanUp(): void
     {
+        // Requests reboot the kernel, so resolve the entity manager of the
+        // current container instead of keeping the one from setUp().
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->clear();
 
         foreach ([self::ORDER_NUMBER, self::OTHER_ORDER_NUMBER] as $number) {

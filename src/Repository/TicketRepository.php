@@ -10,6 +10,7 @@ use App\Entity\Ticket;
 use App\Enum\TicketStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<Ticket>
@@ -125,8 +126,8 @@ class TicketRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->where('t.order = :order')
             ->setParameter('order', $order->id, 'uuid')
-            ->orderBy('t.lineItem', 'ASC')
-            ->addOrderBy('t.lineIndex', 'ASC')
+            ->orderBy('t.lineItem', SortDirection::Ascending)
+            ->addOrderBy('t.lineIndex', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

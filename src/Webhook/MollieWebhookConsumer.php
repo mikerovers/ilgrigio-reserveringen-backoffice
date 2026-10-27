@@ -16,10 +16,10 @@ use Omnipay\Mollie\Gateway;
 use Omnipay\Mollie\Message\Response\FetchTransactionResponse;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\RemoteEvent\Attribute\AsRemoteEventConsumer;
 use Symfony\Component\RemoteEvent\Consumer\ConsumerInterface;
 use Symfony\Component\RemoteEvent\RemoteEvent;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 #[AsRemoteEventConsumer('mollie')]
 final class MollieWebhookConsumer implements ConsumerInterface

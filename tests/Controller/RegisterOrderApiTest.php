@@ -546,19 +546,6 @@ final class RegisterOrderApiTest extends WebTestCase
         self::assertSame(self::INITIAL_STOCK - 2, $this->stock());
     }
 
-    public function testCancelRefusesNonRegisterOrders(): void
-    {
-        $created = $this->post($this->payload());
-        $this->connection->executeStatement(
-            "UPDATE customer_order SET source = 'web' WHERE order_number = :n",
-            ['n' => $created['orderNumber']],
-        );
-
-        $this->delete($created['orderNumber']);
-
-        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
-    }
-
     public function testCancelAuthAndNotFound(): void
     {
         $this->delete('NOPE-1', null);

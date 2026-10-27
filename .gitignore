@@ -33,6 +33,7 @@
 
 # Auto-generated config reference for IDE autocompletion (not meant to be committed)
 /config/reference.php
+/config/schema.json
 
 ###> lexik/jwt-authentication-bundle ###
 # Dev/prod keys only — config/jwt/test-*.pem is a dedicated, committed

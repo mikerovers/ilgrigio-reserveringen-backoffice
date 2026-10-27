@@ -1,6 +1,6 @@
 # Il Grigio Reservations Backoffice
 
-Symfony 7.4 application for event reservations, ticket sales, payments, and
+Symfony 8.2 application for event reservations, ticket sales, payments, and
 backoffice operations. Orders are created and stored in this application.
 Online payments use Mollie; completed orders issue tickets and send confirmation
 emails through the Messenger `email` transport. The register API supports
@@ -8,7 +8,7 @@ in-person cash sales.
 
 ## Local setup
 
-Requirements: PHP 8.2+, Composer, and PostgreSQL. See `AGENTS.md` for the
+Requirements: PHP 8.4+, Composer, and PostgreSQL. See `AGENTS.md` for the
 application architecture, API behavior, security boundaries, and coding
 guidance.
 

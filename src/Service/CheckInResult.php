@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-enum CheckInResult
+enum CheckInResult: string
 {
-    case ADMITTED;
-    case ALREADY_CHECKED_IN;
-    case VOID;
-    case NOT_FOUND;
+    case ADMITTED = 'ADMITTED';
+    case ALREADY_CHECKED_IN = 'ALREADY_CHECKED_IN';
+    case VOID = 'VOID';
+    case NOT_FOUND = 'NOT_FOUND';
 
     public function isAdmitted(): bool
     {

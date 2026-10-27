@@ -62,6 +62,9 @@ final class RegisterApiTest extends WebTestCase
 
     private function cleanUp(): void
     {
+        // Requests reboot the kernel, so resolve the entity manager of the
+        // current container instead of keeping the one from setUp().
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->clear();
 
         foreach ([self::REGISTER_EMAIL, self::ADMIN_EMAIL, self::PLAIN_EMAIL] as $email) {

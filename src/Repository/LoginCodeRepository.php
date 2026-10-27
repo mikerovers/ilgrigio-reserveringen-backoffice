@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\LoginCode;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<LoginCode>
@@ -27,7 +28,7 @@ class LoginCodeRepository extends ServiceEntityRepository
             ->andWhere('l.expiresAt > :now')
             ->setParameter('email', $email)
             ->setParameter('now', $now)
-            ->orderBy('l.createdAt', 'DESC')
+            ->orderBy('l.createdAt', SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

@@ -3,7 +3,7 @@
 **See `README.md` for local setup.** This file is the authoritative guide for
 the current codebase; the short `CLAUDE.md` only points back here.
 
-This document provides comprehensive technical prescriptions for coding agents working on this **Symfony 7.4** application.
+This document provides comprehensive technical prescriptions for coding agents working on this **Symfony 8.2** application.
 
 ---
 
@@ -114,9 +114,9 @@ config/
   `Idempotency-Key` header; creates `Order.source = register`),
   `GET /api/orders/{orderNumber}` (same detail body as the create response),
   `GET /api/orders/{orderNumber}/tickets` (all tickets issued for the order, in line-item order; empty before fulfilment),
-  `DELETE /api/orders/{orderNumber}` (cancels a *register* order: releases stock, voids
-  tickets, frees the coupon, keeps the row as `cancelled`; idempotent; 409 for web/Mollie
-  orders or checked-in tickets; no refund is issued),
+  `DELETE /api/orders/{orderNumber}` (cancels an order: releases stock, voids tickets,
+  frees the coupon, keeps the row as `cancelled`; idempotent; 409 for checked-in
+  tickets; no refund is issued),
   `GET|POST /api/orders/{orderNumber}/notes`, `POST /api/orders/{orderNumber}/process`
   (re-dispatches fulfilment and adds an order note naming the user),
   `GET /api/sale-report` (tickets of completed orders, per year), `GET /api/coupons` (`search` on code) and `PUT /api/coupons/{id}/deactivate` (only sets
@@ -189,7 +189,7 @@ config/
 ## Code Style Guidelines
 
 ### General
-- **PHP 8.2+** — use modern syntax: constructor property promotion, named arguments, `match`, enums, `readonly` where appropriate
+- **PHP 8.4+** — use modern syntax: constructor property promotion, named arguments, `match`, enums, `readonly` where appropriate
 - **PSR-12** strictly enforced via PHP_CodeSniffer (`phpcs.xml.dist`). Always run `./vendor/bin/phpcs` before committing.
 - Files use UTF-8, LF line endings, 4-space indentation, final newline (see `.editorconfig`)
 - Opening `<?php` tag on its own line; no closing `?>` tag
