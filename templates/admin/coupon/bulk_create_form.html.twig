@@ -30,7 +30,9 @@
 
             <form method="post" action="{{ path('admin_coupon_bulk_create_save') }}"
                   data-controller="admin--coupon-bulk-create"
-                  data-admin--coupon-bulk-create-generate-url-value="{{ path('admin_coupon_bulk_create_generate_codes') }}">
+                  data-admin--coupon-bulk-create-generate-url-value="{{ path('admin_coupon_bulk_create_generate_codes') }}"
+                  data-admin--coupon-bulk-create-csrf-token-value="{{ csrf_token('admin_bulk_coupon') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_bulk_coupon') }}">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label d-block">Discount type</label>

@@ -43,6 +43,10 @@ class CouponBulkCreateController extends AbstractController
     #[AdminRoute(path: '/generate-codes', name: '_generate_codes', options: ['methods' => ['POST']])]
     public function generateCodes(Request $request): JsonResponse
     {
+        if (!$this->isCsrfTokenValid('admin_bulk_coupon', (string) $request->headers->get('X-CSRF-Token', ''))) {
+            return new JsonResponse(['error' => 'Invalid CSRF token.'], Response::HTTP_FORBIDDEN);
+        }
+
         $prefix = (string) $request->request->get('prefix', '');
         $amount = (int) $request->request->get('amount', 0);
         $quantity = (int) $request->request->get('quantity', 0);
@@ -62,6 +66,10 @@ class CouponBulkCreateController extends AbstractController
     #[AdminRoute(path: '/save', name: '_save', options: ['methods' => ['POST']])]
     public function save(Request $request): Response
     {
+        if (!$this->isCsrfTokenValid('admin_bulk_coupon', (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('Invalid CSRF token.');
+        }
+
         $bulkRequest = $this->mapRequestToDto($request);
         $violations = $this->validator->validate($bulkRequest);
 

@@ -96,7 +96,7 @@
 				{% endif %}
 
 				<div
-					class="grid grid-cols-1 lg:grid-cols-3 gap-8" data-controller="frontend--checkout" data-frontend--checkout-subtotal-value="{{ subtotal|default(0) }}" data-frontend--checkout-discount-amount-value="{{ discount|default(0) }}" data-frontend--checkout-total-value="{{ total|default(0) }}" data-frontend--checkout-tax-rate-value="{{ taxRate }}" data-frontend--checkout-applied-coupon-value="{{ applied_coupon ? (applied_coupon|json_encode) : '{}' }}">
+					class="grid grid-cols-1 lg:grid-cols-3 gap-8" data-controller="frontend--checkout" data-frontend--checkout-subtotal-value="{{ subtotal|default(0) }}" data-frontend--checkout-discount-amount-value="{{ discount|default(0) }}" data-frontend--checkout-total-value="{{ total|default(0) }}" data-frontend--checkout-tax-rate-value="{{ taxRate }}" data-frontend--checkout-applied-coupon-value="{{ applied_coupon ? (applied_coupon|json_encode) : '{}' }}" data-frontend--checkout-csrf-token-value="{{ csrf_token('cart') }}">
 
 					<!-- Left Column - Checkout Form -->
 					<div class="lg:col-span-2">
@@ -118,7 +118,7 @@
 
 							<form
 								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-frontend--checkout-target="form">
-								<!-- CSRF Token for duplicate submission prevention -->
+								<!-- One-time, session-bound checkout token: CSRF + duplicate submission guard -->
 								<input type="hidden" name="checkoutToken" value="{{ checkout_token }}">
 
 								<!-- Name Fields -->

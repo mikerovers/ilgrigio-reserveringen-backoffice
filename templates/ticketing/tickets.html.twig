@@ -38,6 +38,7 @@
 	<div class="bg-[#fffaf2] min-h-screen py-8 md:py-10">
 		<div class="container mx-auto px-4">
 			<form method="POST" action="{{ path('app_tickets_order', {'slug': event.slug}) }}" novalidate data-controller="frontend--ticket-selection" data-frontend--ticket-selection-ticket-types-value="{{ ticketTypes|json_encode|e('html_attr') }}" data-frontend--ticket-selection-event-permalink-value="{{ event.permalink }}" data-frontend--ticket-selection-max-tickets-per-order-value="{{ maxTicketsPerOrder }}" data-frontend--ticket-selection-tax-rate-value="{{ taxRate }}" data-frontend--ticket-selection-shared-stock-value="{{ sharedStock ?? 999 }}" data-action="submit->frontend--ticket-selection#validateForm">
+				<input type="hidden" name="_csrf_token" value="{{ csrf_token('ticket_order') }}">
 				<div
 					class="flex flex-col lg:flex-row lg:items-start gap-8 max-w-6xl mx-auto">
 

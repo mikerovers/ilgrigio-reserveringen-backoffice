@@ -58,6 +58,10 @@ final class CartApiController extends AbstractController
         #[MapRequestPayload] ValidateCouponRequest $request,
         Request $httpRequest,
     ): JsonResponse {
+        if (!$this->isCsrfTokenValid('cart', (string) $httpRequest->headers->get('X-CSRF-Token', ''))) {
+            return $this->json(CouponResponse::invalid('Ongeldige CSRF-token.'), Response::HTTP_FORBIDDEN);
+        }
+
         $limit = $this->validateCouponLimiter->create($httpRequest->getClientIp())->consume();
         if (!$limit->isAccepted()) {
             return $this->json(
@@ -94,6 +98,10 @@ final class CartApiController extends AbstractController
     #[Route('/remove-coupon', name: 'remove_coupon', methods: ['POST'])]
     public function removeCoupon(Request $request): JsonResponse
     {
+        if (!$this->isCsrfTokenValid('cart', (string) $request->headers->get('X-CSRF-Token', ''))) {
+            return $this->json(CouponResponse::invalid('Ongeldige CSRF-token.'), Response::HTTP_FORBIDDEN);
+        }
+
         $session = $request->getSession();
         $session->remove('applied_coupon_code');
         $session->remove('applied_coupon');

@@ -126,6 +126,12 @@ final class TicketingController extends AbstractController
         #[MapRequestPayload] TicketOrderRequest $ticketOrder,
         Request $request,
     ): Response {
+        if (!$this->isCsrfTokenValid('ticket_order', (string) $request->request->get('_csrf_token'))) {
+            $this->addFlash('error', 'Je sessie is verlopen. Probeer het opnieuw.');
+
+            return $this->redirectToRoute('app_event_tickets', ['slug' => $event->slug]);
+        }
+
         $violations = $this->validator->validate($ticketOrder);
         if (count($violations) > 0) {
             foreach ($violations as $violation) {
@@ -267,7 +273,11 @@ final class TicketingController extends AbstractController
         // Checkout-token dedup (one-time use), unchanged.
         $sessionToken = $session->get('checkout_token');
 
-        if (!$checkout->checkoutToken || !$sessionToken || $checkout->checkoutToken !== $sessionToken) {
+        if (
+            $checkout->checkoutToken === ''
+            || !is_string($sessionToken)
+            || !hash_equals($sessionToken, $checkout->checkoutToken)
+        ) {
             $this->logger->warning('Invalid or missing checkout token', [
                 'has_session_token' => !empty($sessionToken),
             ]);

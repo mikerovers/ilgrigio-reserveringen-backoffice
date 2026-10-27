@@ -21,7 +21,8 @@ export default class extends Controller {
         discountAmount: Number,
         total: Number,
         appliedCoupon: Object,
-        taxRate: Number
+        taxRate: Number,
+        csrfToken: String
     }
 
     connect() {
@@ -156,7 +157,7 @@ export default class extends Controller {
         this.submitButtonTarget.classList.add('opacity-50', 'cursor-not-allowed')
 
         try {
-            const result = await validateCoupon(couponCode)
+            const result = await validateCoupon(couponCode, this.csrfTokenValue)
 
             if (result.valid) {
                 // Update the summary in place from the backend totals (no page reload)
@@ -203,7 +204,7 @@ export default class extends Controller {
 
     async removeCoupon() {
         try {
-            const result = await removeCouponRequest()
+            const result = await removeCouponRequest(this.csrfTokenValue)
 
             if (result.success) {
                 // Clear frontend state and update the totals in place (no page reload)

@@ -10,6 +10,7 @@ export default class extends Controller {
 
     static values = {
         generateUrl: String,
+        csrfToken: String,
     }
 
     connect() {
@@ -58,7 +59,10 @@ export default class extends Controller {
         try {
             const response = await fetch(this.generateUrlValue, {
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRF-Token": this.csrfTokenValue,
+                },
                 body: params.toString(),
             })
 

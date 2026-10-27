@@ -82,11 +82,12 @@ export function renderCouponError(statusTarget, message) {
  * POSTs a coupon code to /api/validate-coupon and returns the parsed
  * CouponResponse JSON. Throws on network/parse failure.
  */
-export async function validateCoupon(code) {
+export async function validateCoupon(code, csrfToken) {
     const response = await fetch("/api/validate-coupon", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({ code }),
     });
@@ -98,11 +99,12 @@ export async function validateCoupon(code) {
  * POSTs to /api/remove-coupon and returns the parsed JSON response.
  * Throws on network/parse failure.
  */
-export async function removeCoupon() {
+export async function removeCoupon(csrfToken) {
     const response = await fetch("/api/remove-coupon", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
         },
     });
 
