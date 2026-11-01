@@ -43,3 +43,6 @@
 /config/jwt/local-private.pem
 /config/jwt/local-public.pem
 ###< lexik/jwt-authentication-bundle ###
+
+.agents/
+skills-lock.json
