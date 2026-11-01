@@ -344,6 +344,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `FROM_EMAIL` | Legacy application parameter for sender email; keep aligned if code uses `app.from_email` |
 | `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
 | `SECURE_CHANNEL` | Set to `https` in production to require HTTPS for non-API routes |
+| `TRUSTED_PROXIES` | Comma-separated IPs/CIDRs of the reverse proxy in front of the app; only these may set `X-Forwarded-*` headers. Local default `127.0.0.1,::1`. Never use `0.0.0.0/0` in production |
 | `JWT_SECRET_KEY` | Path to JWT private key |
 | `JWT_PUBLIC_KEY` | Path to JWT public key |
 | `JWT_PASSPHRASE` | Passphrase for JWT key pair |

@@ -2,11 +2,11 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Trust the DigitalOcean App Platform edge proxy. The container is never
-    # reachable directly (only via the platform's edge/load balancer), and the
-    # edge's source IP is not a fixed or private range, so it must be trusted
-    # unconditionally here; trusted_headers below limits what is actually read.
-    trusted_proxies: '0.0.0.0/0,::/0'
+    # Comma-separated IPs/CIDRs of the reverse proxy / load balancer in front of
+    # the app (see TRUSTED_PROXIES in .env). Only these sources may set the
+    # X-Forwarded-* headers below. Never use 0.0.0.0/0 in production: it lets any
+    # client spoof its IP (bypassing per-IP rate limits) and its scheme.
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
     trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-host']
 
     # Note that the session will be started ONLY if you read or write from it.
