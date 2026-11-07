@@ -1,0 +1,10 @@
+# Extra directives for the hub's "mercure" block, pulled in through
+# MERCURE_EXTRA_DIRECTIVES="import /etc/caddy/mercure-extra.caddy" (set by
+# Dockerfile.mercure). Plain env files cannot hold the multi-line value those
+# directives would need, so each one reads its own single-line variable.
+#
+# Origins of the pages that subscribe (with their cookie), space separated.
+cors_origins {$MERCURE_CORS_ORIGINS}
+# Public https URL of this hub. Behind a TLS-terminating proxy the hub would
+# otherwise derive http:// and reject every token ("invalid audience").
+resource_identifier {$MERCURE_RESOURCE_IDENTIFIER}

@@ -5,7 +5,9 @@
 #   SERVER_NAME                  address Caddy listens on (":80" behind a TLS-terminating proxy)
 #   MERCURE_PUBLISHER_JWT_KEY    HS256 secret, same value as MERCURE_JWT_SECRET in the app
 #   MERCURE_SUBSCRIBER_JWT_KEY   HS256 secret, same value as MERCURE_JWT_SECRET in the app
-#   MERCURE_EXTRA_DIRECTIVES     e.g. "cors_origins https://scanner.example.nl"
+#   MERCURE_CORS_ORIGINS         origins of the scanner pages, e.g. "https://scanner.example.nl"
+#   MERCURE_RESOURCE_IDENTIFIER  public URL of this hub, e.g. "https://mercure.example.nl/.well-known/mercure"
+#   MERCURE_TRUSTED_ISSUERS      the "iss" of the app's tokens (MERCURE_JWT_ISSUER)
 FROM dunglas/mercure:v1.1
 
 # Bolt transport database and Caddy state live on volumes so subscribers can
@@ -13,8 +15,10 @@ FROM dunglas/mercure:v1.1
 VOLUME ["/data", "/config"]
 
 # Updates are private (subscriber JWT required); no anonymous subscribers.
+COPY Caddyfile.mercure-extra /etc/caddy/mercure-extra.caddy
+
 ENV SERVER_NAME=":80" \
-    MERCURE_EXTRA_DIRECTIVES=""
+    MERCURE_EXTRA_DIRECTIVES="import /etc/caddy/mercure-extra.caddy"
 
 # v1.x has no /healthz route (it answers 404); the welcome page on "/" is a 200.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
