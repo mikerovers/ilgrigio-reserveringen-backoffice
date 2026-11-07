@@ -19,6 +19,16 @@
             html { touch-action: manipulation; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
             body { overscroll-behavior: none; }
 
+            /* Stopbuck display font (show name, counters). The scanner does not load assets/frontend/styles/app.css, so declare it here. */
+            @font-face {
+                font-family: 'Stopbuck';
+                src: url('{{ asset('fonts/Stopbuck.ttf') }}') format('truetype');
+                font-style: normal;
+                font-weight: 400;
+                font-display: swap;
+            }
+            .font-stopbuck { font-family: 'Stopbuck', sans-serif; }
+
             /* Installed window on Windows (window-controls-overlay): reserve the
                top strip for the native window buttons, paint it in the masthead
                red and make it draggable. Inert in every other display mode. */
