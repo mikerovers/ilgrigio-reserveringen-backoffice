@@ -97,6 +97,35 @@ final class ScannerTest extends WebTestCase
         self::assertSelectorExists('input[name="_username"]');
     }
 
+    public function testManifestIsPublicAndDescribesTheApp(): void
+    {
+        $this->client->request('GET', '/manifest.webmanifest');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('manifest+json', (string) $this->client->getResponse()->headers->get('Content-Type'));
+        $manifest = json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame('standalone', $manifest['display']);
+        self::assertSame('/', $manifest['scope']);
+        self::assertNotEmpty($manifest['icons']);
+    }
+
+    public function testServiceWorkerIsPublicAndServedAsJavaScript(): void
+    {
+        $this->client->request('GET', '/sw.js');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('javascript', (string) $this->client->getResponse()->headers->get('Content-Type'));
+        self::assertStringContainsString("addEventListener('fetch'", (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testLoginPageLinksTheManifest(): void
+    {
+        $this->client->request('GET', '/login');
+
+        self::assertSelectorExists('link[rel="manifest"][href="/manifest.webmanifest"]');
+        self::assertSelectorExists('meta[name="theme-color"]');
+    }
+
     public function testUserWithoutCheckInRoleIsForbidden(): void
     {
         $this->client->loginUser($this->registerUser, 'scanner');

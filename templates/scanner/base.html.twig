@@ -6,6 +6,13 @@
         <meta name="robots" content="noindex, nofollow">
         <title>{% block title %}Scanbalie{% endblock %} | Il Grigio</title>
         <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
+        <link rel="manifest" href="{{ path('scanner_manifest') }}">
+        <link rel="apple-touch-icon" href="/pwa/icon-180.png">
+        <meta name="theme-color" content="#c62828">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="Scanbalie">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
             html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
@@ -14,5 +21,12 @@
     </head>
     <body class="{% block body_class %}min-h-screen{% endblock %} flex flex-col bg-[#fffaf2] text-[#34272a] antialiased" {% block body_attrs %}{% endblock %}>
         {% block page %}{% endblock %}
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register({{ path('scanner_service_worker')|json_encode|raw }}, { scope: '/' }).catch(() => {});
+                });
+            }
+        </script>
     </body>
 </html>

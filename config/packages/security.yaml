@@ -151,6 +151,7 @@ security:
         # Backoffice UI (EasyAdminBundle), served on its own subdomain — admins only
         - { host: '%admin_host%', path: ^/, roles: ROLE_ADMIN }
         # Scanner app: login form is public, everything else needs ROLE_CHECK_IN
+        - { host: '^%scanner_host%$', path: '^/(manifest\.webmanifest|sw\.js|pwa/)', roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         - { host: '^%scanner_host%$', path: ^/login, roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         - { host: '^%scanner_host%$', path: ^/, roles: ROLE_CHECK_IN, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         # Customer login (email code) is public; the ticket area needs a logged-in customer

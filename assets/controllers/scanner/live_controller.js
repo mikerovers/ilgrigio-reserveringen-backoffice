@@ -26,6 +26,17 @@ export default class extends Controller {
             timeZone: "Europe/Amsterdam",
         });
 
+        // An installed app is suspended in the background: catch up when it returns.
+        this.onVisible = () => {
+            if (document.visibilityState === "visible") {
+                this.poll();
+                if (this.mercureEnabledValue && this.source?.readyState !== EventSource.OPEN) {
+                    this.subscribe();
+                }
+            }
+        };
+        document.addEventListener("visibilitychange", this.onVisible);
+
         this.poll();
         this.pollTimer = window.setInterval(() => this.poll(), this.mercureEnabledValue ? 60000 : 10000);
 
@@ -38,6 +49,7 @@ export default class extends Controller {
 
     disconnect() {
         window.removeEventListener("scanner:stats", this.onStats);
+        document.removeEventListener("visibilitychange", this.onVisible);
         window.clearInterval(this.pollTimer);
         window.clearTimeout(this.reconnectTimer);
         this.source?.close();
