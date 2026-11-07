@@ -16,5 +16,6 @@ VOLUME ["/data", "/config"]
 ENV SERVER_NAME=":80" \
     MERCURE_EXTRA_DIRECTIVES=""
 
+# v1.x has no /healthz route (it answers 404); the welcome page on "/" is a 200.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
-    CMD wget -q --spider http://127.0.0.1:80/healthz || exit 1
+    CMD wget -q --spider http://127.0.0.1:80/ || exit 1
