@@ -161,6 +161,11 @@ config/
   discounts stay `percent` or `fixed` only; `REGISTER_MAX_DISCOUNT_PERCENT`
   (default 100) caps a percent discount. Redemptions on failed, cancelled, or
   refunded orders do not count toward `usageLimit`.
+- **Terms & conditions** (`/algemene-voorwaarden/` and the modal on every page) are
+  the `terms` `SitePage` row, edited under Website pages. Its title is `heroTitle`
+  and its body is `heroDescription`, plain text where blank lines start paragraphs.
+  The row is seeded by `Version20261107120000` and `PageFixtures`; the modal reads it
+  through the `terms_page()` Twig function.
 - **Dev-only previews** (`when@dev` in `config/routes/dev_email_preview.yaml`):
   `GET /_dev/orders/{orderNumber}/email-preview` and
   `GET /_dev/tickets/{ticketCode}/preview`. They are not registered outside `dev`.

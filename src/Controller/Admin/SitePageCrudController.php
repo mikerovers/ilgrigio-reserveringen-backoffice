@@ -39,8 +39,29 @@ class SitePageCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->hideOnForm();
         yield TextField::new('pageKey')->setDisabled();
+
+        if ($this->isTermsPage()) {
+            yield TextField::new('heroTitle')->setLabel('Title');
+            yield TextareaField::new('heroDescription')
+                ->setLabel('Terms text')
+                ->setNumOfRows(20)
+                ->setHelp('Een lege regel begint een nieuwe alinea. HTML wordt niet weergegeven.');
+
+            return;
+        }
+
         yield TextField::new('heroTitle')->setLabel('Hero title');
         yield TextField::new('heroDateText')->setLabel('Hero date text');
         yield TextareaField::new('heroDescription')->setLabel('Hero description');
+    }
+
+    /**
+     * The terms page only uses the title and description; the hero date is for the homepage.
+     */
+    private function isTermsPage(): bool
+    {
+        $page = $this->getContext()?->getEntity()?->getInstance();
+
+        return $page instanceof SitePage && 'terms' === $page->pageKey;
     }
 }

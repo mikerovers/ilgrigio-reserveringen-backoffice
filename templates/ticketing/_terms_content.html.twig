@@ -1,0 +1,8 @@
+{# Expects `termsPage`: an App\Entity\SitePage with pageKey "terms", or null. #}
+{% if termsPage %}
+    {% for paragraph in termsPage.heroDescription|replace({"\r\n": "\n"})|split("\n\n") %}
+        {% if paragraph|trim is not empty %}
+            <p>{{ paragraph|trim|e|nl2br }}</p>
+        {% endif %}
+    {% endfor %}
+{% endif %}

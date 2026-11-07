@@ -406,7 +406,14 @@ final class TicketingController extends AbstractController
     #[Route('/algemene-voorwaarden/', name: 'app_terms_conditions')]
     public function termsConditions(): Response
     {
-        return $this->render('ticketing/terms-conditions.html.twig');
+        $termsPage = $this->sitePageRepository->findTerms();
+        if (null === $termsPage) {
+            throw $this->createNotFoundException('Terms page has not been set up.');
+        }
+
+        return $this->render('ticketing/terms-conditions.html.twig', [
+            'termsPage' => $termsPage,
+        ]);
     }
 
     #[Route('/bedankt', name: 'app_thank_you')]

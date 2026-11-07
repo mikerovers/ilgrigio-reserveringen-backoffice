@@ -22,4 +22,9 @@ class SitePageRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['pageKey' => 'homepage']);
     }
+
+    public function findTerms(): ?SitePage
+    {
+        return $this->findOneBy(['pageKey' => 'terms']);
+    }
 }

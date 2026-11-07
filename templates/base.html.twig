@@ -52,6 +52,7 @@
         </main>
 
         <!-- Algemene Voorwaarden Modal -->
+        {% set termsPage = terms_page() %}
         <div id="termsModal" class="fixed inset-0 z-50 flex items-center justify-center hidden" aria-modal="true" role="dialog" data-controller="frontend--modal" data-frontend--modal-id-value="terms">
             <!-- Backdrop -->
             <div class="absolute inset-0 bg-black bg-opacity-60" data-action="click->frontend--modal#close"></div>
@@ -59,22 +60,14 @@
             <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col">
                 <!-- Header -->
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-bold text-gray-800">Algemene Voorwaarden</h2>
+                    <h2 class="text-xl font-bold text-gray-800">{{ termsPage ? termsPage.heroTitle : 'Algemene Voorwaarden' }}</h2>
                     <button type="button" data-action="click->frontend--modal#close" class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Sluiten">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
                 <!-- Body -->
                 <div class="overflow-y-auto px-6 py-6 text-gray-700 leading-relaxed text-sm space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Algemene voorwaarden JeugdCircus Il Grigio</h3>
-                    <p>
-                        Jeugdcircus Il Grigio gebruikt Mollie voor de verwerking van alle online transacties.
-                        Uw persoonsgegevens worden in dit kader gedeeld met Mollie en aan haar gelieerde ondernemingen.
-                        Wanneer u via onze website uw kaarten reserveert, dan geeft u, direct of indirect, toestemming
-                        aan Jeugdcircus Il Grigio, Mollie en aan haar gelieerde ondernemingen, alle vereiste
-                        (uitdrukkelijke) toestemmingen als bedoeld in de toepasselijke gegevensbeschermingswetgeving
-                        te verwerken.
-                    </p>
+                    {% include 'ticketing/_terms_content.html.twig' %}
                 </div>
                 <!-- Footer -->
                 <div class="px-6 py-4 border-t border-gray-200 text-right">

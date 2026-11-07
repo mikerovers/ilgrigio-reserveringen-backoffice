@@ -22,6 +22,19 @@ class PageFixtures extends Fixture
         );
         $manager->persist($homepage);
 
+        $terms = new SitePage(
+            'terms',
+            'Algemene Voorwaarden',
+            '',
+            'Jeugdcircus Il Grigio gebruikt Mollie voor de verwerking van alle online transacties. '
+            . 'Uw persoonsgegevens worden in dit kader gedeeld met Mollie en aan haar gelieerde ondernemingen. '
+            . 'Wanneer u via onze website uw kaarten reserveert, dan geeft u, direct of indirect, toestemming '
+            . 'aan Jeugdcircus Il Grigio, Mollie en aan haar gelieerde ondernemingen, alle vereiste '
+            . '(uitdrukkelijke) toestemmingen als bedoeld in de toepasselijke '
+            . 'gegevensbeschermingswetgeving te verwerken.'
+        );
+        $manager->persist($terms);
+
         $manager->flush();
     }
 }
