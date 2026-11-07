@@ -6,7 +6,7 @@
 #   MERCURE_PUBLISHER_JWT_KEY    HS256 secret, same value as MERCURE_JWT_SECRET in the app
 #   MERCURE_SUBSCRIBER_JWT_KEY   HS256 secret, same value as MERCURE_JWT_SECRET in the app
 #   MERCURE_EXTRA_DIRECTIVES     e.g. "cors_origins https://scanner.example.nl"
-FROM dunglas/mercure:v0.21
+FROM dunglas/mercure:v1.1
 
 # Bolt transport database and Caddy state live on volumes so subscribers can
 # catch up (Last-Event-ID) after a hub restart.
