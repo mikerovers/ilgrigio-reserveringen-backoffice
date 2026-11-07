@@ -9,7 +9,7 @@
 
 {% block page %}
     {# Kiosk behaviour (wake lock, F-keys, standalone hardening) for every authenticated screen #}
-    <div hidden
+    <div hidden id="scanner-kiosk-{{ event ? event.id : 'none' }}" data-turbo-permanent
          data-controller="scanner--kiosk"
          data-scanner--kiosk-scan-path-value="{{ path('scanner_index', event ? {event: event.id} : {}) }}"
          data-scanner--kiosk-scans-path-value="{{ path('scanner_scans', event ? {event: event.id} : {}) }}"
@@ -25,7 +25,7 @@
 
             <div class="ml-auto flex flex-wrap items-center gap-3" data-controller="scanner--autosubmit">
                 <select aria-label="Scherm" class="h-10 border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
-                        onchange="window.location = this.value">
+                        onchange="Turbo.visit(this.value)">
                     <option class="text-[#34272a]" value="{{ path('scanner_index', event ? {event: event.id} : {}) }}" {{ screen == 'scan' ? 'selected' }}>Scan</option>
                     <option class="text-[#34272a]" value="{{ path('scanner_scans', event ? {event: event.id} : {}) }}" {{ screen == 'scans' ? 'selected' }}>Alle scans</option>
                     <option class="text-[#34272a]" value="{{ path('scanner_orders', event ? {event: event.id} : {}) }}" {{ screen == 'orders' ? 'selected' }}>Orders</option>
@@ -50,7 +50,7 @@
                     </svg>
                     {{ operator }}
                 </span>
-                <a href="{{ path('scanner_logout') }}" class="text-base underline underline-offset-4 hover:text-amber-200">Uitloggen</a>
+                <a href="{{ path('scanner_logout') }}" data-turbo="false" class="text-base underline underline-offset-4 hover:text-amber-200">Uitloggen</a>
             </div>
         </div>
     </header>

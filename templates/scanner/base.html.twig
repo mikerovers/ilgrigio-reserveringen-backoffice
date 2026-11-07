@@ -8,6 +8,7 @@
         <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
         <link rel="manifest" href="{{ path('scanner_manifest') }}">
         <link rel="apple-touch-icon" href="/pwa/icon-180.png">
+        {% block turbo_meta %}{% endblock %}
         <meta name="theme-color" content="#c62828">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,11 +36,11 @@
                 }
             }
         </style>
-        {% block javascripts %}{{ importmap('app') }}{% endblock %}
+        {% block javascripts %}{{ importmap('scanner') }}{% endblock %}
     </head>
     <body class="{% block body_class %}min-h-screen{% endblock %} flex flex-col bg-[#fffaf2] text-[#34272a] antialiased" {% block body_attrs %}{% endblock %}>
         {% block page %}{% endblock %}
-        <script>
+        <script data-turbo-eval="false">
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register({{ path('scanner_service_worker')|json_encode|raw }}, { scope: '/' }).catch(() => {});

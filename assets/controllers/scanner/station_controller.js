@@ -52,6 +52,13 @@ export default class extends Controller {
             this.focusInput();
         };
         window.addEventListener("scanner:submit", this.onSubmitRequest);
+        // Do not leave the page while a scan is still being checked: its result would be lost
+        this.onBeforeVisit = (event) => {
+            if (this.processing || this.queue.length > 0) {
+                event.preventDefault();
+            }
+        };
+        document.addEventListener("turbo:before-visit", this.onBeforeVisit);
         this.focusInput();
         this.renderReady();
     }
@@ -59,6 +66,7 @@ export default class extends Controller {
     disconnect() {
         document.removeEventListener("keydown", this.onDocumentKeydown);
         window.removeEventListener("scanner:submit", this.onSubmitRequest);
+        document.removeEventListener("turbo:before-visit", this.onBeforeVisit);
         window.clearTimeout(this.resetTimer);
     }
 

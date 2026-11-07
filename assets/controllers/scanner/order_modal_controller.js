@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus";
+import * as Turbo from "@hotwired/turbo";
 
 // Connects to data-controller="scanner--order-modal"
 // Popup with the order behind a scanned ticket. The order is fetched only when a row of
@@ -163,7 +164,7 @@ export default class extends Controller {
     closed() {
         // The list behind the popup shows scan counters: refresh it after a check-in
         if (this.dirty) {
-            window.location.reload();
+            Turbo.visit(window.location.href, { action: "replace" });
             return;
         }
         document.getElementById("scan-input")?.focus({ preventScroll: true });

@@ -51,6 +51,7 @@
         "symfony/twig-bundle": "8.2.*",
         "symfony/uid": "8.2.*",
         "symfony/ux-live-component": "^3.6",
+        "symfony/ux-turbo": "^3.7",
         "symfony/validator": "8.2.*",
         "symfony/webhook": "8.2.*",
         "symfony/yaml": "8.2.*",

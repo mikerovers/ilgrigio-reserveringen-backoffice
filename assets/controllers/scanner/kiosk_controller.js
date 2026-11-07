@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus";
+import * as Turbo from "@hotwired/turbo";
 
 // Connects to data-controller="scanner--kiosk"
 //
@@ -23,6 +24,11 @@ export default class extends Controller {
         document.addEventListener("keydown", this.onKeydown);
         document.addEventListener("visibilitychange", this.onVisibility);
 
+        // The element is data-turbo-permanent, so it survives page swaps: re-harden
+        // the freshly rendered scan panel after each visit.
+        this.onTurboLoad = () => this.isStandalone() && this.harden();
+        document.addEventListener("turbo:load", this.onTurboLoad);
+
         if (this.isStandalone()) {
             this.harden();
         }
@@ -33,6 +39,7 @@ export default class extends Controller {
     disconnect() {
         document.removeEventListener("keydown", this.onKeydown);
         document.removeEventListener("visibilitychange", this.onVisibility);
+        document.removeEventListener("turbo:load", this.onTurboLoad);
         document.removeEventListener("contextmenu", this.onContextMenu);
         this.releaseWakeLock();
     }
@@ -48,7 +55,7 @@ export default class extends Controller {
     }
 
     harden() {
-        document.addEventListener("contextmenu", this.onContextMenu);
+        document.addEventListener("contextmenu", this.onContextMenu); // no-op when already added
 
         const panel = document.querySelector("[data-scanner-kiosk-panel]");
         if (panel) {
@@ -122,7 +129,7 @@ export default class extends Controller {
             return;
         }
         if (path !== window.location.pathname + window.location.search) {
-            window.location.assign(path);
+            Turbo.visit(path);
         }
     }
 

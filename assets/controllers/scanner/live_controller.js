@@ -17,6 +17,7 @@ export default class extends Controller {
     };
 
     connect() {
+        this.disconnected = false;
         this.onStats = (event) => this.apply(event.detail);
         window.addEventListener("scanner:stats", this.onStats);
 
@@ -48,6 +49,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.disconnected = true;
         window.removeEventListener("scanner:stats", this.onStats);
         document.removeEventListener("visibilitychange", this.onVisible);
         window.clearInterval(this.pollTimer);
@@ -92,6 +94,9 @@ export default class extends Controller {
             }
             // The response also set the subscriber cookie the hub authenticates with.
             const { hub, topic } = await response.json();
+            if (this.disconnected) {
+                return; // navigated away while the token was in flight
+            }
             const url = new URL(hub);
             url.searchParams.append("match", topic);
 
@@ -115,6 +120,9 @@ export default class extends Controller {
                 }
             };
         } catch {
+            if (this.disconnected) {
+                return;
+            }
             this.setConnection("offline");
             this.reconnectTimer = window.setTimeout(() => this.subscribe(), 5000);
         }

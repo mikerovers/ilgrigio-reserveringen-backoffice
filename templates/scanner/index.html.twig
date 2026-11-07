@@ -5,6 +5,9 @@
 {% block title %}Scanbalie{% endblock %}
 
 {# The scan screen fits the viewport; only very small screens scroll #}
+{# Counters are live: never show a cached snapshot #}
+{% block turbo_meta %}<meta name="turbo-cache-control" content="no-cache">{% endblock %}
+
 {% block body_class %}h-dvh overflow-hidden{% endblock %}
 
 {% block body_attrs %}
