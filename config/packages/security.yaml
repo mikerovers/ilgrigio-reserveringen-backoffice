@@ -29,6 +29,26 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Door-scanner app (scanbalie) on its own host. Declared first so that the
+        # host decides the firewall, whatever the path. Own session context, so a
+        # scanner login is separate from the admin backoffice login.
+        scanner:
+            host: '^%scanner_host%$'
+            lazy: true
+            context: scanner
+            provider: app_user_provider
+            form_login:
+                login_path: scanner_login
+                check_path: scanner_login
+                enable_csrf: true
+                default_target_path: scanner_index
+            logout:
+                path: scanner_logout
+                target: scanner_login
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+
         # Issues JWTs. Stateless, no session — CSRF is disabled since there's
         # no session to protect; this is a bearer-token issuance endpoint
         # called by an external SPA.
@@ -130,6 +150,9 @@ security:
         - { host: '%admin_host%', path: ^/login, roles: PUBLIC_ACCESS }
         # Backoffice UI (EasyAdminBundle), served on its own subdomain — admins only
         - { host: '%admin_host%', path: ^/, roles: ROLE_ADMIN }
+        # Scanner app: login form is public, everything else needs ROLE_CHECK_IN
+        - { host: '^%scanner_host%$', path: ^/login, roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
+        - { host: '^%scanner_host%$', path: ^/, roles: ROLE_CHECK_IN, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         # Customer login (email code) is public; the ticket area needs a logged-in customer
         - { path: '^/(inloggen|uitloggen)', roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         - { path: ^/mijn-tickets, roles: ROLE_CUSTOMER, requires_channel: '%env(default::SECURE_CHANNEL)%' }

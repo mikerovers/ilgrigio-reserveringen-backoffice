@@ -1,0 +1,44 @@
+{% extends 'scanner/base.html.twig' %}
+
+{% block title %}Inloggen{% endblock %}
+
+{% block page %}
+    <header class="bg-[#c62828] border-b-[6px] border-[#a91f24] text-white">
+        <div class="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+            <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-10 w-auto">
+            <span class="h-8 w-px bg-white/30"></span>
+            <span class="text-lg font-semibold">Scanbalie</span>
+        </div>
+    </header>
+
+    <main class="flex-1 px-4 py-12">
+        <div class="mx-auto w-full max-w-sm border border-[#eadfd1] bg-white">
+            <div class="bg-[#c62828] px-6 py-4 text-white">
+                <h1 class="text-lg font-semibold">Inloggen</h1>
+            </div>
+            <form method="post" class="space-y-5 p-6">
+                {% if error %}
+                    <p role="alert" class="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                        {{ error.messageKey|trans(error.messageData, 'security') }}
+                    </p>
+                {% endif %}
+
+                <div>
+                    <label for="username" class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500">E-mailadres</label>
+                    <input type="email" id="username" name="_username" value="{{ last_username }}" autocomplete="email" required autofocus
+                           class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                </div>
+                <div>
+                    <label for="password" class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500">Wachtwoord</label>
+                    <input type="password" id="password" name="_password" autocomplete="current-password" required
+                           class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                </div>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                <button type="submit" class="h-12 w-full bg-[#c62828] text-base font-semibold text-white hover:bg-[#a91f24] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c62828]">
+                    Inloggen
+                </button>
+                <p class="text-xs text-gray-500">Alleen voor medewerkers met toegang tot de kaartcontrole.</p>
+            </form>
+        </div>
+    </main>
+{% endblock %}

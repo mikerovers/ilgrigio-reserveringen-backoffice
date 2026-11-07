@@ -9,6 +9,8 @@ use App\DTO\CheckInResponse;
 use App\DTO\OrderCheckInResponse;
 use App\Entity\Event;
 use App\Entity\Order;
+use App\Repository\TicketRepository;
+use App\Service\CheckInBroadcaster;
 use App\Service\CheckInResult;
 use App\Service\CheckInService;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -33,6 +35,8 @@ final class CheckInController extends AbstractController
     public function __construct(
         private CheckInService $checkInService,
         private ClockInterface $clock,
+        private CheckInBroadcaster $broadcaster,
+        private TicketRepository $ticketRepository,
     ) {
     }
 
@@ -49,11 +53,22 @@ final class CheckInController extends AbstractController
         #[MapEntity(mapping: ['eventId' => 'id'])] Event $event,
         #[MapRequestPayload] CheckInRequest $request,
     ): JsonResponse {
+        $now = $this->clock->now();
         $result = $this->checkInService->checkIn(
             $event,
             $request->ticketCode,
-            $this->clock->now(),
+            $now,
         );
+
+        if ($result->isAdmitted()) {
+            $this->broadcaster->admitted(
+                $event,
+                $this->ticketRepository->countByStatusForEvent($event),
+                null,
+                null,
+                $now,
+            );
+        }
 
         $ticket = $this->checkInService->findTicket($event, $request->ticketCode);
 
@@ -81,7 +96,19 @@ final class CheckInController extends AbstractController
     public function checkInOrder(
         #[MapEntity(mapping: ['orderNumber' => 'orderNumber'])] Order $order,
     ): JsonResponse {
-        $outcomes = $this->checkInService->checkInOrder($order, $this->clock->now());
+        $now = $this->clock->now();
+        $outcomes = $this->checkInService->checkInOrder($order, $now);
+
+        // One update per event with newly admitted tickets (an order may span events).
+        $admittedEvents = [];
+        foreach ($outcomes as $outcome) {
+            if ($outcome->result->isAdmitted()) {
+                $admittedEvents[$outcome->ticket->event->id->toRfc4122()] = $outcome->ticket->event;
+            }
+        }
+        foreach ($admittedEvents as $event) {
+            $this->broadcaster->admitted($event, $this->ticketRepository->countByStatusForEvent($event), null, null, $now);
+        }
 
         return $this->json(OrderCheckInResponse::fromOutcomes($order, $outcomes));
     }

@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\DTO\EventListQuery;
 use App\Entity\Event;
+use App\Service\VenueTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
@@ -25,6 +26,48 @@ class EventRepository extends ServiceEntityRepository
     public function findOneBySlug(string $slug): ?Event
     {
         return $this->findOneBy(['slug' => $slug]);
+    }
+
+    /**
+     * Events the door scanner may choose: doors open (or, without a doors time,
+     * start) within a day from now, and not over for longer than the grace
+     * period. Soonest first.
+     *
+     * @return Event[]
+     */
+    public function findScannable(\DateTimeImmutable $now, string $afterEndGrace = 'PT6H'): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('COALESCE(e.doorsOpenAt, e.startsAt) <= :horizon')
+            ->andWhere('COALESCE(e.endsAt, e.startsAt) >= :floor')
+            ->setParameter('horizon', $now->add(new \DateInterval('P1D')))
+            // over = end (or start when there is no end) lies longer ago than the grace period
+            ->setParameter('floor', $now->sub(new \DateInterval($afterEndGrace)))
+            ->orderBy('e.startsAt', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Every event that starts today (venue time, Amsterdam), earliest first,
+     * whatever the doors time. Today runs from 00:00 to 24:00 local time.
+     *
+     * @return Event[]
+     */
+    public function findStartingToday(\DateTimeImmutable $now): array
+    {
+        $utc = new \DateTimeZone(VenueTime::STORAGE_TIMEZONE);
+        $dayStart = VenueTime::toLocal($now)->setTime(0, 0);
+        $dayEnd = $dayStart->modify('+1 day');
+
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.startsAt >= :from')
+            ->andWhere('e.startsAt < :to')
+            ->setParameter('from', $dayStart->setTimezone($utc))
+            ->setParameter('to', $dayEnd->setTimezone($utc))
+            ->orderBy('e.startsAt', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
     }
 
     /**

@@ -1,0 +1,166 @@
+{% extends 'scanner/layout.html.twig' %}
+
+{% set screen = 'scan' %}
+
+{% block title %}Scanbalie{% endblock %}
+
+{# The scan screen fits the viewport; only very small screens scroll #}
+{% block body_class %}h-dvh overflow-hidden{% endblock %}
+
+{% block body_attrs %}
+    {%- if event -%}
+        data-controller="scanner--clock scanner--live scanner--station scanner--recent scanner--order-modal"
+        data-scanner--live-event-id-value="{{ event.id }}"
+        data-scanner--live-stats-url-value="{{ path('scanner_stats', {id: event.id}) }}"
+        data-scanner--live-token-url-value="{{ path('scanner_mercure_token', {id: event.id}) }}"
+        data-scanner--live-mercure-enabled-value="{{ mercureEnabled ? 'true' : 'false' }}"
+        data-scanner--station-scan-url-value="{{ path('scanner_scan', {id: event.id}) }}"
+        data-scanner--station-operator-value="{{ operator }}"
+        data-scanner--recent-event-id-value="{{ event.id }}"
+        data-scanner--order-modal-url-value="{{ path('scanner_order', {id: event.id, orderNumber: '__ORDER__'}) }}"
+        data-scanner--recent-all-url-value="{{ path('scanner_scans', {event: event.id}) }}"
+    {%- else -%}
+        data-controller="scanner--clock"
+    {%- endif -%}
+{% endblock %}
+
+{% block content %}
+    {% if event is null %}
+        <main class="flex-1 px-4 py-16">
+            <div class="mx-auto max-w-xl border border-[#eadfd1] bg-white p-8 text-center">
+                <h1 class="font-serif text-2xl">Geen voorstelling om te scannen</h1>
+                <p class="mt-2 text-gray-600">Voorstellingen verschijnen hier vanaf een dag voor de zaal opengaat.</p>
+            </div>
+        </main>
+    {% else %}
+        {% set pct = stats.expected > 0 ? (stats.checkedIn / stats.expected * 100) : 0 %}
+
+        <section aria-labelledby="show-title" class="shrink-0 border-b border-[#eadfd1]">
+            <div class="mx-auto max-w-6xl px-4 pt-2 pb-2 flex flex-wrap items-center justify-between gap-x-8 gap-y-2">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.25em] leading-none text-gray-600">Actieve voorstelling</p>
+                    <h1 id="show-title" class="font-stopbuck text-2xl uppercase leading-tight text-[#c62828]">{{ event.name }}</h1>
+                    <p class="text-sm text-gray-600">
+                        {{ info.day }} · {{ info.date }}
+                        {% if info.doorsOpen %}· Zaal open {{ info.doorsOpen }}{% endif %}
+                        · Aanvang {{ info.starts }} uur
+                        {% if info.location %}· {{ info.location }}{% endif %}
+                    </p>
+                </div>
+
+                <dl class="flex divide-x divide-[#eadfd1] text-center" aria-label="Bezoekersaantallen">
+                    <div class="px-5 first:pl-0">
+                        <dd class="font-stopbuck text-2xl leading-none" data-scanner--live-target="expected">{{ stats.expected }}</dd>
+                        <dt class="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600">Verwacht</dt>
+                    </div>
+                    <div class="px-5">
+                        <dd class="font-stopbuck text-2xl leading-none text-[#c62828]" data-scanner--live-target="inside">{{ stats.checkedIn }}</dd>
+                        <dt class="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600">Binnen</dt>
+                    </div>
+                    <div class="px-5 last:pr-0">
+                        <dd class="font-stopbuck text-2xl leading-none" data-scanner--live-target="remaining">{{ stats.remaining }}</dd>
+                        <dt class="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600">Nog verwacht</dt>
+                    </div>
+                </dl>
+            </div>
+            <div class="h-1 bg-[#eadfd1]" role="progressbar" aria-label="Voortgang kaartcontrole"
+                 aria-valuemin="0" aria-valuemax="{{ stats.expected }}" aria-valuenow="{{ stats.checkedIn }}"
+                 data-scanner--live-target="track">
+                <div class="h-full bg-[#c62828] transition-[width] duration-500" style="width: {{ pct|round(1) }}%" data-scanner--live-target="bar"></div>
+            </div>
+        </section>
+
+        <main class="min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:overflow-hidden">
+            <div class="mx-auto grid h-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-[minmax(0,1fr)]">
+                {# Scan station #}
+                <section aria-labelledby="station-title" class="flex min-h-0 flex-col border border-[#eadfd1] bg-white lg:max-h-full lg:self-start">
+                    <div class="flex items-center justify-between bg-[#c8372f] px-5 py-3 text-white">
+                        <h2 id="station-title" class="flex items-center gap-3 text-lg font-semibold">
+                            <svg width="22" height="22" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                                <path d="M2 5V2h3M13 2h3v3M16 13v3h-3M5 16H2v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M5.5 9h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            Scanstation
+                        </h2>
+                        <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em]">
+                            <span class="inline-block h-3 w-3 rounded-full border-2 border-white/70 bg-white" data-scanner--station-target="readyDot"></span>
+                            <span data-scanner--station-target="ready">Scanner gereed</span>
+                        </span>
+                    </div>
+
+                    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+                        {# One fixed panel: the result replaces the illustration, the input never moves #}
+                        <div class="flex h-[27rem] min-h-[16rem] shrink flex-col bg-[#312729] p-5 text-white [@media(max-height:820px)]:p-3" data-scanner--station-target="idle">
+                            <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                                <div class="my-auto flex flex-col items-center text-center" data-scanner--station-target="illustration">
+                                    <span class="flex h-14 w-14 items-center justify-center border border-white/30 text-amber-200" aria-hidden="true">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                            <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                            <path d="M8 9v6M11 9v6M14 9v6M16 9v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                        </svg>
+                                    </span>
+                                    <p class="mt-4 font-serif text-2xl">Scan een kaart</p>
+                                    <p id="scan-hint" class="mt-2 max-w-sm text-base text-white/70">Richt de USB-scanner op de QR-code. De code wordt direct gecontroleerd.</p>
+                                </div>
+                                {# Result of the last scan (filled by the station controller) #}
+                                <div hidden class="my-auto" data-scanner--station-target="result" role="region" aria-label="Scanresultaat"></div>
+                            </div>
+
+                            <div class="mt-4 flex shrink-0 flex-col items-center [@media(max-height:820px)]:mt-2">
+                                <label for="scan-input" class="sr-only">Scaninvoer van de USB-scanner</label>
+                                <input id="scan-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text"
+                                       placeholder="Wacht op scan…" aria-describedby="scan-hint" maxlength="64"
+                                       class="h-14 w-full max-w-lg [@media(max-height:820px)]:h-12 border border-white/30 bg-white/10 px-4 text-center font-mono text-xl tracking-widest text-white placeholder-white/40 focus:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-200/60"
+                                       data-scanner--station-target="input"
+                                       data-action="keydown->scanner--station#onInputKeydown focus->scanner--station#onFocus blur->scanner--station#onBlur">
+                                <div class="mt-3 flex w-full flex-wrap [@media(max-height:820px)]:mt-2 items-center justify-between gap-2 font-mono text-xs text-white/70">
+                                    <span>Scanner typt de code en sluit af met Enter.</span>
+                                    <span>Laatste scan <span data-scanner--station-target="lastScan">—</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sr-only" aria-live="polite" data-scanner--station-target="announcer"></div>
+                    </div>
+                </section>
+
+                {# Recent scans #}
+                <aside class="flex min-h-0 flex-col border border-[#eadfd1] bg-white" aria-labelledby="recent-title">
+                    <div class="flex items-start justify-between border-b border-[#eadfd1] px-5 pb-3 pt-4">
+                        <div>
+                            <h2 id="recent-title" class="font-serif text-2xl">Laatste scans</h2>
+                            <p class="text-sm text-gray-600">Logboek van deze balie</p>
+                        </div>
+                        <span class="mt-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-600">
+                            <span class="inline-block h-2 w-2 rounded-full bg-gray-300" data-scanner--live-target="liveDot"></span>
+                            <span data-scanner--live-target="liveLabel">Live</span>
+                        </span>
+                    </div>
+                    <ul class="min-h-0 flex-1 overflow-hidden px-5" data-scanner--recent-target="list" aria-label="Laatste scans"></ul>
+                    <div class="shrink-0 border-t border-[#eadfd1] p-4">
+                        <a href="{{ path('scanner_scans', {event: event.id}) }}"
+                           class="block border border-[#d6c4b1] bg-white py-3 text-center text-base font-semibold hover:bg-[#fffaf2] focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                            Alle scans bekijken
+                        </a>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        {% include 'scanner/_order_modal.html.twig' %}
+    {% endif %}
+{% endblock %}
+
+{% block footer_center %}
+    <p class="hidden md:block"><kbd class="border border-[#d6c4b1] bg-white px-2 py-0.5 text-xs font-bold">Enter</kbd> USB-scanner</p>
+{% endblock %}
+
+{% block footer_status %}
+    {% if event %}
+        <p class="flex items-center gap-2" data-scanner--live-target="status">
+            <span class="inline-block h-2 w-2 rounded-full bg-gray-300" data-scanner--live-target="statusDot"></span>
+            <span data-scanner--live-target="statusLabel">Verbinden…</span>
+            <span aria-hidden="true">·</span>
+            sync <span data-scanner--live-target="sync">{{ 'now'|date('H:i') }}</span>
+        </p>
+    {% endif %}
+{% endblock %}

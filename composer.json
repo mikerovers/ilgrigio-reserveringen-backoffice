@@ -38,6 +38,7 @@
         "symfony/http-client": "8.2.*",
         "symfony/lock": "8.2.*",
         "symfony/mailer": "8.2.*",
+        "symfony/mercure-bundle": "^0.7.0",
         "symfony/monolog-bundle": "^4.0",
         "symfony/property-access": "8.2.*",
         "symfony/rate-limiter": "8.2.*",

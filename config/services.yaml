@@ -6,6 +6,12 @@
 parameters:
     default_from_email: 'noreply@example.com'
     admin_host: '%env(ADMIN_HOST)%'
+    scanner_host: '%env(SCANNER_HOST)%'
+    env(MERCURE_ENABLED): '0'
+    env(MERCURE_PUBLIC_ORIGIN): "'self'"
+    mercure_enabled: '%env(bool:MERCURE_ENABLED)%'
+    env(SCANNER_EVENT_SELECTION): 'doors'
+    scanner_event_selection: '%env(SCANNER_EVENT_SELECTION)%'
     ilgrigio_reserveringen_base_url: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
     env(ORDER_RESERVATION_TTL_MINUTES): '30'
     env(REGISTER_MAX_DISCOUNT_PERCENT): '100'
@@ -98,3 +104,8 @@ services:
             $endpoint: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
             $appName: '%env(NEW_RELIC_APP_NAME)%'
             $environment: '%kernel.environment%'
+
+    # Publishes check-in updates to the Mercure hub (scanner app live sync)
+    App\Service\CheckInBroadcaster:
+        arguments:
+            $enabled: '%mercure_enabled%'

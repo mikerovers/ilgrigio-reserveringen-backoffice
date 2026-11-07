@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="robots" content="noindex, nofollow">
+        <title>{% block title %}Scanbalie{% endblock %} | Il Grigio</title>
+        <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        </style>
+        {% block javascripts %}{{ importmap('app') }}{% endblock %}
+    </head>
+    <body class="{% block body_class %}min-h-screen{% endblock %} flex flex-col bg-[#fffaf2] text-[#34272a] antialiased" {% block body_attrs %}{% endblock %}>
+        {% block page %}{% endblock %}
+    </body>
+</html>

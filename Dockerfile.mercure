@@ -1,0 +1,20 @@
+# Mercure hub for the scanner app (live check-in sync between balies).
+# Runs as its own container, independent of the web and messenger images.
+#
+# Configure through the environment (see compose.yaml / .env):
+#   SERVER_NAME                  address Caddy listens on (":80" behind a TLS-terminating proxy)
+#   MERCURE_PUBLISHER_JWT_KEY    HS256 secret, same value as MERCURE_JWT_SECRET in the app
+#   MERCURE_SUBSCRIBER_JWT_KEY   HS256 secret, same value as MERCURE_JWT_SECRET in the app
+#   MERCURE_EXTRA_DIRECTIVES     e.g. "cors_origins https://scanner.example.nl"
+FROM dunglas/mercure:v0.21
+
+# Bolt transport database and Caddy state live on volumes so subscribers can
+# catch up (Last-Event-ID) after a hub restart.
+VOLUME ["/data", "/config"]
+
+# Updates are private (subscriber JWT required); no anonymous subscribers.
+ENV SERVER_NAME=":80" \
+    MERCURE_EXTRA_DIRECTIVES=""
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
+    CMD wget -q --spider http://127.0.0.1:80/healthz || exit 1

@@ -34,5 +34,6 @@ nelmio_security:
             style-src: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"]
             font-src: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "data:"]
             img-src: ["'self'", "data:"]
-            connect-src: ["'self'"]
+            # The Mercure hub (scanner app live sync) is its own origin
+            connect-src: ["'self'", "%env(MERCURE_PUBLIC_ORIGIN)%"]
             frame-ancestors: ["'self'"]

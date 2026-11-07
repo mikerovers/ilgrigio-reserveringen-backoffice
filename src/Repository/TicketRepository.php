@@ -111,6 +111,62 @@ class TicketRepository extends ServiceEntityRepository
         );
     }
 
+    /**
+     * Ticket counts of an event per status, for the scanner counters.
+     * expected = issued + checkedIn (void tickets do not count).
+     *
+     * @return array{issued: int, checkedIn: int, void: int}
+     */
+    public function countByStatusForEvent(Event $event): array
+    {
+        $rows = $this->getEntityManager()->getConnection()->fetchAllKeyValue(
+            'SELECT status, COUNT(*) FROM ticket WHERE event_id = :event GROUP BY status',
+            ['event' => $event->id->toRfc4122()],
+        );
+
+        return [
+            'issued' => (int) ($rows[TicketStatus::ISSUED->value] ?? 0),
+            'checkedIn' => (int) ($rows[TicketStatus::CHECKED_IN->value] ?? 0),
+            'void' => (int) ($rows[TicketStatus::VOID->value] ?? 0),
+        ];
+    }
+
+    /**
+     * Tickets of an event admitted by one scanner user, newest scan first.
+     *
+     * @return Ticket[]
+     */
+    public function findCheckedInByUser(Event $event, string $by, int $limit, int $offset = 0): array
+    {
+        return $this->createQueryBuilder('t')
+            ->addSelect('tt', 'o')
+            ->join('t.ticketType', 'tt')
+            ->join('t.order', 'o')
+            ->where('t.event = :event')
+            ->andWhere('t.status = :status')
+            ->andWhere('t.checkedInBy = :by')
+            ->setParameter('event', $event->id, 'uuid')
+            ->setParameter('status', TicketStatus::CHECKED_IN)
+            ->setParameter('by', $by)
+            ->orderBy('t.checkedInAt', SortDirection::Descending)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countCheckedInByUser(Event $event, string $by): int
+    {
+        return (int) $this->getEntityManager()->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM ticket WHERE event_id = :event AND status = :status AND checked_in_by = :by',
+            [
+                'event' => $event->id->toRfc4122(),
+                'status' => TicketStatus::CHECKED_IN->value,
+                'by' => $by,
+            ],
+        );
+    }
+
     private function toUtcString(\DateTimeImmutable $moment): string
     {
         return $moment->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
