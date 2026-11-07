@@ -83,6 +83,11 @@ final class TermsTest extends WebTestCase
         $this->client->request('GET', '/algemene-voorwaarden/');
 
         self::assertResponseStatusCodeSame(404);
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('data-modal-open="terms"', (string) $this->client->getResponse()->getContent());
     }
 
     private function findTermsRow(): ?SitePage
