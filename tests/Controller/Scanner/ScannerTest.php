@@ -55,7 +55,7 @@ final class ScannerTest extends WebTestCase
 
         $this->otherEvent = new Event(self::OTHER_EVENT_NAME, $now->modify('+3 hours'));
 
-        // Doors open in 2 days: not selectable yet (doors open - 1 day).
+        // Two days out: scannable too, every future event is.
         $this->farEvent = new Event(self::FAR_EVENT_NAME, $now->modify('+2 days 3 hours'));
         $this->farEvent->doorsOpenAt = $now->modify('+2 days 2 hours');
 
@@ -134,7 +134,7 @@ final class ScannerTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
-    public function testCheckInUserSeesOnlyScannableEvents(): void
+    public function testCheckInUserSeesScannableEvents(): void
     {
         $this->client->loginUser($this->checkInUser, 'scanner');
         $this->client->request('GET', '/', ['event' => (string) $this->event->id]);
@@ -143,52 +143,33 @@ final class ScannerTest extends WebTestCase
         $html = (string) $this->client->getResponse()->getContent();
         self::assertStringContainsString(self::EVENT_NAME, $html);
         self::assertStringContainsString(self::OTHER_EVENT_NAME, $html);
-        self::assertStringNotContainsString(self::FAR_EVENT_NAME, $html);
+        self::assertStringContainsString(self::FAR_EVENT_NAME, $html);
         self::assertStringContainsString('Bossebaan 5B, Haaren NB', $html);
         self::assertStringContainsString('Balie 1', $html);
     }
 
-    public function testScannableEventsFollowDoorsOpenMinusOneDay(): void
+    public function testScannableEventsAreYesterdayOnwardsAndAllFuture(): void
     {
         /** @var EventRepository $repository */
         $repository = static::getContainer()->get(EventRepository::class);
-        $names = array_map(static fn (Event $e): string => $e->name, $repository->findScannable(new \DateTimeImmutable()));
+        $now = new \DateTimeImmutable();
 
-        self::assertContains(self::EVENT_NAME, $names);
-        self::assertNotContains(self::FAR_EVENT_NAME, $names);
-
-        // One day later the far event's doors are within a day.
-        $later = array_map(
-            static fn (Event $e): string => $e->name,
-            $repository->findScannable((new \DateTimeImmutable())->modify('+1 day 2 hours')),
-        );
-        self::assertContains(self::FAR_EVENT_NAME, $later);
-    }
-
-    public function testStartingTodayListsEveryShowOfTheVenueDay(): void
-    {
-        /** @var EventRepository $repository */
-        $repository = static::getContainer()->get(EventRepository::class);
-
-        // Noon (venue time) on a fixed day: a show at 03:00 and one at 23:30 that day count,
-        // one at 00:30 the next day does not, whatever their doors times.
-        $noon = VenueTime::fromLocal('2031-05-15 12:00:00');
-        $early = new Event('Scanner Test Early', VenueTime::fromLocal('2031-05-15 03:00:00'));
-        $late = new Event('Scanner Test Late', VenueTime::fromLocal('2031-05-15 23:30:00'));
-        $tomorrow = new Event('Scanner Test Tomorrow', VenueTime::fromLocal('2031-05-16 00:30:00'));
-        foreach ([$early, $late, $tomorrow] as $event) {
-            $this->em->persist($event);
-        }
+        $past = new Event('Scanner Test Past', $now->modify('-2 days'));
+        $yesterday = new Event('Scanner Test Yesterday', $now->modify('-20 hours'));
+        $this->em->persist($past);
+        $this->em->persist($yesterday);
         $this->em->flush();
 
         try {
-            $names = array_map(static fn (Event $e): string => $e->name, $repository->findStartingToday($noon));
+            $names = array_map(static fn (Event $e): string => $e->name, $repository->findScannable($now));
 
-            self::assertSame(['Scanner Test Early', 'Scanner Test Late'], $names);
+            self::assertContains(self::EVENT_NAME, $names);
+            self::assertContains(self::FAR_EVENT_NAME, $names);
+            self::assertContains('Scanner Test Yesterday', $names);
+            self::assertNotContains('Scanner Test Past', $names);
         } finally {
-            foreach ([$early, $late, $tomorrow] as $event) {
-                $this->em->remove($event);
-            }
+            $this->em->remove($past);
+            $this->em->remove($yesterday);
             $this->em->flush();
         }
     }

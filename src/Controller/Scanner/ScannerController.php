@@ -39,11 +39,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_CHECK_IN')]
 final class ScannerController extends AbstractController
 {
-    /** Shows whose doors open within a day (default). */
-    public const SELECTION_DOORS = 'doors';
-    /** Every show that starts today (venue time). */
-    public const SELECTION_TODAY = 'today';
-
     private const SCANS_PER_PAGE = 25;
 
     public function __construct(
@@ -57,8 +52,6 @@ final class ScannerController extends AbstractController
         private ClockInterface $clock,
         #[Autowire('%mercure_enabled%')]
         private bool $mercureEnabled = false,
-        #[Autowire('%scanner_event_selection%')]
-        private string $eventSelection = self::SELECTION_DOORS,
     ) {
     }
 
@@ -66,7 +59,7 @@ final class ScannerController extends AbstractController
     public function index(Request $request): Response
     {
         $now = $this->clock->now();
-        $events = $this->selectableEvents($now);
+        $events = $this->eventRepository->findScannable($now);
         $event = $this->selectEvent($events, (string) $request->query->get('event'));
 
         return $this->render('scanner/index.html.twig', [
@@ -165,7 +158,7 @@ final class ScannerController extends AbstractController
     public function scans(Request $request): Response
     {
         $now = $this->clock->now();
-        $events = $this->selectableEvents($now);
+        $events = $this->eventRepository->findScannable($now);
         $event = $this->selectEvent($events, (string) $request->query->get('event'));
         $by = $this->getUser()?->getUserIdentifier() ?? '';
         $page = max(1, $request->query->getInt('page', 1));
@@ -185,17 +178,6 @@ final class ScannerController extends AbstractController
             'pages' => max(1, (int) ceil($total / self::SCANS_PER_PAGE)),
             'operator' => $this->operatorName(),
         ]);
-    }
-
-    /**
-     * @return Event[]
-     */
-    private function selectableEvents(\DateTimeImmutable $now): array
-    {
-        return match ($this->eventSelection) {
-            self::SELECTION_TODAY => $this->eventRepository->findStartingToday($now),
-            default => $this->eventRepository->findScannable($now),
-        };
     }
 
     /**
