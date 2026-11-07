@@ -2,6 +2,13 @@ when@dev:
     web_profiler:
         toolbar: true
 
+    # Setting any child key enables the profiler (canBeEnabled). Without this
+    # block framework.profiler.enabled stays false in dev: no toolbar, no
+    # X-Debug-Token and /_profiler returns 404.
+    framework:
+        profiler:
+            collect_serializer_data: true
+
 when@test:
     framework:
         profiler:
