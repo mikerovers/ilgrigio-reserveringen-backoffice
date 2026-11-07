@@ -15,6 +15,7 @@ use App\Enum\OrderStatus;
 use App\Enum\TicketStatus;
 use App\Repository\EventRepository;
 use App\Repository\TicketRepository;
+use App\Service\CheckInBroadcaster;
 use App\Service\VenueTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Money\Money;
@@ -273,17 +274,25 @@ final class ScannerTest extends WebTestCase
         self::assertStringContainsString('<dialog', $html);
     }
 
-    public function testMercureTokenIsIssuedForTheEventTopic(): void
+    public function testMercureSubscriberCookieIsIssuedForTheCheckInTopic(): void
     {
         $this->client->loginUser($this->checkInUser, 'scanner');
         $this->client->request('GET', '/events/' . $this->event->id . '/mercure-token');
 
         self::assertResponseIsSuccessful();
         $data = json_decode((string) $this->client->getResponse()->getContent(), true);
-        self::assertSame('scanner/events/' . $this->event->id->toRfc4122(), $data['topic']);
-        self::assertNotSame('', $data['token']);
+        self::assertSame(CheckInBroadcaster::TOPIC, $data['topic']);
         self::assertStringContainsString('/.well-known/mercure', $data['hub']);
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
+
+        $cookies = $this->client->getResponse()->headers->getCookies();
+        self::assertCount(1, $cookies);
+        self::assertTrue($cookies[0]->isHttpOnly());
+        self::assertSame('/.well-known/mercure', $cookies[0]->getPath());
+        // The token itself is a JWT, and it names the topic (never sent to the page's JavaScript).
+        $claims = json_decode((string) base64_decode(explode('.', (string) $cookies[0]->getValue())[1], true), true);
+        self::assertSame(['subscribe'], $claims['authorization_details'][0]['actions']);
+        self::assertSame(CheckInBroadcaster::TOPIC, $claims['authorization_details'][0]['topics'][0]['match']);
     }
 
     public function testOrderEndpointListsTheTicketsOfTheOrder(): void

@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Mercure\Authorization;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Jwt\Grant;
 use Symfony\Component\Routing\Attribute\Route;
@@ -49,6 +50,7 @@ final class ScannerController extends AbstractController
         private CheckInService $checkInService,
         private CheckInBroadcaster $broadcaster,
         private HubInterface $hub,
+        private Authorization $authorization,
         private ClockInterface $clock,
         #[Autowire('%mercure_enabled%')]
         private bool $mercureEnabled = false,
@@ -127,28 +129,26 @@ final class ScannerController extends AbstractController
     }
 
     /**
-     * Mercure connection details for the page: the hub URL and a short-lived
-     * subscriber token limited to this event's topic. EventSource cannot set
-     * headers and the hub is another origin, so the token travels as the
-     * `authorization` query parameter; the page fetches a fresh one whenever it
-     * (re)connects.
+     * Mercure connection details for the page. The subscriber token travels in an
+     * HttpOnly cookie that the hub reads (Mercure 1.0 no longer accepts it in the
+     * URL); the hub is a sibling subdomain, so the cookie is set for the parent
+     * domain. The page calls this whenever it (re)connects, which also renews the
+     * short-lived token.
      */
     #[Route('/events/{id}/mercure-token', name: 'scanner_mercure_token', methods: ['GET'])]
-    public function mercureToken(#[MapEntity(mapping: ['id' => 'id'])] Event $event): JsonResponse
+    public function mercureToken(Request $request, #[MapEntity(mapping: ['id' => 'id'])] Event $event): JsonResponse
     {
-        $topic = CheckInBroadcaster::topic($event);
-        // Not Authorization::createCookie(): that insists on a hub on the same
-        // second-level domain, and this token is passed in the URL, not a cookie.
-        $token = $this->hub->getFactory()?->create(
-            [new Grant([Grant::ACTION_SUBSCRIBE], [$topic])],
-            ['exp' => new \DateTimeImmutable('+1 hour')],
-        ) ?? throw new \LogicException('The Mercure hub has no token factory.');
+        $cookie = $this->authorization->createCookie(
+            $request,
+            [new Grant([Grant::ACTION_SUBSCRIBE], [CheckInBroadcaster::TOPIC])],
+            additionalClaims: ['exp' => new \DateTimeImmutable('+1 hour')],
+        );
 
         $response = $this->json([
             'hub' => $this->hub->getPublicUrl(),
-            'topic' => $topic,
-            'token' => $token,
+            'topic' => CheckInBroadcaster::TOPIC,
         ]);
+        $response->headers->setCookie($cookie);
         $response->headers->set('Cache-Control', 'no-store');
 
         return $response;

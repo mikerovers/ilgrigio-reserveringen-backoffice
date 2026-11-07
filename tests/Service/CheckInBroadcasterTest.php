@@ -25,13 +25,14 @@ final class CheckInBroadcasterTest extends TestCase
         $this->event = new Event('Biblio Magico!', new \DateTimeImmutable('2027-07-01 12:00:00'));
     }
 
-    public function testPublishesAPrivateUpdateOnTheEventTopic(): void
+    public function testPublishesAPrivateUpdateOnTheCheckInTopic(): void
     {
         $this->hub->expects(self::once())->method('publish')->with(self::callback(function (Update $update): bool {
             $payload = json_decode($update->getData(), true);
 
             return $update->isPrivate()
-                && $update->getTopics() === ['scanner/events/' . $this->event->id->toRfc4122()]
+                && $update->getTopics() === [CheckInBroadcaster::TOPIC]
+                && $payload['eventId'] === $this->event->id->toRfc4122()
                 && $payload['stats'] === ['expected' => 148, 'checkedIn' => 63, 'remaining' => 85]
                 && $payload['scanId'] === 'abc';
         }));

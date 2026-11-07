@@ -90,19 +90,22 @@ export default class extends Controller {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            const { hub, topic, token } = await response.json();
+            // The response also set the subscriber cookie the hub authenticates with.
+            const { hub, topic } = await response.json();
             const url = new URL(hub);
-            url.searchParams.append("topic", topic);
-            url.searchParams.set("authorization", token);
+            url.searchParams.append("match", topic);
 
-            this.source = new EventSource(url);
+            this.source = new EventSource(url, { withCredentials: true });
             this.source.onopen = () => {
                 this.setConnection("online");
                 this.poll(); // catch up on anything missed while disconnected
             };
             this.source.onmessage = (message) => {
                 const payload = JSON.parse(message.data);
-                this.apply(payload.stats);
+                // One topic carries every show: only follow our own.
+                if (payload.eventId === this.eventIdValue) {
+                    this.apply(payload.stats);
+                }
             };
             this.source.onerror = () => {
                 this.setConnection("offline");

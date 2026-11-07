@@ -16,18 +16,18 @@ use Symfony\Component\Mercure\Update;
  */
 final class CheckInBroadcaster
 {
-    public const TOPIC_PREFIX = 'scanner/events/';
+    /**
+     * One topic for every show: a balie only acts on updates carrying its own
+     * eventId. Mercure 1.0 publisher tokens can only name exact topics, so a
+     * topic per show would need a new token grant for each of them.
+     */
+    public const TOPIC = 'https://reserveringen.ilgrigio.nl/scanner/check-ins';
 
     public function __construct(
         private HubInterface $hub,
         private LoggerInterface $logger,
         private bool $enabled = false,
     ) {
-    }
-
-    public static function topic(Event $event): string
-    {
-        return self::TOPIC_PREFIX . $event->id->toRfc4122();
     }
 
     /**
@@ -41,6 +41,7 @@ final class CheckInBroadcaster
 
         $payload = [
             'type' => 'checked_in',
+            'eventId' => $event->id->toRfc4122(),
             'scanId' => $scanId,
             'by' => $by,
             'at' => $at->format(\DateTimeInterface::ATOM),
@@ -52,7 +53,7 @@ final class CheckInBroadcaster
         ];
 
         try {
-            $this->hub->publish(new Update(self::topic($event), json_encode($payload, JSON_THROW_ON_ERROR), private: true));
+            $this->hub->publish(new Update(self::TOPIC, json_encode($payload, JSON_THROW_ON_ERROR), private: true));
         } catch (\Throwable $e) {
             $this->logger->error('Could not publish check-in update to Mercure', [
                 'event' => $event->id->toRfc4122(),

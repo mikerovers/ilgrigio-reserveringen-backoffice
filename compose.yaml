@@ -41,10 +41,11 @@ services:
             MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
             # Must match MERCURE_JWT_ISSUER in .env
             MERCURE_TRUSTED_ISSUERS: ${MERCURE_JWT_ISSUER:-http://scanner.localhost:8000}
-            # Scanner pages subscribe from these origins (symfony server runs on https).
+            # Scanner pages subscribe from these origins (symfony server runs on https), with their cookie.
+            # cookie_name must equal MERCURE_COOKIE_NAME in .env (prefix-less: plain-HTTP development).
             MERCURE_EXTRA_DIRECTIVES: |
                 cors_origins http://scanner.localhost:8000 https://scanner.localhost:8000
-                publish_origins *
+                cookie_name mercure_access_token
         volumes:
             - mercure_data:/data
             - mercure_config:/config

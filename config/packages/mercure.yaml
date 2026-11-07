@@ -1,13 +1,16 @@
 mercure:
     hubs:
         default:
-            # dunglas/mercure v0.21 (Dockerfile.mercure) speaks the 0.x protocol: "mercure" JWT claim
-            protocol_version: '0.x'
+            # dunglas/mercure v1.x (Dockerfile.mercure): OAuth-style access tokens, subscriber cookie
+            protocol_version: '1.0'
+            # Unset in production: defaults to "__Secure-mercure_access_token" (needs HTTPS). Local plain
+            # HTTP needs a prefix-less name, which the hub must be given too (see compose.yaml).
+            cookie_name: '%env(default::MERCURE_COOKIE_NAME)%'
             url: '%env(default::MERCURE_URL)%'
             public_url: '%env(default::MERCURE_PUBLIC_URL)%'
             jwt:
                 secret: '%env(MERCURE_JWT_SECRET)%'
-                publish: '*'
+                publish: ['https://reserveringen.ilgrigio.nl/scanner/check-ins']
                 claims:
                     iss: '%env(MERCURE_JWT_ISSUER)%'
                     sub: 'app'
