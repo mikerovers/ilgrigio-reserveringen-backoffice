@@ -106,8 +106,10 @@ final class ScannerTest extends WebTestCase
         self::assertStringContainsString('manifest+json', (string) $this->client->getResponse()->headers->get('Content-Type'));
         $manifest = json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame('standalone', $manifest['display']);
+        self::assertSame(['window-controls-overlay', 'standalone'], $manifest['display_override']);
         self::assertSame('/', $manifest['scope']);
         self::assertNotEmpty($manifest['icons']);
+        self::assertSame(['/', '/scans'], array_column($manifest['shortcuts'], 'url'));
     }
 
     public function testServiceWorkerIsPublicAndServedAsJavaScript(): void
@@ -116,7 +118,9 @@ final class ScannerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('javascript', (string) $this->client->getResponse()->headers->get('Content-Type'));
-        self::assertStringContainsString("addEventListener('fetch'", (string) $this->client->getResponse()->getContent());
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString("addEventListener('fetch'", $body);
+        self::assertStringContainsString('scanbalie-shell-v1', $body);
     }
 
     public function testLoginPageLinksTheManifest(): void
@@ -147,6 +151,7 @@ final class ScannerTest extends WebTestCase
         self::assertStringContainsString(self::FAR_EVENT_NAME, $html);
         self::assertStringContainsString('Bossebaan 5B, Haaren NB', $html);
         self::assertStringContainsString('Balie 1', $html);
+        self::assertStringContainsString('data-controller="scanner--kiosk"', $html);
     }
 
     public function testScannableEventsAreYesterdayOnwardsAndAllFuture(): void

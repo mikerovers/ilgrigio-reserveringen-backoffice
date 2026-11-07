@@ -1,8 +1,22 @@
 {% autoescape false %}
-// Scanbalie service worker. Network only: nothing is cached, so counters, scans
-// and logins are always live. A failed page navigation shows an offline notice.
+// Scanbalie service worker. Pages, API calls and the Mercure stream are always
+// fetched live. Only the fingerprinted app shell (asset-mapper output under
+// /assets/ and the PWA icons) is cached cache-first, so an installed window
+// opens instantly and keeps its CSS/JS/fonts during a brief network drop. Bump
+// SHELL_CACHE whenever a non-fingerprinted file under /pwa/ changes.
+const SHELL_CACHE = 'scanbalie-shell-v1';
+const SHELL_DESTINATIONS = new Set(['script', 'style', 'font', 'image']);
+
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys()
+            .then((keys) => Promise.all(
+                keys.filter((key) => key !== SHELL_CACHE).map((key) => caches.delete(key)),
+            ))
+            .then(() => self.clients.claim()),
+    );
+});
 
 const OFFLINE_PAGE = `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,7 +27,40 @@ h1{font-size:1.5rem}button{background:#c62828;color:#fff;border:0;padding:.75rem
 </head><body><div><h1>Geen verbinding</h1><p>De scanbalie heeft internet nodig. Controleer de verbinding.</p>
 <button onclick="location.reload()">Opnieuw proberen</button></div></body></html>`;
 
+function isShellAsset(request) {
+    if (request.method !== 'GET') {
+        return false;
+    }
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin) {
+        return false;
+    }
+    if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/pwa/')) {
+        return true;
+    }
+
+    return SHELL_DESTINATIONS.has(request.destination);
+}
+
+async function shellAsset(request) {
+    const cache = await caches.open(SHELL_CACHE);
+    const cached = await cache.match(request);
+    if (cached) {
+        return cached;
+    }
+    const response = await fetch(request);
+    if (response.ok && response.type === 'basic') {
+        cache.put(request, response.clone());
+    }
+
+    return response;
+}
+
 self.addEventListener('fetch', (event) => {
+    if (isShellAsset(event.request)) {
+        event.respondWith(shellAsset(event.request));
+        return;
+    }
     if (event.request.mode !== 'navigate') {
         return;
     }

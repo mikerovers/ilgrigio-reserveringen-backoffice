@@ -27,6 +27,10 @@ final class PwaController extends AbstractController
             'start_url' => '/',
             'scope' => '/',
             'display' => 'standalone',
+            // An installed window on Windows gets the native-feeling window
+            // controls overlay (see the display-mode CSS block in the scanner
+            // base template); everywhere else it falls back to standalone.
+            'display_override' => ['window-controls-overlay', 'standalone'],
             'orientation' => 'any',
             'theme_color' => '#c62828',
             'background_color' => '#fffaf2',
@@ -34,6 +38,21 @@ final class PwaController extends AbstractController
                 ['src' => '/pwa/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
                 ['src' => '/pwa/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
                 ['src' => '/pwa/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ],
+            // Jump tasks in the Windows taskbar / long-press menu of the icon.
+            'shortcuts' => [
+                [
+                    'name' => 'Scanstation',
+                    'short_name' => 'Scan',
+                    'url' => '/',
+                    'description' => 'Kaarten scannen',
+                ],
+                [
+                    'name' => 'Alle scans',
+                    'short_name' => 'Scans',
+                    'url' => '/scans',
+                    'description' => 'Logboek van deze balie',
+                ],
             ],
         ]);
         $response->headers->set('Content-Type', 'application/manifest+json');
@@ -43,9 +62,10 @@ final class PwaController extends AbstractController
     }
 
     /**
-     * Served from the root so its scope covers the whole app. The worker never
-     * caches pages, API calls or the Mercure stream: those are authenticated and
-     * must always be live. It only adds an offline notice for page navigations.
+     * Served from the root so its scope covers the whole app. Pages, API calls
+     * and the Mercure stream are always fetched live; the worker only caches the
+     * fingerprinted app shell (asset-mapper output and PWA icons) and shows an
+     * offline notice when a page navigation cannot reach the server.
      */
     #[Route('/sw.js', name: 'scanner_service_worker', host: '%scanner_host%', methods: ['GET'])]
     public function serviceWorker(): Response

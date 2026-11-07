@@ -15,7 +15,25 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
-            html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+            html { touch-action: manipulation; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+            body { overscroll-behavior: none; }
+
+            /* Installed window on Windows (window-controls-overlay): reserve the
+               top strip for the native window buttons, paint it in the masthead
+               red and make it draggable. Inert in every other display mode. */
+            @media (display-mode: window-controls-overlay) {
+                body { padding-top: env(titlebar-area-height, 0px); }
+                html body { background-color: #c62828 !important; }
+                body::before {
+                    content: "";
+                    position: fixed;
+                    top: 0;
+                    left: env(titlebar-area-x, 0px);
+                    width: env(titlebar-area-width, 100%);
+                    height: env(titlebar-area-height, 0px);
+                    -webkit-app-region: drag;
+                }
+            }
         </style>
         {% block javascripts %}{{ importmap('app') }}{% endblock %}
     </head>
