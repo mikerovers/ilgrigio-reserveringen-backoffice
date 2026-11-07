@@ -71,7 +71,7 @@ export default class extends Controller {
             });
             li.className = "border-b border-transparent";
         }
-        holder.className = `flex w-full items-center gap-3 py-3 text-left${clickable ? " hover:bg-[#fffaf2] focus:outline-none focus:ring-2 focus:ring-[#c62828]" : ""}`;
+        holder.className = `flex w-full items-center gap-3 px-5 py-3 text-left${clickable ? " hover:bg-[#fffaf2] focus:outline-none focus:ring-2 focus:ring-[#c62828]" : ""}`;
 
         const time = document.createElement("span");
         time.className = "w-12 shrink-0 font-mono text-base text-gray-700";

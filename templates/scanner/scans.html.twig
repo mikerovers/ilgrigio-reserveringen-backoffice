@@ -38,10 +38,10 @@
                 {% if tickets is empty %}
                     <p class="px-6 py-10 text-center text-gray-600">Nog geen scans van deze balie bij deze voorstelling.</p>
                 {% else %}
-                    <ul class="divide-y divide-[#eadfd1] px-6">
+                    <ul class="divide-y divide-[#eadfd1]">
                         {% for ticket in tickets %}
                             <li>
-                            <button type="button" class="flex w-full items-center gap-4 py-4 text-left hover:bg-[#fffaf2] focus:outline-none focus:ring-2 focus:ring-[#c62828]"
+                            <button type="button" class="flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-[#fffaf2] focus:outline-none focus:ring-2 focus:ring-[#c62828]"
                                     aria-label="Order {{ ticket.order.orderNumber }} bekijken"
                                     data-action="click->scanner--order-modal#openFromRow" data-order-number="{{ ticket.order.orderNumber }}">
                                 <span class="w-14 shrink-0 font-mono text-base text-gray-700">{{ ticket.checkedInAt|date('H:i') }}</span>

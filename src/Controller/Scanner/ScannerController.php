@@ -42,6 +42,9 @@ final class ScannerController extends AbstractController
 {
     private const SCANS_PER_PAGE = 25;
 
+    /** Dutch weekday names by ISO day number - 1; independent of the server's ICU locale data. */
+    private const WEEKDAYS = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+
     public function __construct(
         private EventRepository $eventRepository,
         private TicketRepository $ticketRepository,
@@ -206,7 +209,7 @@ final class ScannerController extends AbstractController
         $day = match ($start->format('Y-m-d')) {
             $today => 'Vandaag',
             VenueTime::toLocal($now)->modify('+1 day')->format('Y-m-d') => 'Morgen',
-            default => (new \IntlDateFormatter('nl_NL', \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, VenueTime::TIMEZONE, null, 'EEEE'))->format($start),
+            default => self::WEEKDAYS[(int) $start->format('N') - 1],
         };
 
         return [
