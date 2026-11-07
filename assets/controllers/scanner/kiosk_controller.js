@@ -11,7 +11,7 @@ const WCO_QUERY = "(display-mode: window-controls-overlay)";
 const STANDALONE_QUERY = "(display-mode: standalone)";
 
 export default class extends Controller {
-    static values = { scanPath: String, scansPath: String };
+    static values = { scanPath: String, scansPath: String, ordersPath: String };
 
     connect() {
         this.wakeLock = null;
@@ -105,6 +105,7 @@ export default class extends Controller {
         const action = {
             F1: () => this.navigate(this.scanPathValue),
             F2: () => this.navigate(this.scansPathValue),
+            F3: () => this.navigate(this.ordersPathValue),
             F5: () => window.location.reload(),
             F11: () => this.toggleFullscreen(),
         }[event.key];

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Controller\Scanner;
 
 use App\DTO\EventStatsResponse;
+use App\DTO\OrderListQuery;
 use App\DTO\ScanRequest;
 use App\DTO\ScanResponse;
 use App\DTO\ScannerOrderResponse;
 use App\Entity\Event;
 use App\Entity\User;
+use App\Enum\OrderStatus;
 use App\Repository\EventRepository;
 use App\Repository\OrderRepository;
 use App\Repository\TicketRepository;
@@ -41,6 +43,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class ScannerController extends AbstractController
 {
     private const SCANS_PER_PAGE = 25;
+    private const ORDERS_PER_PAGE = 25;
 
     /** Dutch weekday names by ISO day number - 1; independent of the server's ICU locale data. */
     private const WEEKDAYS = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
@@ -179,6 +182,48 @@ final class ScannerController extends AbstractController
             'total' => $total,
             'page' => $page,
             'pages' => max(1, (int) ceil($total / self::SCANS_PER_PAGE)),
+            'operator' => $this->operatorName(),
+        ]);
+    }
+
+    #[Route('/orders', name: 'scanner_orders', methods: ['GET'])]
+    public function orders(Request $request): Response
+    {
+        $now = $this->clock->now();
+        $events = $this->eventRepository->findScannable($now);
+        $event = $this->selectEvent($events, (string) $request->query->get('event'));
+        $search = trim((string) $request->query->get('q'));
+        $page = max(1, $request->query->getInt('page', 1));
+
+        $orders = [];
+        $counts = [];
+        $total = 0;
+        if ($event !== null) {
+            $paginator = $this->orderRepository->findPaginated(new OrderListQuery(
+                search: mb_substr($search, 0, 64),
+                eventId: $event->id->toRfc4122(),
+                status: [OrderStatus::COMPLETED->value],
+                page: $page,
+                limit: self::ORDERS_PER_PAGE,
+            ));
+            $orders = iterator_to_array($paginator, false);
+            $total = count($paginator);
+            $counts = $this->ticketRepository->countsPerOrderForEvent(
+                $event,
+                array_map(static fn ($order) => $order->id->toRfc4122(), $orders),
+            );
+        }
+
+        return $this->render('scanner/orders.html.twig', [
+            'events' => $events,
+            'event' => $event,
+            'info' => $event !== null ? $this->eventInfo($event, $now) : null,
+            'orders' => $orders,
+            'counts' => $counts,
+            'search' => $search,
+            'total' => $total,
+            'page' => $page,
+            'pages' => max(1, (int) ceil($total / self::ORDERS_PER_PAGE)),
             'operator' => $this->operatorName(),
         ]);
     }

@@ -109,7 +109,7 @@ final class ScannerTest extends WebTestCase
         self::assertSame(['window-controls-overlay', 'standalone'], $manifest['display_override']);
         self::assertSame('/', $manifest['scope']);
         self::assertNotEmpty($manifest['icons']);
-        self::assertSame(['/', '/scans'], array_column($manifest['shortcuts'], 'url'));
+        self::assertSame(['/', '/scans', '/orders'], array_column($manifest['shortcuts'], 'url'));
     }
 
     public function testServiceWorkerIsPublicAndServedAsJavaScript(): void
@@ -277,6 +277,57 @@ final class ScannerTest extends WebTestCase
         self::assertStringContainsString('1 scan door Balie 1', $html);
         self::assertStringContainsString('data-order-number="SCANTEST-ORDER-1"', $html);
         self::assertStringContainsString('<dialog', $html);
+    }
+
+    public function testOrdersPageListsOrdersOfTheSelectedShowOnly(): void
+    {
+        $this->client->loginUser($this->checkInUser, 'scanner');
+        $this->client->request('GET', '/orders', ['event' => (string) $this->event->id]);
+
+        self::assertResponseIsSuccessful();
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-order-number="SCANTEST-ORDER-1"', $html);
+        self::assertStringContainsString('data-order-number="SCANTEST-ORDER-2"', $html);
+        self::assertStringNotContainsString('SCANTEST-ORDER-4', $html);
+        self::assertStringContainsString('0/1 gescand', $html);
+        self::assertStringContainsString('<dialog', $html);
+        self::assertStringContainsString('>Orders</option>', $html);
+    }
+
+    public function testOrdersPageSearchesOnOrderNumberAndCustomerName(): void
+    {
+        $this->client->loginUser($this->checkInUser, 'scanner');
+
+        $this->client->request('GET', '/orders', ['event' => (string) $this->event->id, 'q' => 'order-2']);
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-order-number="SCANTEST-ORDER-2"', $html);
+        self::assertStringNotContainsString('data-order-number="SCANTEST-ORDER-1"', $html);
+
+        $this->client->request('GET', '/orders', ['event' => (string) $this->event->id, 'q' => 'scan test']);
+        self::assertStringContainsString('data-order-number="SCANTEST-ORDER-1"', (string) $this->client->getResponse()->getContent());
+
+        $this->client->request('GET', '/orders', ['event' => (string) $this->event->id, 'q' => 'nobody']);
+        self::assertStringContainsString('Geen orders gevonden', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testOrdersPageShowsCheckedInCounter(): void
+    {
+        $this->client->loginUser($this->checkInUser, 'scanner');
+        $this->scan('SCANTEST-1');
+
+        $this->client->request('GET', '/orders', ['event' => (string) $this->event->id, 'q' => 'SCANTEST-ORDER-1']);
+
+        self::assertStringContainsString('1/1 gescand', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testOrdersPageNeedsCheckInRole(): void
+    {
+        $this->client->request('GET', '/orders');
+        self::assertResponseRedirects('http://' . self::HOST . '/login');
+
+        $this->client->loginUser($this->registerUser, 'scanner');
+        $this->client->request('GET', '/orders');
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testMercureSubscriberCookieIsIssuedForTheCheckInTopic(): void

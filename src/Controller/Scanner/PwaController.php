@@ -53,6 +53,12 @@ final class PwaController extends AbstractController
                     'url' => '/scans',
                     'description' => 'Logboek van deze balie',
                 ],
+                [
+                    'name' => 'Orders',
+                    'short_name' => 'Orders',
+                    'url' => '/orders',
+                    'description' => 'Orders zoeken en inchecken',
+                ],
             ],
         ]);
         $response->headers->set('Content-Type', 'application/manifest+json');

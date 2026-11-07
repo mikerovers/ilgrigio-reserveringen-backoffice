@@ -9,6 +9,7 @@ use App\Entity\Order;
 use App\Entity\Ticket;
 use App\Enum\TicketStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 use SortDirection;
 
@@ -109,6 +110,40 @@ class TicketRepository extends ServiceEntityRepository
                 'checked_in' => TicketStatus::CHECKED_IN->value,
             ],
         );
+    }
+
+    /**
+     * Valid (non-void) and checked-in ticket counts of one event, per order.
+     *
+     * @param string[] $orderIds RFC 4122 order ids
+     * @return array<string, array{total: int, checkedIn: int}> keyed by order id
+     */
+    public function countsPerOrderForEvent(Event $event, array $orderIds): array
+    {
+        if ($orderIds === []) {
+            return [];
+        }
+
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            'SELECT order_id, COUNT(*) AS total, COUNT(*) FILTER (WHERE status = :checked_in) AS checked_in
+               FROM ticket
+              WHERE event_id = :event AND status <> :void AND order_id IN (:orders)
+              GROUP BY order_id',
+            [
+                'event' => $event->id->toRfc4122(),
+                'checked_in' => TicketStatus::CHECKED_IN->value,
+                'void' => TicketStatus::VOID->value,
+                'orders' => $orderIds,
+            ],
+            ['orders' => ArrayParameterType::STRING],
+        );
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['order_id']] = ['total' => (int) $row['total'], 'checkedIn' => (int) $row['checked_in']];
+        }
+
+        return $counts;
     }
 
     /**

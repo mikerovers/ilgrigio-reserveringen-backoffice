@@ -9,7 +9,7 @@ function escapeHtml(value) {
 
 export default class extends Controller {
     static targets = ["dialog", "body"];
-    static values = { url: String, canScan: { type: Boolean, default: true } };
+    static values = { url: String, canScan: { type: Boolean, default: true }, scanUrl: String };
 
     connect() {
         this.onOpen = (event) => this.open(event.detail.orderNumber);
@@ -119,9 +119,30 @@ export default class extends Controller {
             </footer>`;
     }
 
-    scan(event) {
+    async scan(event) {
         const code = event.currentTarget.dataset.code;
         event.currentTarget.disabled = true;
+
+        // No scan station on this page (orders screen): check in directly.
+        if (this.hasScanUrlValue && this.scanUrlValue !== "") {
+            try {
+                const response = await fetch(this.scanUrlValue, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Accept: "application/json" },
+                    body: JSON.stringify({ ticketCode: code, scanId: crypto.randomUUID() }),
+                });
+                if (response.status === 401 || response.status === 403) {
+                    window.location.reload();
+                    return;
+                }
+            } catch {
+                // fall through: reload shows the real state
+            }
+            this.dirty = true;
+            await this.load(true);
+            return;
+        }
+
         window.dispatchEvent(new CustomEvent("scanner:submit", { detail: { code } }));
     }
 
@@ -140,6 +161,11 @@ export default class extends Controller {
 
     // Always return the cursor to the scan input, also after Esc
     closed() {
+        // The list behind the popup shows scan counters: refresh it after a check-in
+        if (this.dirty) {
+            window.location.reload();
+            return;
+        }
         document.getElementById("scan-input")?.focus({ preventScroll: true });
     }
 }

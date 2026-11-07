@@ -1,0 +1,90 @@
+{% extends 'scanner/layout.html.twig' %}
+
+{% set screen = 'orders' %}
+
+{% block title %}Orders{% endblock %}
+
+{% block body_attrs %}
+    {%- if event -%}
+        data-controller="scanner--clock scanner--order-modal"
+        data-scanner--order-modal-url-value="{{ path('scanner_order', {id: event.id, orderNumber: '__ORDER__'}) }}"
+        data-scanner--order-modal-scan-url-value="{{ path('scanner_scan', {id: event.id}) }}"
+    {%- else -%}
+        data-controller="scanner--clock"
+    {%- endif -%}
+{% endblock %}
+
+{% block content %}
+    <main class="flex-1 px-4 py-6">
+        <div class="mx-auto max-w-6xl">
+            <section class="border border-[#eadfd1] bg-white" aria-labelledby="orders-title">
+                <div class="flex flex-wrap items-end justify-between gap-3 border-b border-[#eadfd1] px-6 pb-4 pt-5">
+                    <div>
+                        <h1 id="orders-title" class="font-serif text-3xl">Orders</h1>
+                        <p class="mt-1 text-base text-gray-600">
+                            {% if event %}
+                                {{ total }} {{ total == 1 ? 'order' : 'orders' }} · {{ event.name }} · {{ info.day }} {{ info.starts }}
+                            {% else %}
+                                Geen voorstelling geselecteerd
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if event %}
+                        <form method="get" action="{{ path('scanner_orders') }}" class="flex gap-2" role="search">
+                            <input type="hidden" name="event" value="{{ event.id }}">
+                            <input type="search" name="q" value="{{ search }}" maxlength="64" autofocus
+                                   placeholder="Ordernummer of naam"
+                                   aria-label="Zoek op ordernummer of naam"
+                                   class="h-11 w-64 border border-[#d6c4b1] px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                            <button type="submit" class="border border-[#d6c4b1] px-4 font-semibold hover:bg-[#fffaf2]">Zoeken</button>
+                            {% if search != '' %}
+                                <a href="{{ path('scanner_orders', {event: event.id}) }}" class="flex items-center px-2 underline">Wissen</a>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+                </div>
+
+                {% if orders is empty %}
+                    <p class="px-6 py-10 text-center text-gray-600">
+                        {{ search != '' ? 'Geen orders gevonden voor deze zoekopdracht.' : 'Nog geen orders bij deze voorstelling.' }}
+                    </p>
+                {% else %}
+                    <ul class="divide-y divide-[#eadfd1]">
+                        {% for order in orders %}
+                            {% set count = counts[order.id.toRfc4122()] ?? {total: 0, checkedIn: 0} %}
+                            <li>
+                                <button type="button" class="flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-[#fffaf2] focus:outline-none focus:ring-2 focus:ring-[#c62828]"
+                                        aria-label="Order {{ order.orderNumber }} bekijken"
+                                        data-action="click->scanner--order-modal#openFromRow" data-order-number="{{ order.orderNumber }}">
+                                    <span class="w-32 shrink-0 font-mono text-base text-gray-700">{{ order.orderNumber }}</span>
+                                    <span class="min-w-0 flex-1 truncate text-base text-gray-700">{{ order.customer.firstName }} {{ order.customer.lastName }}</span>
+                                    {% if count.total > 0 and count.checkedIn == count.total %}
+                                        <span class="shrink-0 border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-emerald-900">{{ count.checkedIn }}/{{ count.total }} gescand</span>
+                                    {% else %}
+                                        <span class="shrink-0 border border-[#d6c4b1] bg-[#fffaf2] px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-gray-700">{{ count.checkedIn }}/{{ count.total }} gescand</span>
+                                    {% endif %}
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if pages > 1 %}
+                    <nav class="flex items-center justify-between border-t border-[#eadfd1] p-6" aria-label="Paginering">
+                        {% if page > 1 %}
+                            <a class="border border-[#d6c4b1] px-4 py-2 font-semibold hover:bg-[#fffaf2]" href="{{ path('scanner_orders', {event: event.id, q: search ?: null, page: page - 1}) }}">← Vorige</a>
+                        {% else %}<span></span>{% endif %}
+                        <span class="text-gray-600">Pagina {{ page }} van {{ pages }}</span>
+                        {% if page < pages %}
+                            <a class="border border-[#d6c4b1] px-4 py-2 font-semibold hover:bg-[#fffaf2]" href="{{ path('scanner_orders', {event: event.id, q: search ?: null, page: page + 1}) }}">Volgende →</a>
+                        {% else %}<span></span>{% endif %}
+                    </nav>
+                {% endif %}
+            </section>
+        </div>
+    </main>
+
+    {% if event %}
+        {% include 'scanner/_order_modal.html.twig' %}
+    {% endif %}
+{% endblock %}
