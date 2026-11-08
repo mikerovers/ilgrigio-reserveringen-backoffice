@@ -10,9 +10,9 @@ use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
 /**
- * Tells every open scanner screen that a ticket was admitted, so all balies
- * show the same counters. Publishing is best effort: a hub outage must never
- * fail a door scan.
+ * Tells every open scanner screen that the counters of a show changed, so all
+ * balies show the same numbers. Publishing is best effort: a hub outage must
+ * never fail a door scan or a cancellation.
  */
 final class CheckInBroadcaster
 {
@@ -22,6 +22,9 @@ final class CheckInBroadcaster
      * topic per show would need a new token grant for each of them.
      */
     public const TOPIC = 'https://reserveringen.ilgrigio.nl/scanner/check-ins';
+
+    public const TYPE_CHECKED_IN = 'checked_in';
+    public const TYPE_STATS_CHANGED = 'stats_changed';
 
     public function __construct(
         private HubInterface $hub,
@@ -35,12 +38,36 @@ final class CheckInBroadcaster
      */
     public function admitted(Event $event, array $counts, ?string $scanId, ?string $by, \DateTimeImmutable $at): void
     {
+        $this->publish(self::TYPE_CHECKED_IN, $event, $counts, $scanId, $by, $at);
+    }
+
+    /**
+     * Counters changed without a door scan (e.g. tickets voided by a cancellation).
+     *
+     * @param array{issued: int, checkedIn: int, void: int} $counts
+     */
+    public function changed(Event $event, array $counts, \DateTimeImmutable $at): void
+    {
+        $this->publish(self::TYPE_STATS_CHANGED, $event, $counts, null, null, $at);
+    }
+
+    /**
+     * @param array{issued: int, checkedIn: int, void: int} $counts
+     */
+    private function publish(
+        string $type,
+        Event $event,
+        array $counts,
+        ?string $scanId,
+        ?string $by,
+        \DateTimeImmutable $at,
+    ): void {
         if (!$this->enabled) {
             return;
         }
 
         $payload = [
-            'type' => 'checked_in',
+            'type' => $type,
             'eventId' => $event->id->toRfc4122(),
             'scanId' => $scanId,
             'by' => $by,

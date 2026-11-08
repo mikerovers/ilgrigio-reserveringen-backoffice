@@ -8,13 +8,17 @@ use App\Entity\Event;
 use App\Entity\SharedStock;
 use App\Entity\TicketType;
 use App\Entity\User;
+use App\Service\CheckInBroadcaster;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Money\Money;
+use Psr\Log\NullLogger;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class RegisterOrderApiTest extends WebTestCase
@@ -544,6 +548,30 @@ final class RegisterOrderApiTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
         self::assertSame(self::INITIAL_STOCK - 2, $this->stock());
+    }
+
+    public function testCancelPublishesTheVoidedCountersOnceAfterCommit(): void
+    {
+        // Keep one kernel so the replaced broadcaster survives between requests.
+        $this->client->disableReboot();
+
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects(self::once())->method('publish')->with(self::callback(static function (Update $update): bool {
+            $payload = json_decode($update->getData(), true);
+
+            return $payload['type'] === CheckInBroadcaster::TYPE_STATS_CHANGED
+                && $payload['stats'] === ['expected' => 0, 'checkedIn' => 0, 'remaining' => 0];
+        }));
+        static::getContainer()->set(CheckInBroadcaster::class, new CheckInBroadcaster($hub, new NullLogger(), true));
+
+        $created = $this->post($this->payload());
+
+        $this->delete($created['orderNumber']);
+        self::assertResponseIsSuccessful();
+
+        // Cancelling again changes nothing, so nothing is published.
+        $this->delete($created['orderNumber']);
+        self::assertResponseIsSuccessful();
     }
 
     public function testCancelAuthAndNotFound(): void

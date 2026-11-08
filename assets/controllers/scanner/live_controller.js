@@ -133,6 +133,14 @@ export default class extends Controller {
             return;
         }
         const { expected, checkedIn, remaining } = stats;
+        // Checked-in tickets can never be voided, so checkedIn only grows. A lower value is an
+        // older snapshot that arrived late (Mercure does not order publishes, and a poll can
+        // finish after a push). Drop it rather than roll the counters back.
+        if (this.highestCheckedIn !== undefined && checkedIn < this.highestCheckedIn) {
+            return;
+        }
+        this.highestCheckedIn = checkedIn;
+
         this.expectedTarget.textContent = expected;
         this.insideTarget.textContent = checkedIn;
         this.remainingTarget.textContent = remaining;

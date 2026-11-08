@@ -46,6 +46,26 @@ final class CheckInBroadcasterTest extends TestCase
         );
     }
 
+    public function testChangedPublishesTheCountersWithoutAScanOrOperator(): void
+    {
+        $this->hub->expects(self::once())->method('publish')->with(self::callback(function (Update $update): bool {
+            $payload = json_decode($update->getData(), true);
+
+            return $update->isPrivate()
+                && $payload['type'] === CheckInBroadcaster::TYPE_STATS_CHANGED
+                && $payload['eventId'] === $this->event->id->toRfc4122()
+                && $payload['stats'] === ['expected' => 5, 'checkedIn' => 2, 'remaining' => 3]
+                && $payload['scanId'] === null
+                && $payload['by'] === null;
+        }));
+
+        (new CheckInBroadcaster($this->hub, $this->logger, true))->changed(
+            $this->event,
+            ['issued' => 3, 'checkedIn' => 2, 'void' => 4],
+            new \DateTimeImmutable('2027-07-01 13:50:00'),
+        );
+    }
+
     public function testDoesNothingWhenDisabled(): void
     {
         $this->hub->expects(self::never())->method('publish');
