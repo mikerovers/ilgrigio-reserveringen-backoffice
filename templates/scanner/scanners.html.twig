@@ -7,7 +7,7 @@
 {% block content %}
     <main class="flex-1 px-4 py-6">
         <style>
-            .scanner-barcode svg { shape-rendering: crispEdges; display: block; }
+            .scanner-barcode svg { shape-rendering: crispEdges; display: block; max-width: 100%; height: auto; }
             @media print {
                 header, footer, .scanner-no-print { display: none !important; }
                 html, body { background: #fff !important; }
@@ -81,7 +81,7 @@
                             {% endif %}
 
                             {% if item.svg %}
-                                <div class="scanner-barcode mt-4 overflow-x-auto bg-white px-[30px] py-4">
+                                <div class="scanner-barcode mt-4 bg-white px-[30px] py-4">
                                     {{ item.svg|raw }}
                                 </div>
                             {% else %}
