@@ -24,6 +24,7 @@
         "nelmio/security-bundle": "^3.9",
         "omnipay/common": "^3.5",
         "omnipay/mollie": "^5.6",
+        "picqer/php-barcode-generator": "^3.3",
         "stof/doctrine-extensions-bundle": "^1.15",
         "symfony/amazon-mailer": "8.2.*",
         "symfony/asset": "8.2.*",
