@@ -98,7 +98,9 @@ class ScannerProgrammingBarcodeCrudController extends AbstractCrudController
             ->hideOnIndex()
             ->setHelp('Maximaal 80 tekens. Voer de gedecodeerde inhoud uit de handleiding in, '
                 . 'niet een omschrijving van de instelling. Stuurtekens typt u als \\xNN '
-                . '(bijvoorbeeld \\x0D voor Enter); een letterlijke backslash is \\\\. '
+                . '(bijvoorbeeld \\x0D voor Enter) of met \\r, \\n, \\t, \\e; '
+                . 'FNC1–FNC4 zijn \\xF1 t/m \\xF4 (bijvoorbeeld \\xF391); '
+                . 'een letterlijke backslash is \\\\. '
                 . 'NUL-bytes zijn niet toegestaan.');
         yield ChoiceField::new('codeSet')->setChoices($setChoices);
         yield IntegerField::new('sortOrder')

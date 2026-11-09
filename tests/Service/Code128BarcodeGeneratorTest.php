@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Enum\Code128Set;
 use App\Exception\InvalidBarcodePayloadException;
 use App\Service\Code128BarcodeGenerator;
+use App\Service\Code128Payload;
 use PHPUnit\Framework\TestCase;
 
 final class Code128BarcodeGeneratorTest extends TestCase
@@ -35,6 +36,15 @@ final class Code128BarcodeGeneratorTest extends TestCase
 
         self::assertStringContainsString('<svg', $svg);
         self::assertStringContainsString('<desc>ABC' . "\r" . '</desc>', $svg);
+    }
+
+    public function testFunctionCharactersCanBeRendered(): void
+    {
+        $stored = Code128Payload::unescape('\\xF391');
+
+        foreach ([Code128Set::AUTO, Code128Set::A, Code128Set::B] as $set) {
+            self::assertStringContainsString('<svg', $this->generator->render($stored, $set));
+        }
     }
 
     public function testEmptyPayloadIsRejected(): void

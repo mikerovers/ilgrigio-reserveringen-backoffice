@@ -33,7 +33,7 @@ final class Code128BarcodeGenerator
             Code128Set::C => new TypeCode128C(),
         };
 
-        $barcode = $type->getBarcode($payload);
+        $barcode = $type->getBarcode(Code128Payload::toEncoding($payload));
 
         $renderer = (new SvgRenderer())
             ->setSvgType(SvgRenderer::TYPE_SVG_INLINE)
