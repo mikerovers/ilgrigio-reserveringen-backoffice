@@ -39,11 +39,11 @@
         {% set pct = stats.expected > 0 ? (stats.checkedIn / stats.expected * 100) : 0 %}
 
         <section aria-labelledby="show-title" class="shrink-0 border-b border-[#eadfd1]">
-            <div class="mx-auto max-w-6xl px-4 pt-2 pb-2 flex flex-wrap items-center justify-between gap-x-8 gap-y-2">
-                <div class="min-w-0">
-                    <p class="text-[10px] font-medium uppercase tracking-[0.25em] leading-none text-gray-600">Actieve voorstelling</p>
-                    <h1 id="show-title" class="font-stopbuck text-2xl uppercase leading-tight text-[#c62828]">{{ event.name }}</h1>
-                    <p class="text-sm text-gray-600">
+            <div class="mx-auto max-w-6xl px-4 max-md:px-3 pt-2 pb-2 flex flex-wrap items-center justify-between gap-x-8 gap-y-2 max-md:gap-y-1">
+                <div class="min-w-0 max-md:w-full">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.25em] leading-none text-gray-600 max-md:hidden">Actieve voorstelling</p>
+                    <h1 id="show-title" class="font-stopbuck text-2xl max-md:text-xl uppercase leading-tight text-[#c62828] max-md:truncate">{{ event.name }}</h1>
+                    <p class="text-sm text-gray-600 max-md:hidden">
                         {{ info.day }} · {{ info.date }}
                         {% if info.doorsOpen %}· Zaal open {{ info.doorsOpen }}{% endif %}
                         · Aanvang {{ info.starts }} uur
@@ -51,16 +51,16 @@
                     </p>
                 </div>
 
-                <dl class="flex divide-x divide-[#eadfd1] text-center" aria-label="Bezoekersaantallen">
-                    <div class="px-5 first:pl-0">
+                <dl class="flex divide-x divide-[#eadfd1] text-center max-md:w-full max-md:justify-around" aria-label="Bezoekersaantallen">
+                    <div class="px-5 max-md:px-3 first:pl-0">
                         <dd class="font-stopbuck text-2xl leading-none" data-scanner--live-target="expected">{{ stats.expected }}</dd>
                         <dt class="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600">Verwacht</dt>
                     </div>
-                    <div class="px-5">
+                    <div class="px-5 max-md:px-3">
                         <dd class="font-stopbuck text-2xl leading-none text-[#c62828]" data-scanner--live-target="inside">{{ stats.checkedIn }}</dd>
                         <dt class="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600">Binnen</dt>
                     </div>
-                    <div class="px-5 last:pr-0">
+                    <div class="px-5 max-md:px-3 last:pr-0">
                         <dd class="font-stopbuck text-2xl leading-none" data-scanner--live-target="remaining">{{ stats.remaining }}</dd>
                         <dt class="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600">Nog verwacht</dt>
                     </div>
@@ -73,12 +73,13 @@
             </div>
         </section>
 
-        <main class="min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:overflow-hidden">
+        <main class="min-h-0 flex-1 overflow-y-auto px-4 py-4 max-md:px-2 max-md:py-2 lg:overflow-hidden">
             <div class="mx-auto grid h-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-[minmax(0,1fr)]">
                 {# Scan station #}
-                <section aria-labelledby="station-title" data-scanner-kiosk-panel class="flex min-h-0 flex-col border border-[#eadfd1] bg-white lg:max-h-full lg:self-start">
-                    <div class="flex items-center justify-between bg-[#c8372f] px-5 py-3 text-white">
-                        <h2 id="station-title" class="flex items-center gap-3 text-lg font-semibold">
+                <section aria-labelledby="station-title" data-scanner-kiosk-panel class="flex min-h-0 flex-col border border-[#eadfd1] bg-white max-md:h-full lg:max-h-full lg:self-start"
+                         data-action="pointerup->scanner--station#refocus">
+                    <div class="flex items-center justify-between bg-[#c8372f] px-5 py-3 max-md:px-3 max-md:py-2 text-white">
+                        <h2 id="station-title" class="flex items-center gap-3 text-lg font-semibold max-md:text-base">
                             <svg width="22" height="22" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                                 <path d="M2 5V2h3M13 2h3v3M16 13v3h-3M5 16H2v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                                 <path d="M5.5 9h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -91,9 +92,10 @@
                         </span>
                     </div>
 
-                    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
-                        {# One fixed panel: the result replaces the illustration, the input never moves #}
-                        <div class="flex h-[27rem] min-h-[16rem] shrink flex-col bg-[#312729] p-5 text-white [@media(max-height:820px)]:p-3" data-scanner--station-target="idle">
+                    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 max-md:p-2">
+                        {# One fixed panel: the result replaces the illustration, the input never moves.
+                           On phones it fills the available height instead of a fixed 27rem. #}
+                        <div class="flex h-[27rem] min-h-[16rem] shrink flex-col max-md:h-auto max-md:flex-1 bg-[#312729] p-5 text-white [@media(max-height:820px)]:p-3" data-scanner--station-target="idle">
                             <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
                                 <div class="my-auto flex flex-col items-center text-center" data-scanner--station-target="illustration">
                                     <span class="flex h-14 w-14 items-center justify-center border border-white/30 text-amber-200" aria-hidden="true">
@@ -103,21 +105,29 @@
                                         </svg>
                                     </span>
                                     <p class="mt-4 font-serif text-2xl">Scan een kaart</p>
-                                    <p id="scan-hint" class="mt-2 max-w-sm text-base text-white/70">Richt de USB-scanner op de QR-code. De code wordt direct gecontroleerd.</p>
+                                    <p id="scan-hint" class="mt-2 max-w-sm text-base text-white/70">
+                                        <span class="max-md:hidden">Richt de USB-scanner op de QR-code. De code wordt direct gecontroleerd.</span>
+                                        <span class="md:hidden">Richt de scanner op de QR-code. De code wordt direct gecontroleerd.</span>
+                                    </p>
                                 </div>
                                 {# Result of the last scan (filled by the station controller) #}
                                 <div hidden class="my-auto" data-scanner--station-target="result" role="region" aria-label="Scanresultaat"></div>
                             </div>
 
                             <div class="mt-4 flex shrink-0 flex-col items-center [@media(max-height:820px)]:mt-2">
-                                <label for="scan-input" class="sr-only">Scaninvoer van de USB-scanner</label>
+                                <label for="scan-input" class="sr-only">Scaninvoer van de scanner</label>
                                 <input id="scan-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text"
                                        placeholder="Wacht op scan…" aria-describedby="scan-hint" maxlength="64"
-                                       class="h-14 w-full max-w-lg [@media(max-height:820px)]:h-12 border border-white/30 bg-white/10 px-4 text-center font-mono text-xl tracking-widest text-white placeholder-white/40 focus:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-200/60"
+                                       class="h-14 w-full max-w-lg [@media(max-height:820px)]:h-12 max-md:text-base max-md:tracking-wider border border-white/30 bg-white/10 px-4 text-center font-mono text-xl tracking-widest text-white placeholder-white/40 focus:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-200/60"
                                        data-scanner--station-target="input"
                                        data-action="keydown->scanner--station#onInputKeydown focus->scanner--station#onFocus blur->scanner--station#onBlur">
                                 <div class="mt-3 flex w-full flex-wrap [@media(max-height:820px)]:mt-2 items-center justify-between gap-2 font-mono text-xs text-white/70">
-                                    <span>Scanner typt de code en sluit af met Enter.</span>
+                                    <span class="max-md:hidden">Scanner typt de code en sluit af met Enter.</span>
+                                    {# Shown by the station controller on touch devices only: the on-screen keyboard is hidden by default #}
+                                    <button type="button" hidden data-scanner--station-target="keyboardToggle" data-action="scanner--station#toggleKeyboard"
+                                            class="border border-white/30 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] text-white/90 focus:outline-none focus:ring-2 focus:ring-amber-200/60">
+                                        Toetsenbord
+                                    </button>
                                     <span>Laatste scan <span data-scanner--station-target="lastScan">—</span></span>
                                 </div>
                             </div>
@@ -127,7 +137,7 @@
                 </section>
 
                 {# Recent scans #}
-                <aside class="flex min-h-0 flex-col border border-[#eadfd1] bg-white" aria-labelledby="recent-title">
+                <aside class="flex min-h-0 flex-col border border-[#eadfd1] bg-white max-md:hidden" aria-labelledby="recent-title">
                     <div class="flex items-start justify-between border-b border-[#eadfd1] px-5 pb-3 pt-4">
                         <div>
                             <h2 id="recent-title" class="font-serif text-2xl">Laatste scans</h2>
@@ -149,7 +159,10 @@
             </div>
         </main>
 
-        {% include 'scanner/_order_modal.html.twig' %}
+        {# No order lookup on phones: scan-only #}
+        <div class="max-md:hidden">
+            {% include 'scanner/_order_modal.html.twig' %}
+        </div>
     {% endif %}
 {% endblock %}
 

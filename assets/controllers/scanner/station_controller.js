@@ -36,7 +36,7 @@ function escapeHtml(value) {
 }
 
 export default class extends Controller {
-    static targets = ["input", "idle", "illustration", "result", "ready", "readyDot", "lastScan", "announcer"];
+    static targets = ["input", "idle", "illustration", "result", "ready", "readyDot", "lastScan", "announcer", "keyboardToggle"];
     static values = { scanUrl: String, operator: String };
 
     connect() {
@@ -59,11 +59,29 @@ export default class extends Controller {
             }
         };
         document.addEventListener("turbo:before-visit", this.onBeforeVisit);
+        // Touch devices (phones/tablets): the code comes from an external scanner that types
+        // like a keyboard, so keep the on-screen keyboard hidden. "Toetsenbord" brings it back
+        // for typing a code by hand.
+        this.touchDevice = window.matchMedia("(pointer: coarse)").matches;
+        if (this.touchDevice) {
+            this.inputTarget.setAttribute("inputmode", "none");
+            if (this.hasKeyboardToggleTarget) {
+                this.keyboardToggleTarget.hidden = false;
+            }
+        }
+        // Coming back to the app (lock screen, app switcher): the input lost focus
+        this.onVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                this.focusInput();
+            }
+        };
+        document.addEventListener("visibilitychange", this.onVisibilityChange);
         this.focusInput();
         this.renderReady();
     }
 
     disconnect() {
+        document.removeEventListener("visibilitychange", this.onVisibilityChange);
         document.removeEventListener("keydown", this.onDocumentKeydown);
         window.removeEventListener("scanner:submit", this.onSubmitRequest);
         document.removeEventListener("turbo:before-visit", this.onBeforeVisit);
@@ -118,6 +136,23 @@ export default class extends Controller {
 
     onBlur() {
         this.renderReady();
+    }
+
+    // A tap on the scan panel (outside buttons) must not leave the input without focus,
+    // otherwise the next scanned code is lost until someone presses Enter.
+    refocus(event) {
+        if (event.target instanceof Element && event.target.closest("button, a, select")) {
+            return;
+        }
+        this.focusInput();
+    }
+
+    toggleKeyboard() {
+        const hidden = this.inputTarget.getAttribute("inputmode") === "none";
+        this.inputTarget.setAttribute("inputmode", hidden ? "text" : "none");
+        // Re-focus so the browser applies the new inputmode (shows/hides the keyboard)
+        this.inputTarget.blur();
+        this.focusInput();
     }
 
     focusInput() {
@@ -266,7 +301,7 @@ export default class extends Controller {
         const tint = TINT[view.tone];
         const fields = view.fields
             .map(([label, value, opts = {}]) => `
-                <div class="${opts.wide ? "sm:col-span-2" : ""}">
+                <div class="${opts.wide ? "col-span-2" : ""}">
                     <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-600">${escapeHtml(label)}</dt>
                     <dd class="mt-0.5 text-lg ${SHORT}:text-base ${opts.mono ? "break-all font-mono" : ""}">${escapeHtml(value)}</dd>
                 </div>`)
@@ -284,19 +319,24 @@ export default class extends Controller {
                     </div>
                 </div>
                 <div class="px-5 py-4 ${SHORT}:py-3">
-                    <dl class="grid gap-x-8 gap-y-3 ${SHORT}:gap-y-2 sm:grid-cols-3">${fields}</dl>
+                    <dl class="grid gap-x-8 gap-y-3 ${SHORT}:gap-y-2 grid-cols-2 md:grid-cols-3">${fields}</dl>
                     <hr class="my-3 border-[#eadfd1] ${SHORT}:hidden">
                     <p class="text-base text-gray-600 ${SHORT}:hidden">${escapeHtml(view.note)}</p>
                 </div>
             </div>
             <button type="button" data-action="scanner--station#next"
-                    class="block w-full bg-[#c8372f] px-6 py-3 ${SHORT}:py-2 text-base font-semibold text-white hover:bg-[#a91f24] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c8372f]">
+                    class="block w-full bg-[#c8372f] px-6 py-3 ${SHORT}:py-2 max-md:py-4 text-base font-semibold text-white hover:bg-[#a91f24] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c8372f]">
                 Volgende kaart <span aria-hidden="true">→</span>
             </button>`;
 
         this.resultTarget.hidden = false;
         this.setCompact(true);
         this.announcerTarget.textContent = `${view.title}. ${view.kicker}.`;
+        // Haptic feedback on phones (Android; ignored where unsupported): one short pulse
+        // for admitted, a long double pulse for any refusal.
+        if (this.touchDevice) {
+            navigator.vibrate?.(view.tone === "ok" ? 80 : [250, 100, 250]);
+        }
         this.renderReady();
 
         window.clearTimeout(this.resetTimer);

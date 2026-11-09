@@ -166,6 +166,13 @@ config/
   and its body is `heroDescription`, plain text where blank lines start paragraphs.
   The row is seeded by `Version20261107120000` and `PageFixtures`; the modal reads it
   through the `terms_page()` Twig function.
+- **Scanner on mobile:** below Tailwind `md` (768px) the scan screen (`/` on the scanner host) is
+  scan-only: compact header, stats, scan panel; the screen picker, recent-scans sidebar and order
+  popup are hidden with `max-md:hidden` (kept in the DOM so Stimulus targets still resolve). Input
+  stays the keyboard-wedge model (an external Bluetooth/USB scanner types the code + Enter); there
+  is no camera scanning. On `(pointer: coarse)` devices `station_controller.js` sets
+  `inputmode="none"` so the on-screen keyboard stays hidden; a "Toetsenbord" button toggles it for
+  manual entry.
 - **Scanner setup page:** `/scanners` on the scanner host (`ROLE_CHECK_IN`, F4) shows
   the Code 128 programming barcodes of the active `BarcodeScannerType`; scanner types
   and payloads are edited in EasyAdmin under Scanbalie. Do not seed manufacturer

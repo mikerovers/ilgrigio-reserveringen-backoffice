@@ -16,16 +16,18 @@
          data-scanner--kiosk-orders-path-value="{{ path('scanner_orders', event ? {event: event.id} : {}) }}"
          data-scanner--kiosk-setup-path-value="{{ path('scanner_setup', event ? {event: event.id} : {}) }}"></div>
 
-    <header class="shrink-0 bg-[#c62828] border-b-[6px] border-[#a91f24] text-white">
-        <div class="mx-auto max-w-6xl px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <a href="{{ path('scanner_index') }}" class="flex items-center gap-4 min-w-0">
+    {# On phones the scan screen is scan-only: one compact row, no screen picker #}
+    {% set scanOnly = screen == 'scan' %}
+    <header class="shrink-0 bg-[#c62828] border-b-[6px] border-[#a91f24] text-white pt-[env(safe-area-inset-top)]">
+        <div class="mx-auto max-w-6xl px-4 py-2 flex {{ scanOnly ? 'max-md:flex-nowrap' }} flex-wrap items-center gap-x-4 gap-y-2">
+            <a href="{{ path('scanner_index') }}" class="flex items-center gap-4 min-w-0 shrink-0">
                 <img src="{{ asset('images/Logo-IlGrigioClown.png') }}" alt="Jeugdcircus Il Grigio" class="h-9 w-auto">
-                <span class="hidden sm:block h-8 w-px bg-white/30"></span>
-                <span class="text-lg font-semibold">Scanbalie</span>
+                <span class="hidden sm:block h-8 w-px bg-white/30 {{ scanOnly ? 'max-md:hidden' }}"></span>
+                <span class="text-lg font-semibold {{ scanOnly ? 'max-md:hidden' }}">Scanbalie</span>
             </a>
 
-            <div class="ml-auto flex flex-wrap items-center gap-3" data-controller="scanner--autosubmit">
-                <select aria-label="Scherm" class="h-10 border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+            <div class="ml-auto flex flex-wrap items-center gap-3 {{ scanOnly ? 'max-md:min-w-0 max-md:flex-1 max-md:flex-nowrap' }}" data-controller="scanner--autosubmit">
+                <select aria-label="Scherm" class="h-10 {{ scanOnly ? 'max-md:hidden' }} border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
                         onchange="Turbo.visit(this.value)">
                     <option class="text-[#34272a]" value="{{ path('scanner_index', event ? {event: event.id} : {}) }}" {{ screen == 'scan' ? 'selected' }}>Scan</option>
                     <option class="text-[#34272a]" value="{{ path('scanner_scans', event ? {event: event.id} : {}) }}" {{ screen == 'scans' ? 'selected' }}>Alle scans</option>
@@ -34,9 +36,9 @@
                 </select>
 
                 {% if screen != 'setup' %}
-                    <form method="get" action="{{ screen == 'scans' ? path('scanner_scans') : (screen == 'orders' ? path('scanner_orders') : path('scanner_index')) }}">
+                    <form method="get" class="{{ scanOnly ? 'max-md:min-w-0 max-md:flex-1' }}" action="{{ screen == 'scans' ? path('scanner_scans') : (screen == 'orders' ? path('scanner_orders') : path('scanner_index')) }}">
                         <select name="event" aria-label="Kies voorstelling" data-action="change->scanner--autosubmit#submit"
-                                class="h-10 max-w-[16rem] border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+                                class="h-10 max-w-[16rem] {{ scanOnly ? 'max-md:w-full max-md:max-w-none' }} border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
                                 {{ events is empty ? 'disabled' }}>
                             {% for candidate in events %}
                                 <option class="text-[#34272a]" value="{{ candidate.id }}" {{ event and candidate.id == event.id ? 'selected' }}>{{ candidate.name }}</option>
@@ -47,14 +49,14 @@
                     </form>
                 {% endif %}
 
-                <span class="flex items-center gap-2 text-base">
+                <span class="flex items-center gap-2 text-base {{ scanOnly ? 'max-md:hidden' }}">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                         <circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/>
                         <path d="M2.5 14c.6-2.6 2.8-4 5.5-4s4.9 1.4 5.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                     </svg>
                     {{ operator }}
                 </span>
-                <a href="{{ path('scanner_logout') }}" data-turbo="false" class="text-base underline underline-offset-4 hover:text-amber-200">Uitloggen</a>
+                <a href="{{ path('scanner_logout') }}" data-turbo="false" class="shrink-0 text-base underline underline-offset-4 hover:text-amber-200 max-md:py-2">Uitloggen</a>
             </div>
         </div>
     </header>
@@ -63,7 +65,7 @@
 
     <footer class="mt-auto shrink-0 border-t border-[#eadfd1] bg-[#fbeedd] text-sm text-gray-600">
         <div class="mx-auto max-w-6xl px-4 py-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
-            <p>
+            <p class="{{ scanOnly ? 'max-md:hidden' }}">
                 <span data-scanner--clock-target="date"></span>
                 <span aria-hidden="true">·</span>
                 <span data-scanner--clock-target="time">{{ 'now'|date('H:i') }}</span>

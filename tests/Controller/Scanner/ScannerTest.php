@@ -218,6 +218,21 @@ final class ScannerTest extends WebTestCase
         self::assertStringContainsString('data-controller="scanner--kiosk"', $html);
     }
 
+    public function testScanScreenHasMobileScanOnlyHooks(): void
+    {
+        $this->client->loginUser($this->checkInUser, 'scanner');
+        $this->client->request('GET', '/', ['event' => (string) $this->event->id]);
+
+        self::assertResponseIsSuccessful();
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('viewport-fit=cover', $html);
+        self::assertStringContainsString('data-scanner--station-target="keyboardToggle"', $html);
+        // Hidden on phones but still in the DOM so the live/recent controllers keep their targets
+        self::assertStringContainsString('data-scanner--live-target="expected"', $html);
+        self::assertStringContainsString('data-scanner--recent-target="list"', $html);
+        self::assertStringContainsString('max-md:hidden', $html);
+    }
+
     public function testScannableEventsAreYesterdayOnwardsAndAllFuture(): void
     {
         /** @var EventRepository $repository */
