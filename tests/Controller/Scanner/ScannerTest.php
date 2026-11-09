@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Scanner;
 
+use App\Entity\BarcodeScannerType;
 use App\Entity\Customer;
 use App\Entity\Event;
 use App\Entity\Order;
 use App\Entity\OrderLineItem;
+use App\Entity\ScannerProgrammingBarcode;
 use App\Entity\Ticket;
 use App\Entity\TicketType;
 use App\Entity\User;
+use App\Enum\Code128Set;
 use App\Enum\OrderStatus;
 use App\Enum\TicketStatus;
 use App\Repository\EventRepository;
@@ -129,6 +132,67 @@ final class ScannerTest extends WebTestCase
 
         self::assertSelectorExists('link[rel="manifest"][href="/manifest.webmanifest"]');
         self::assertSelectorExists('meta[name="theme-color"]');
+    }
+
+    public function testSetupPageShowsActiveTypesAndProgrammingBarcodes(): void
+    {
+        $type = new BarcodeScannerType('Scanner Test Netum');
+        $type->manufacturer = 'Netum';
+        $type->notes = 'Zet de scanner eerst in de programmeermodus.';
+
+        $suffix = new ScannerProgrammingBarcode($type, 'Suffix: Enter');
+        $suffix->description = 'Sluit elke kaartscan af met Enter.';
+        $suffix->payload = "ABC\r";
+        $suffix->codeSet = Code128Set::AUTO;
+        $type->barcodes->add($suffix);
+
+        $inactive = new BarcodeScannerType('Scanner Test Hidden');
+        $inactive->active = false;
+
+        $this->em->persist($type);
+        $this->em->persist($inactive);
+        $this->em->flush();
+
+        try {
+            $this->client->loginUser($this->checkInUser, 'scanner');
+            $this->client->request('GET', '/scanners');
+
+            self::assertResponseIsSuccessful();
+            $html = (string) $this->client->getResponse()->getContent();
+            self::assertStringContainsString('Scanner Test Netum', $html);
+            self::assertStringContainsString('Zet de scanner eerst in de programmeermodus.', $html);
+            self::assertStringContainsString('Suffix: Enter', $html);
+            self::assertStringContainsString('<svg', $html);
+            self::assertStringContainsString('Payload: ABC\\x0D', $html);
+            self::assertStringContainsString('Instellen', $html);
+            self::assertStringContainsString('data-scanner--kiosk-setup-path-value="/scanners', $html);
+            self::assertStringNotContainsString('Scanner Test Hidden', $html);
+
+            // Unknown and inactive slugs fall back to the first active type.
+            $this->client->request('GET', '/scanners', ['type' => 'does-not-exist']);
+            $html = (string) $this->client->getResponse()->getContent();
+            self::assertStringContainsString('Scanner Test Netum', $html);
+            self::assertStringNotContainsString('Scanner Test Hidden', $html);
+
+            $this->client->request('GET', '/scanners', ['type' => (string) $inactive->slug]);
+            $html = (string) $this->client->getResponse()->getContent();
+            self::assertStringContainsString('Scanner Test Netum', $html);
+            self::assertStringNotContainsString('Scanner Test Hidden', $html);
+        } finally {
+            $this->em->createQuery('DELETE FROM App\Entity\BarcodeScannerType t WHERE t.id IN (:ids)')
+                ->setParameter('ids', [$type->id, $inactive->id])
+                ->execute();
+        }
+    }
+
+    public function testSetupPageRequiresCheckInRole(): void
+    {
+        $this->client->request('GET', '/scanners');
+        self::assertResponseRedirects('http://' . self::HOST . '/login');
+
+        $this->client->loginUser($this->registerUser, 'scanner');
+        $this->client->request('GET', '/scanners');
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testUserWithoutCheckInRoleIsForbidden(): void
@@ -456,6 +520,7 @@ final class ScannerTest extends WebTestCase
     private function cleanUp(): void
     {
         $this->em->clear();
+        $this->em->createQuery('DELETE FROM App\Entity\BarcodeScannerType t WHERE t.name LIKE :p')->setParameter('p', 'Scanner Test%')->execute();
         $this->em->createQuery('DELETE FROM App\Entity\Ticket t WHERE t.ticketCode LIKE :p')->setParameter('p', 'SCANTEST-%')->execute();
         $this->em->createQuery('DELETE FROM App\Entity\Order o WHERE o.orderNumber LIKE :p')->setParameter('p', 'SCANTEST-%')->execute();
         $this->em->createQuery('DELETE FROM App\Entity\Event e WHERE e.name IN (:n)')

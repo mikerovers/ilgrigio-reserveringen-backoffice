@@ -166,6 +166,11 @@ config/
   and its body is `heroDescription`, plain text where blank lines start paragraphs.
   The row is seeded by `Version20261107120000` and `PageFixtures`; the modal reads it
   through the `terms_page()` Twig function.
+- **Scanner setup page:** `/scanners` on the scanner host (`ROLE_CHECK_IN`, F4) shows
+  the Code 128 programming barcodes of the active `BarcodeScannerType`; scanner types
+  and payloads are edited in EasyAdmin under Scanbalie. Do not seed manufacturer
+  command strings: the scan screen still assumes the USB scanner types the code and
+  closes with Enter.
 - **Dev-only previews** (`when@dev` in `config/routes/dev_email_preview.yaml`):
   `GET /_dev/orders/{orderNumber}/email-preview` and
   `GET /_dev/tickets/{ticketCode}/preview`. They are not registered outside `dev`.

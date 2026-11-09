@@ -70,6 +70,10 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(SitePageCrudController::class, 'Website pages', 'fa fa-file-alt')
             ->setPermission('ROLE_ADMIN');
 
+        yield MenuItem::section('Scanbalie', 'fa fa-barcode');
+        yield MenuItem::linkTo(BarcodeScannerTypeCrudController::class, 'Scanner types', 'fa fa-barcode')
+            ->setPermission('ROLE_ADMIN');
+
         yield MenuItem::section('Promotions', 'fa fa-percent');
         yield MenuItem::linkTo(CouponCrudController::class, 'Coupons', 'fa fa-ticket')
             ->setPermission('ROLE_ADMIN');

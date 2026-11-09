@@ -9,9 +9,11 @@ use App\DTO\OrderListQuery;
 use App\DTO\ScanRequest;
 use App\DTO\ScanResponse;
 use App\DTO\ScannerOrderResponse;
+use App\Entity\BarcodeScannerType;
 use App\Entity\Event;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Repository\BarcodeScannerTypeRepository;
 use App\Repository\EventRepository;
 use App\Repository\OrderRepository;
 use App\Repository\TicketRepository;
@@ -19,8 +21,11 @@ use App\Repository\UserRepository;
 use App\Service\CheckInBroadcaster;
 use App\Service\CheckInResult;
 use App\Service\CheckInService;
+use App\Service\Code128BarcodeGenerator;
+use App\Service\Code128Payload;
 use App\Service\VenueTime;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -53,11 +58,14 @@ final class ScannerController extends AbstractController
         private TicketRepository $ticketRepository,
         private OrderRepository $orderRepository,
         private UserRepository $userRepository,
+        private BarcodeScannerTypeRepository $scannerTypeRepository,
         private CheckInService $checkInService,
         private CheckInBroadcaster $broadcaster,
+        private Code128BarcodeGenerator $barcodeGenerator,
         private HubInterface $hub,
         private Authorization $authorization,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
         #[Autowire('%mercure_enabled%')]
         private bool $mercureEnabled = false,
     ) {
@@ -228,6 +236,53 @@ final class ScannerController extends AbstractController
         ]);
     }
 
+    #[Route('/scanners', name: 'scanner_setup', methods: ['GET'])]
+    public function scanners(Request $request): Response
+    {
+        $now = $this->clock->now();
+        $events = $this->eventRepository->findScannable($now);
+        $event = $this->selectEvent($events, (string) $request->query->get('event'));
+
+        $scannerTypes = $this->scannerTypeRepository->findActiveOrdered();
+        $scannerType = $this->selectScannerType($scannerTypes, (string) $request->query->get('type'));
+
+        $barcodes = [];
+        if ($scannerType !== null) {
+            foreach ($scannerType->barcodes as $barcode) {
+                if (!$barcode->active) {
+                    continue;
+                }
+
+                $svg = null;
+                try {
+                    $svg = $this->barcodeGenerator->render($barcode->payload, $barcode->codeSet);
+                } catch (\Exception $exception) {
+                    $this->logger->error('Cannot render scanner programming barcode', [
+                        'barcodeId' => (string) $barcode->id,
+                        'scannerTypeId' => (string) $scannerType->id,
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
+
+                $barcodes[] = [
+                    'barcode' => $barcode,
+                    'svg' => $svg,
+                    'payload' => Code128Payload::escape($barcode->payload),
+                ];
+            }
+        }
+
+        return $this->render('scanner/scanners.html.twig', [
+            'events' => $events,
+            'event' => $event,
+            'info' => $event !== null ? $this->eventInfo($event, $now) : null,
+            'scannerTypes' => $scannerTypes,
+            'scannerType' => $scannerType,
+            'barcodes' => $barcodes,
+            'operator' => $this->operatorName(),
+        ]);
+    }
+
     /**
      * @param Event[] $events
      */
@@ -240,6 +295,23 @@ final class ScannerController extends AbstractController
         }
 
         return $events[0] ?? null;
+    }
+
+    /**
+     * Unknown or inactive slugs fall back to the first active type, matching
+     * selectEvent() for shows.
+     *
+     * @param BarcodeScannerType[] $types
+     */
+    private function selectScannerType(array $types, string $requestedSlug): ?BarcodeScannerType
+    {
+        foreach ($types as $candidate) {
+            if ($candidate->slug === $requestedSlug) {
+                return $candidate;
+            }
+        }
+
+        return $types[0] ?? null;
     }
 
     /**

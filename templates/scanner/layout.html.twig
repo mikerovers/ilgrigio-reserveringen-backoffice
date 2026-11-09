@@ -13,7 +13,8 @@
          data-controller="scanner--kiosk"
          data-scanner--kiosk-scan-path-value="{{ path('scanner_index', event ? {event: event.id} : {}) }}"
          data-scanner--kiosk-scans-path-value="{{ path('scanner_scans', event ? {event: event.id} : {}) }}"
-         data-scanner--kiosk-orders-path-value="{{ path('scanner_orders', event ? {event: event.id} : {}) }}"></div>
+         data-scanner--kiosk-orders-path-value="{{ path('scanner_orders', event ? {event: event.id} : {}) }}"
+         data-scanner--kiosk-setup-path-value="{{ path('scanner_setup', event ? {event: event.id} : {}) }}"></div>
 
     <header class="shrink-0 bg-[#c62828] border-b-[6px] border-[#a91f24] text-white">
         <div class="mx-auto max-w-6xl px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -29,19 +30,22 @@
                     <option class="text-[#34272a]" value="{{ path('scanner_index', event ? {event: event.id} : {}) }}" {{ screen == 'scan' ? 'selected' }}>Scan</option>
                     <option class="text-[#34272a]" value="{{ path('scanner_scans', event ? {event: event.id} : {}) }}" {{ screen == 'scans' ? 'selected' }}>Alle scans</option>
                     <option class="text-[#34272a]" value="{{ path('scanner_orders', event ? {event: event.id} : {}) }}" {{ screen == 'orders' ? 'selected' }}>Orders</option>
+                    <option class="text-[#34272a]" value="{{ path('scanner_setup', event ? {event: event.id} : {}) }}" {{ screen == 'setup' ? 'selected' }}>Instellen</option>
                 </select>
 
-                <form method="get" action="{{ screen == 'scans' ? path('scanner_scans') : (screen == 'orders' ? path('scanner_orders') : path('scanner_index')) }}">
-                    <select name="event" aria-label="Kies voorstelling" data-action="change->scanner--autosubmit#submit"
-                            class="h-10 max-w-[16rem] border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
-                            {{ events is empty ? 'disabled' }}>
-                        {% for candidate in events %}
-                            <option class="text-[#34272a]" value="{{ candidate.id }}" {{ event and candidate.id == event.id ? 'selected' }}>{{ candidate.name }}</option>
-                        {% else %}
-                            <option class="text-[#34272a]">Geen voorstelling</option>
-                        {% endfor %}
-                    </select>
-                </form>
+                {% if screen != 'setup' %}
+                    <form method="get" action="{{ screen == 'scans' ? path('scanner_scans') : (screen == 'orders' ? path('scanner_orders') : path('scanner_index')) }}">
+                        <select name="event" aria-label="Kies voorstelling" data-action="change->scanner--autosubmit#submit"
+                                class="h-10 max-w-[16rem] border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+                                {{ events is empty ? 'disabled' }}>
+                            {% for candidate in events %}
+                                <option class="text-[#34272a]" value="{{ candidate.id }}" {{ event and candidate.id == event.id ? 'selected' }}>{{ candidate.name }}</option>
+                            {% else %}
+                                <option class="text-[#34272a]">Geen voorstelling</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                {% endif %}
 
                 <span class="flex items-center gap-2 text-base">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
