@@ -9,6 +9,9 @@ php bin/console importmap:install
 # Publish bundle assets (EasyAdmin CSS/JS); public/bundles is gitignored and composer runs with --no-scripts
 php bin/console assets:install public --env=prod
 
+# Build the scanner stylesheet (Tailwind) before the asset map picks it up
+php bin/console tailwind:build --minify --env=prod
+
 # Compile assets for production
 php bin/console asset-map:compile --env=prod
 

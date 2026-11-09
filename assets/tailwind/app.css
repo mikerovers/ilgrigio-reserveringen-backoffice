@@ -1,0 +1,9 @@
+/*
+ * Shared Tailwind entry for the storefront and the scanner, compiled by
+ * symfonycasts/tailwind-bundle (`bin/console tailwind:build`) using
+ * tailwind.config.js. Replaces the Tailwind Play CDN script, which compiled
+ * styles in the browser and left pages unstyled on slow connections.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

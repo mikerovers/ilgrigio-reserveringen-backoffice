@@ -7,6 +7,8 @@ RUN apk add --no-cache \
     icu-dev \
     libxslt-dev \
     libpq-dev \
+    gcompat \
+    libstdc++ \
     nginx \
     supervisor \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \

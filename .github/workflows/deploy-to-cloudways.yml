@@ -60,6 +60,9 @@ jobs:
             # Install vendor assets (e.g., @hotwired/stimulus)
             php bin/console importmap:install
 
+            # Build the scanner stylesheet (Tailwind) before the asset map picks it up
+            php bin/console tailwind:build --minify --env=prod
+
             # Compile assets for production
             php bin/console asset-map:compile --env=prod
 

@@ -226,6 +226,9 @@ final class ScannerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $html = (string) $this->client->getResponse()->getContent();
         self::assertStringContainsString('viewport-fit=cover', $html);
+        // Styled from the compiled stylesheet, not the runtime Tailwind CDN script
+        self::assertStringContainsString('scanner/scanner', $html);
+        self::assertStringNotContainsString('cdn.tailwindcss.com', $html);
         self::assertStringContainsString('data-scanner--station-target="keyboardToggle"', $html);
         // Hidden on phones but still in the DOM so the live/recent controllers keep their targets
         self::assertStringContainsString('data-scanner--live-target="expected"', $html);

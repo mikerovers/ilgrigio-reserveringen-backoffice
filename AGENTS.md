@@ -173,6 +173,19 @@ config/
   is no camera scanning. On `(pointer: coarse)` devices `station_controller.js` sets
   `inputmode="none"` so the on-screen keyboard stays hidden; a "Toetsenbord" button toggles it for
   manual entry.
+- **Tailwind CSS (storefront + scanner):** neither uses the Tailwind Play CDN any more (it compiled in the
+  browser and left pages unstyled on slow mobile connections). `assets/tailwind/app.css` is compiled by
+  `symfonycasts/tailwind-bundle` (standalone CLI v3.4.17, no Node) with `tailwind.config.js` and linked from
+  `templates/base.html.twig` and `templates/scanner/base.html.twig` via `asset('tailwind/app.css')`. Run
+  `bin/console tailwind:build --watch` while developing (dev throws if it was never built) and
+  `tailwind:build --minify` before `asset-map:compile` on deploy (already in `docker-entrypoint.sh` and the
+  Cloudways workflow). Only the `content` paths in `tailwind.config.js` are scanned: a class built in a JS
+  string must appear literally in the source (no `${PREFIX}:text-sm` concatenation), and a class that only
+  lives in database content (e.g. event `disabledReason` HTML) must be added to the `safelist`. The error
+  pages in `templates/bundles/TwigBundle/Exception` deliberately keep the CDN so they never depend on the
+  asset map. On macOS a downloaded binary may be killed (exit 137):
+  `codesign --force --sign - var/tailwind/*/tailwindcss-*`. `Dockerfile.web` installs `gcompat libstdc++`
+  because the v3 binary is glibc-only.
 - **Scanner setup page:** `/scanners` on the scanner host (`ROLE_CHECK_IN`, F4) shows
   the Code 128 programming barcodes of the active `BarcodeScannerType`; scanner types
   and payloads are edited in EasyAdmin under Scanbalie. Do not seed manufacturer

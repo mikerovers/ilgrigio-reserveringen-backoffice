@@ -1,0 +1,6 @@
+symfonycasts_tailwind:
+    # One stylesheet for the storefront and the scanner; content paths live in tailwind.config.js.
+    input_css:
+        - '%kernel.project_dir%/assets/tailwind/app.css'
+    # Same major as the Play CDN the pages were designed against (v3).
+    binary_version: 'v3.4.17'
