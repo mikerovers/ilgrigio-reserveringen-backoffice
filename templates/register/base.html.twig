@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        <meta name="robots" content="noindex, nofollow">
+        <title>{% block title %}Kassa{% endblock %} | Il Grigio</title>
+        <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
+        <link rel="manifest" href="{{ path('register_manifest') }}">
+        <link rel="apple-touch-icon" href="/pwa/icon-180.png">
+        {% block turbo_meta %}{% endblock %}
+        <meta name="theme-color" content="#c62828">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="Kassa">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        {# Compiled by `bin/console tailwind:build` (no runtime CDN: styled on first paint) #}
+        <link rel="stylesheet" href="{{ asset('tailwind/app.css') }}">
+        <style>
+            html { touch-action: manipulation; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+            body { overscroll-behavior: none; }
+
+            /* Phones with a notch / home indicator (viewport-fit=cover) */
+            body {
+                padding-left: env(safe-area-inset-left, 0px);
+                padding-right: env(safe-area-inset-right, 0px);
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+
+            @font-face {
+                font-family: 'Stopbuck';
+                src: url('{{ asset('fonts/Stopbuck.ttf') }}') format('truetype');
+                font-style: normal;
+                font-weight: 400;
+                font-display: swap;
+            }
+            .font-stopbuck { font-family: 'Stopbuck', sans-serif; }
+
+            /* Installed window on Windows (window-controls-overlay): reserve the
+               top strip for the native window buttons, paint it in the masthead
+               red and make it draggable. Inert in every other display mode. */
+            @media (display-mode: window-controls-overlay) {
+                body { padding-top: env(titlebar-area-height, 0px); }
+                html body { background-color: #c62828 !important; }
+                body::before {
+                    content: "";
+                    position: fixed;
+                    top: 0;
+                    left: env(titlebar-area-x, 0px);
+                    width: env(titlebar-area-width, 100%);
+                    height: env(titlebar-area-height, 0px);
+                    -webkit-app-region: drag;
+                }
+            }
+        </style>
+        {% block javascripts %}{{ importmap('register') }}{% endblock %}
+    </head>
+    <body class="{% block body_class %}min-h-screen{% endblock %} flex flex-col bg-[#fffaf2] text-[#34272a] antialiased" {% block body_attrs %}{% endblock %}>
+        {% block page %}{% endblock %}
+        <script data-turbo-eval="false">
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register({{ path('register_service_worker')|json_encode|raw }}, { scope: '/' }).catch(() => {});
+                });
+            }
+        </script>
+    </body>
+</html>

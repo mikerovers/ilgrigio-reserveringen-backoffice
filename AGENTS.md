@@ -186,6 +186,17 @@ config/
   asset map. On macOS a downloaded binary may be killed (exit 137):
   `codesign --force --sign - var/tailwind/*/tailwindcss-*`. `Dockerfile.web` installs `gcompat libstdc++`
   because the v3 binary is glibc-only.
+- **Register (kassa) app, base shell:** its own host (`REGISTER_HOST`, `register_host` parameter), mirroring the
+  scanner. Controllers in `src/Controller/Register/` bind `host: '%register_host%'` with route names `register_*`
+  (`register_index`, `register_login`, `register_logout`, `register_manifest`, `register_service_worker`). The
+  `register` firewall (session `form_login`, own `context`, login throttling) is host-matched and declared before
+  `main`; `access_control` needs `ROLE_REGISTER` (admins inherit it) except the login, manifest and service worker.
+  Because the firewall matches on host only, the JWT `/api/*` endpoints are not reachable on the register host: the
+  sale UI must use session `register_*` controllers that call `RegisterOrderService`/`CheckoutService` directly.
+  Templates in `templates/register/` (`base`, `layout` = scanner-style masthead, `login`, `index`, `sw.js.twig`),
+  importmap entrypoint `register` (`assets/register/app.js`, Turbo), Stimulus controllers go in
+  `assets/controllers/register/` (`register--*`); both paths are in `tailwind.config.js`. Tests:
+  `tests/Controller/Register/RegisterTest.php` (host from `REGISTER_HOST`, firewall name `register`).
 - **Scanner setup page:** `/scanners` on the scanner host (`ROLE_CHECK_IN`, F4) shows
   the Code 128 programming barcodes of the active `BarcodeScannerType`; scanner types
   and payloads are edited in EasyAdmin under Scanbalie. Do not seed manufacturer
@@ -373,6 +384,8 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `ADMIN_EMAIL` | Admin notification address |
 | `FROM_EMAIL` | Legacy application parameter for sender email; keep aligned if code uses `app.from_email` |
 | `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
+| `SCANNER_HOST` | Bare hostname of the door-scanner app, e.g. `scan.ilgrigio.nl` in prod, `scanner.localhost` locally |
+| `REGISTER_HOST` | Bare hostname of the register (kassa) app, e.g. `kassa.ilgrigio.nl` in prod, `kassa.localhost` locally |
 | `SECURE_CHANNEL` | Set to `https` in production to require HTTPS for non-API routes |
 | `TRUSTED_PROXIES` | Comma-separated IPs/CIDRs of the reverse proxy in front of the app; only these may set `X-Forwarded-*` headers. Local default `127.0.0.1,::1`. Never use `0.0.0.0/0` in production |
 | `JWT_SECRET_KEY` | Path to JWT private key |

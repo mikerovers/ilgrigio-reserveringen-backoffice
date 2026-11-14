@@ -7,6 +7,7 @@ parameters:
     default_from_email: 'noreply@example.com'
     admin_host: '%env(ADMIN_HOST)%'
     scanner_host: '%env(SCANNER_HOST)%'
+    register_host: '%env(REGISTER_HOST)%'
     env(MERCURE_ENABLED): '0'
     env(MERCURE_PUBLIC_ORIGIN): "'self'"
     mercure_enabled: '%env(bool:MERCURE_ENABLED)%'

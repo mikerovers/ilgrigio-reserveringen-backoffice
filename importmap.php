@@ -30,5 +30,6 @@ return [
     '@symfony/ux-live-component' => ['path' => './vendor/symfony/ux-live-component/assets/dist/live_controller.js'],
     'admin' => ['path' => './assets/admin/admin.js', 'entrypoint' => true],
     'scanner' => ['path' => './assets/scanner/app.js', 'entrypoint' => true],
+    'register' => ['path' => './assets/register/app.js', 'entrypoint' => true],
     'app' => ['path' => './assets/frontend/app.js', 'entrypoint' => true],
 ];

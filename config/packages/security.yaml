@@ -49,6 +49,25 @@ security:
                 max_attempts: 5
                 interval: '15 minutes'
 
+        # Register (kassa) app on its own host. Same pattern as the scanner:
+        # the host decides the firewall, with its own session context.
+        register:
+            host: '^%register_host%$'
+            lazy: true
+            context: register
+            provider: app_user_provider
+            form_login:
+                login_path: register_login
+                check_path: register_login
+                enable_csrf: true
+                default_target_path: register_index
+            logout:
+                path: register_logout
+                target: register_login
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+
         # Issues JWTs. Stateless, no session — CSRF is disabled since there's
         # no session to protect; this is a bearer-token issuance endpoint
         # called by an external SPA.
@@ -154,6 +173,10 @@ security:
         - { host: '^%scanner_host%$', path: '^/(manifest\.webmanifest|sw\.js|pwa/)', roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         - { host: '^%scanner_host%$', path: ^/login, roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         - { host: '^%scanner_host%$', path: ^/, roles: ROLE_CHECK_IN, requires_channel: '%env(default::SECURE_CHANNEL)%' }
+        # Register app: login form is public, everything else needs ROLE_REGISTER
+        - { host: '^%register_host%$', path: '^/(manifest\.webmanifest|sw\.js|pwa/)', roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
+        - { host: '^%register_host%$', path: ^/login, roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
+        - { host: '^%register_host%$', path: ^/, roles: ROLE_REGISTER, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         # Customer login (email code) is public; the ticket area needs a logged-in customer
         - { path: '^/(inloggen|uitloggen)', roles: PUBLIC_ACCESS, requires_channel: '%env(default::SECURE_CHANNEL)%' }
         - { path: ^/mijn-tickets, roles: ROLE_CUSTOMER, requires_channel: '%env(default::SECURE_CHANNEL)%' }

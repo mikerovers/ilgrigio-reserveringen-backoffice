@@ -7,9 +7,11 @@ module.exports = {
         './templates/customer/**/*.twig',
         './templates/components/**/*.twig',
         './templates/scanner/**/*.twig',
+        './templates/register/**/*.twig',
         './templates/error/**/*.twig',
         './assets/controllers/frontend/**/*.js',
         './assets/controllers/scanner/**/*.js',
+        './assets/controllers/register/**/*.js',
         './assets/frontend/**/*.js',
     ],
     // Classes that live in database content (event/stock "disabledReason" HTML, site pages), invisible to the scanner above.
