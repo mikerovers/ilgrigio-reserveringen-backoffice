@@ -77,9 +77,10 @@ final class OrderHistoryListener
     {
         $order = $event->order;
 
-        // For paid orders the PaymentStatusChangedEvent (PAID) already records completion.
-        // Only add a note for zero-total orders that bypass payment entirely.
-        if ($order->payment === null) {
+        // Paid orders are recorded by the PaymentStatusChangedEvent (PAID), and manual
+        // completions / fulfilment re-runs write their own note. Only zero-total orders
+        // that bypass payment entirely are described here.
+        if ($order->payment === null && $order->totalGross->isZero()) {
             $this->addNote($order, 'Bestelling gratis voltooid (geen betaling vereist).');
         }
     }

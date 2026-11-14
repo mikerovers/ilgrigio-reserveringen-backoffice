@@ -117,7 +117,7 @@
 							{% endfor %}
 
 							<form
-								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-frontend--checkout-target="form">
+								id="checkout-form" method="POST" action="{{ path('app_checkout_process') }}" data-turbo="false" data-frontend--checkout-target="form">
 								<!-- One-time, session-bound checkout token: CSRF + duplicate submission guard -->
 								<input type="hidden" name="checkoutToken" value="{{ checkout_token }}">
 

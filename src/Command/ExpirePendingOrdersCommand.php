@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Entity\Order;
 use App\Enum\OrderStatus;
 use App\Enum\PaymentStatus;
+use App\Service\OrderNoteRecorder;
 use App\Service\StockReservationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Omnipay\Mollie\Gateway;
@@ -28,6 +29,7 @@ final class ExpirePendingOrdersCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly StockReservationService $stockReservationService,
+        private readonly OrderNoteRecorder $orderNoteRecorder,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
         private readonly string $mollieApiKey,
@@ -101,6 +103,11 @@ final class ExpirePendingOrdersCommand extends Command
 
         $order->status = OrderStatus::FAILED;
         $this->stockReservationService->releaseForOrder($order);
+
+        $this->orderNoteRecorder->record($order, sprintf(
+            'Bestelling verlopen: niet betaald binnen %d minuten. Voorraad vrijgegeven.',
+            $this->reservationTtlMinutes,
+        ));
 
         $this->logger->info('Expired pending order', ['order_number' => $order->orderNumber]);
 

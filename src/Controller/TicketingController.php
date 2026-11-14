@@ -22,6 +22,7 @@ use App\Service\CheckoutService;
 use App\Service\CouponResolver;
 use App\Service\EventSchedule;
 use App\Service\MoneyService;
+use App\Service\OrderNoteRecorder;
 use App\Service\OrderPricingService;
 use App\Service\StockReservationService;
 use App\Service\TicketSelectionValidator;
@@ -57,6 +58,7 @@ final class TicketingController extends AbstractController
         private TicketSelectionValidator $ticketSelectionValidator,
         private int $maxTicketsPerOrder,
         private float $taxRate,
+        private OrderNoteRecorder $orderNoteRecorder,
     ) {
     }
 
@@ -391,6 +393,7 @@ final class TicketingController extends AbstractController
             $order->status = OrderStatus::FAILED;
             $this->stockReservationService->releaseForOrder($order);
             $this->checkoutService->save($order);
+            $this->orderNoteRecorder->record($order, 'Betaling kon niet worden gestart. Voorraad vrijgegeven.');
 
             $this->addFlash('error', 'De betaling kon niet worden gestart. Probeer het later opnieuw.');
 

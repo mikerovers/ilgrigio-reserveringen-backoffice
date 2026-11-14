@@ -10,6 +10,7 @@ use App\Enum\PaymentStatus;
 use App\Event\OrderCompletedEvent;
 use App\Event\PaymentStatusChangedEvent;
 use App\Repository\OrderRepository;
+use App\Service\OrderNoteRecorder;
 use App\Service\StockReservationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -39,6 +40,7 @@ final class CompleteOrderCommand extends Command
         private readonly EntityManagerInterface $entityManager,
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly StockReservationService $stockReservationService,
+        private readonly OrderNoteRecorder $orderNoteRecorder,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
     ) {
@@ -94,6 +96,10 @@ final class CompleteOrderCommand extends Command
                 return Command::SUCCESS;
             }
 
+            $this->orderNoteRecorder->record(
+                $order,
+                'Fulfilment opnieuw gestart via app:orders:complete --force (tickets en bevestigingsmail).',
+            );
             $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
 
             $io->success(sprintf('Fulfilment re-run for order %s.', $order->orderNumber));
@@ -127,7 +133,12 @@ final class CompleteOrderCommand extends Command
             ));
         }
 
-        $this->entityManager->flush();
+        // Recorded for every manual completion, including when the payment was
+        // already PAID and no PaymentStatusChangedEvent was dispatched above.
+        $this->orderNoteRecorder->record(
+            $order,
+            sprintf('Handmatig voltooid via app:orders:complete (vorige status: %s).', $previousOrderStatus->value),
+        );
 
         $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
 

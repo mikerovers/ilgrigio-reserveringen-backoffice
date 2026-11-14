@@ -9,6 +9,7 @@ use App\Enum\PaymentStatus;
 use App\Event\OrderCompletedEvent;
 use App\Event\PaymentStatusChangedEvent;
 use App\Repository\PaymentRepository;
+use App\Service\OrderNoteRecorder;
 use App\Service\StockReservationService;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +33,7 @@ final class MollieWebhookConsumer implements ConsumerInterface
         private ClockInterface $clock,
         private LoggerInterface $logger,
         private string $mollieApiKey,
+        private OrderNoteRecorder $orderNoteRecorder,
     ) {
     }
 
@@ -121,7 +123,17 @@ final class MollieWebhookConsumer implements ConsumerInterface
         // Fulfilment is idempotent, so a replayed PAID webhook may safely retry it
         // when the first delivery committed but crashed before fulfilling.
         if ($newStatus === PaymentStatus::PAID && ($previousStatus !== PaymentStatus::PAID || $order->tickets->isEmpty())) {
+            // A replay of an already paid order that re-runs fulfilment is an action on the order.
+            $isReplay = $previousStatus === PaymentStatus::PAID;
+
             $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
+
+            if ($isReplay) {
+                $this->orderNoteRecorder->record(
+                    $order,
+                    'Tickets opnieuw uitgegeven na Mollie-webhook (betaling was al ontvangen).',
+                );
+            }
         }
 
         $this->logger->info('Mollie webhook processed', [
