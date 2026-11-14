@@ -14,6 +14,7 @@ parameters:
     ilgrigio_reserveringen_base_url: '%env(ILGRIGIO_RESERVERINGEN_BASE_URL)%'
     env(ORDER_RESERVATION_TTL_MINUTES): '30'
     env(REGISTER_MAX_DISCOUNT_PERCENT): '100'
+    env(REGISTER_GROUP_DISCOUNT_PERCENT): '10'
 
 services:
     # default configuration for services in *this* file
@@ -79,6 +80,11 @@ services:
         arguments:
             $maxTicketsPerOrder: '%env(int:MAX_TICKETS_PER_ORDER)%'
             $maxDiscountPercent: '%env(float:REGISTER_MAX_DISCOUNT_PERCENT)%'
+
+    # Register (kassa) screen: percentage of the "Groepskorting" button
+    App\Twig\Components\RegisterEventPicker:
+        arguments:
+            $groupDiscountPercent: '%env(float:REGISTER_GROUP_DISCOUNT_PERCENT)%'
 
     # Ticketing Controller configuration
     App\Controller\TicketingController:

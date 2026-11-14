@@ -415,6 +415,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `MAX_TICKETS_PER_ORDER` | Ticket purchase limit per order |
 | `CUSTOMER_LOGIN_ENABLED` | `1` enables the passwordless customer login (`/inloggen`, `/mijn-tickets`); `0` (default in `.env`) makes those routes 404 |
 | `REGISTER_MAX_DISCOUNT_PERCENT` | Cap on register ad-hoc percent discounts (default `100`) |
+| `REGISTER_GROUP_DISCOUNT_PERCENT` | Percentage of the kassa "Groepskorting" button (default `10`) |
 | `ORDER_RESERVATION_TTL_MINUTES` | How long an unpaid web order holds stock (default `30`) |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |
 | `API_KEY` | API key for `OrderApiController` authentication |

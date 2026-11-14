@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Register;
 
 use App\Entity\Event;
+use App\Entity\Order;
 use App\Entity\EventCategory;
 use App\Entity\SharedStock;
 use App\Entity\TicketType;
@@ -95,7 +96,8 @@ final class RegisterEventPickerTest extends WebTestCase
         $html = (string) $component->render();
         self::assertStringContainsString(self::PREFIX . ' Soon', $html);
         self::assertStringContainsString(self::PREFIX . ' Later', $html);
-        self::assertStringContainsString(self::PREFIX . ' totaalcapaciteit · 42', $html);
+        self::assertStringContainsString(self::PREFIX . ' totaalcapaciteit', $html);
+        self::assertMatchesRegularExpression('/tabular-nums[^>]*>42</', $html);
         self::assertStringNotContainsString(self::PREFIX . ' Past', $html);
         self::assertStringNotContainsString(self::PREFIX . ' Elsewhere', $html);
         self::assertLessThan(strpos($html, self::PREFIX . ' Later'), strpos($html, self::PREFIX . ' Soon'));
@@ -153,6 +155,125 @@ final class RegisterEventPickerTest extends WebTestCase
         $component->call('select', ['id' => (string) $this->findEvent(self::PREFIX . ' Soon')->id]);
     }
 
+    public function testTotalsAndGroupDiscountFollowTheQuantities(): void
+    {
+        $component = $this->selectSoon();
+        $typeId = (string) $this->soonTicketType()->id;
+
+        $component->set('quantities', [$typeId => '4']);
+        $html = (string) $component->render();
+        self::assertStringContainsString('€ 60,00', $html);
+        self::assertStringContainsString('Totaal aantal kaartjes', $html);
+
+        $component->call('addDiscount', ['kind' => 'group']);
+        $html = (string) $component->render();
+        self::assertStringContainsString('Groepskorting (10%)', $html);
+        self::assertStringContainsString('− € 6,00', $html);
+        self::assertStringContainsString('€ 54,00', $html);
+
+        $component->call('removeDiscount');
+        self::assertStringNotContainsString('Groepskorting (10%)</span>', (string) $component->render());
+    }
+
+    public function testSelectingAShowSeedsAZeroQuantityPerTicketType(): void
+    {
+        $component = $this->selectSoon();
+
+        // The browser may only write `quantities.<id>` when that key exists in the data.
+        self::assertSame(
+            [(string) $this->soonTicketType()->id => 0],
+            $component->component()->quantities,
+        );
+    }
+
+    public function testPlusAndMinusButtonsChangeTheQuantity(): void
+    {
+        $component = $this->selectSoon();
+        $typeId = (string) $this->soonTicketType()->id;
+
+        $component->call('adjust', ['id' => $typeId, 'delta' => 1]);
+        $component->call('adjust', ['id' => $typeId, 'delta' => 1]);
+        self::assertStringContainsString('€ 30,00', (string) $component->render());
+
+        $component->call('adjust', ['id' => $typeId, 'delta' => -1]);
+        $component->call('adjust', ['id' => $typeId, 'delta' => -1]);
+        $component->call('adjust', ['id' => $typeId, 'delta' => -1]);
+        self::assertStringNotContainsString('border-l-4 border-[#c62828] pl-3', (string) $component->render());
+
+        $component->call('adjust', ['id' => 'not-a-ticket-type', 'delta' => 1]);
+        self::assertStringNotContainsString('border-l-4 border-[#c62828] pl-3', (string) $component->render());
+    }
+
+    public function testSaveNeedsCustomerAndTickets(): void
+    {
+        $component = $this->selectSoon();
+
+        $component->call('save');
+        self::assertStringContainsString('Vul voornaam, achternaam en woonplaats in.', (string) $component->render());
+
+        $component->set('firstName', 'Piet');
+        $component->set('lastName', 'Puk');
+        $component->set('city', 'Utrecht');
+        $component->call('save');
+        self::assertStringContainsString('Kies minstens één kaartje.', (string) $component->render());
+    }
+
+    public function testSaveCreatesACompletedRegisterOrderWithDiscountAndNote(): void
+    {
+        $component = $this->selectSoon();
+        $typeId = (string) $this->soonTicketType()->id;
+        $component->set('firstName', 'Piet');
+        $component->set('lastName', 'Puk');
+        $component->set('city', 'Utrecht');
+        $component->set('note', 'Aan de kassa');
+        $component->set('quantities', [$typeId => '2']);
+        $component->call('addDiscount', ['kind' => 'fixed']);
+        $component->set('discountValue', '5,00');
+
+        $component->call('save');
+        $html = (string) $component->render();
+        self::assertStringContainsString('is opgeslagen', $html);
+
+        $this->em->clear();
+        $order = $this->em->getRepository(Order::class)->findOneBy(['note' => 'Aan de kassa']);
+        self::assertNotNull($order);
+        self::assertSame('register', $order->source->value);
+        self::assertSame('2500', $order->totalGross->getAmount());
+        self::assertSame('Puk', $order->billing->lastName);
+        self::assertSame('Utrecht', $order->billing->city);
+        self::assertCount(2, $order->tickets);
+        self::assertStringContainsString($order->orderNumber, $html);
+    }
+
+    public function testInvalidPercentageIsRefused(): void
+    {
+        $component = $this->selectSoon();
+        $component->set('firstName', 'Piet');
+        $component->set('lastName', 'Puk');
+        $component->set('city', 'Utrecht');
+        $component->set('quantities', [(string) $this->soonTicketType()->id => '1']);
+        $component->call('addDiscount', ['kind' => 'percent']);
+        $component->set('discountValue', '150');
+
+        $component->call('save');
+        self::assertStringContainsString('geldig percentage', (string) $component->render());
+    }
+
+    private function selectSoon(): \Symfony\UX\LiveComponent\Test\TestLiveComponent
+    {
+        $this->client->loginUser($this->user, 'register');
+        $component = $this->createLiveComponent(name: 'RegisterEventPicker', client: $this->client);
+        $component->set('category', $this->category->id->toRfc4122());
+        $component->call('select', ['id' => (string) $this->findEvent(self::PREFIX . ' Soon')->id]);
+
+        return $component;
+    }
+
+    private function soonTicketType(): TicketType
+    {
+        return $this->findEvent(self::PREFIX . ' Soon')->ticketTypes->first();
+    }
+
     private function findEvent(string $name): Event
     {
         $this->em->clear();
@@ -164,6 +285,19 @@ final class RegisterEventPickerTest extends WebTestCase
     {
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->clear();
+        $sub = "SELECT id FROM customer_order WHERE note = 'Aan de kassa'";
+        $this->em->getConnection()->executeStatement("DELETE FROM ticket WHERE order_id IN ($sub)");
+        $this->em->getConnection()->executeStatement("DELETE FROM payment WHERE order_id IN ($sub)");
+        $this->em->getConnection()->executeStatement("DELETE FROM stock_reservation WHERE order_id IN ($sub)");
+        foreach ($this->em->getRepository(Order::class)->findBy(['note' => 'Aan de kassa']) as $order) {
+            $customer = $order->customer;
+            $this->em->remove($order);
+            $this->em->flush();
+            if ($customer !== null && $customer->email === null) {
+                $this->em->remove($customer);
+                $this->em->flush();
+            }
+        }
         $like = self::PREFIX . '%';
         $conn = $this->em->getConnection();
         $conn->executeStatement('DELETE FROM event_event_category WHERE event_id IN (SELECT id FROM event WHERE name LIKE ?)', [$like]);

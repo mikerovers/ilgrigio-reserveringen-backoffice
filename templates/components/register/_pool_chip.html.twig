@@ -1,0 +1,11 @@
+{# Stock pool chip: status dot, short name (text after the last " — ") and the remaining quantity. #}
+{% set out = pool.stockQuantity is not null and pool.stockQuantity <= 0 %}
+{% set dot = out ? 'bg-[#c62828]' : (pool.lowStock ? 'bg-amber-500' : 'bg-green-600') %}
+<span class="inline-flex max-w-full items-center gap-2 rounded-md border border-[#d6c4b1] bg-white py-1 pl-2.5 pr-3 text-sm text-gray-700">
+    <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ dot }}" aria-hidden="true"></span>
+    <span class="sr-only">{{ pool.name }}</span>
+    <span aria-hidden="true" class="truncate">{{ pool.name|split(' — ')|last }}</span>
+    {% if pool.stockQuantity is not null %}
+        <span class="font-semibold tabular-nums {{ out ? 'text-[#c62828]' : 'text-gray-900' }}">{{ pool.stockQuantity }}</span>
+    {% endif %}
+</span>

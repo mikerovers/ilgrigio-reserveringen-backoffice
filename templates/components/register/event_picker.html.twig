@@ -1,9 +1,9 @@
 {% set events = this.events %}
 {% set selectedEvent = this.selectedEvent %}
 {% set current = this.currentCategory %}
-<div {{ attributes }} class="grid gap-4 lg:grid-cols-2 lg:items-start">
-    <section aria-label="Shows" class="border border-[#eadfd1] bg-white" data-loading="addClass(opacity-60)">
-        <div class="flex items-center gap-2 border-b border-[#eadfd1] bg-[#fbeedd] p-3 sm:p-4">
+<div {{ attributes.defaults(stimulus_controller('register--tickets-opener')|merge(stimulus_action('register--tickets-opener', 'open', 'register-tickets:open'))) }} class="grid gap-4 lg:h-full lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)]">
+    <section aria-label="Shows" class="flex flex-col border border-[#eadfd1] bg-white lg:min-h-0" data-loading="addClass(opacity-60)">
+        <div class="flex shrink-0 items-center gap-2 border-b border-[#eadfd1] bg-[#fbeedd] p-3 sm:p-4">
             <div class="relative w-1/2 max-w-xs shrink-0">
                 <label for="event-category" class="absolute -top-2 left-2 bg-[#fbeedd] px-1 text-xs text-gray-600">Showreeks</label>
                 <select id="event-category" data-model="category"
@@ -21,7 +21,7 @@
             </svg>
         </div>
 
-        <div class="max-h-[60vh] overflow-y-auto">
+        <div class="max-h-[60vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
             <p class="border-b border-[#eadfd1] px-4 py-4 text-sm font-semibold uppercase tracking-widest text-gray-500">Show</p>
             <ul>
                 {% for event in events %}
@@ -30,18 +30,15 @@
                         <button type="button" data-action="live#action" data-live-action-param="select" data-live-id-param="{{ event.id.toRfc4122 }}"
                                 aria-pressed="{{ isSelected ? 'true' : 'false' }}"
                                 class="block w-full border-l-4 px-4 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c62828]
-                                       {{ isSelected ? 'border-[#c62828] bg-[#fbeedd]' : 'border-transparent bg-white hover:bg-[#fbeedd]' }}">
+                                       {{ isSelected ? 'border-[#c62828] bg-red-50' : 'border-transparent bg-white hover:bg-[#fffaf2]' }}">
                             <span class="block text-lg font-semibold">{{ event.name }}</span>
                             <span class="mt-1 block text-sm text-gray-600">{{ event.startsAt|date('d-m-Y H:i') }}</span>
                             {% set pools = event.sharedStocks %}
                             {% if pools %}
                                 <span class="mt-2 flex flex-wrap gap-2">
                                     {% for pool in pools %}
-                                        {% set out = pool.stockQuantity is not null and pool.stockQuantity <= 0 %}
-                                        <span class="rounded-full px-3 py-1 text-sm text-white {{ out ? 'bg-[#c62828]' : (pool.lowStock ? 'bg-amber-600' : 'bg-green-700') }}">
-                                            {{ pool.name }}{{ pool.stockQuantity is not null ? ' · ' ~ pool.stockQuantity }}
-                                        </span>
-                                    {% endfor %}
+{{ include('components/register/_pool_chip.html.twig', {pool: pool}) }}
+{% endfor %}
                                 </span>
                             {% endif %}
                         </button>
@@ -54,7 +51,7 @@
             </ul>
         </div>
 
-        <div class="flex justify-end border-t border-[#eadfd1] bg-[#fbeedd] px-4 py-2">
+        <div class="flex shrink-0 justify-end border-t border-[#eadfd1] bg-[#fbeedd] px-4 py-2">
             <button type="button" data-action="live#action" data-live-action-param="refresh" aria-label="Vernieuwen"
                     class="inline-flex h-12 w-12 items-center justify-center text-gray-600 hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -64,19 +61,167 @@
         </div>
     </section>
 
-    <section aria-label="Verkoop" class="border border-[#eadfd1] bg-white lg:min-h-[32rem]">
-        <div class="border-b border-[#eadfd1] bg-[#fbeedd] px-4 py-4 sm:px-6">
+    <section aria-label="Verkoop" class="flex flex-col border border-[#eadfd1] bg-white lg:min-h-0">
+        <div class="shrink-0 border-b border-[#eadfd1] bg-[#fbeedd] px-4 py-4 sm:px-6">
             <h2 class="text-lg font-semibold">{{ selectedEvent ? selectedEvent.name : 'Geen show geselecteerd' }}</h2>
             {% if selectedEvent %}
                 <p class="text-sm text-gray-600">{{ selectedEvent.startsAt|date('d-m-Y H:i') }}</p>
             {% endif %}
         </div>
-        <div class="px-4 py-10 text-center text-base sm:px-6">
-            {% if selectedEvent %}
-                <p class="text-gray-600">De verkoop komt hier.</p>
-            {% else %}
+
+        {% if this.savedOrder %}
+            <p role="status" class="m-4 flex flex-wrap items-center justify-between gap-3 border border-green-200 bg-green-50 px-4 py-3 text-base text-green-800 sm:mx-6">
+                <span>Bestelling <strong>{{ this.savedOrder }}</strong> is opgeslagen.</span>
+                <a href="{{ path('register_order_tickets', {orderNumber: this.savedOrder}) }}" target="_blank" rel="noopener"
+                   class="inline-flex h-12 items-center border border-green-700 px-4 text-sm font-semibold uppercase tracking-wider text-green-800 hover:bg-green-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700">Tickets printen</a>
+            </p>
+        {% endif %}
+
+        {% if not selectedEvent %}
+            <div class="px-4 py-10 text-center text-base sm:px-6">
                 <p>Selecteer een show</p>
-            {% endif %}
-        </div>
+            </div>
+        {% else %}
+            {% set cart = this.cart %}
+            <div class="space-y-4 px-4 py-5 sm:px-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+                {% set pools = selectedEvent.sharedStocks %}
+                {% if pools %}
+                    <div class="flex flex-wrap gap-2">
+                        {% for pool in pools %}
+{{ include('components/register/_pool_chip.html.twig', {pool: pool}) }}
+{% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label for="sale-first-name" class="sr-only">Voornaam</label>
+                        <input type="text" id="sale-first-name" data-model="on(change)|firstName" value="{{ this.firstName }}" placeholder="Voornaam *" autocomplete="off" maxlength="255" required
+                               class="h-14 w-full border border-[#d6c4b1] bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                    </div>
+                    <div>
+                        <label for="sale-last-name" class="sr-only">Achternaam</label>
+                        <input type="text" id="sale-last-name" data-model="on(change)|lastName" value="{{ this.lastName }}" placeholder="Achternaam *" autocomplete="off" maxlength="255" required
+                               class="h-14 w-full border border-[#d6c4b1] bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                    </div>
+                </div>
+                <div>
+                    <label for="sale-city" class="sr-only">Woonplaats</label>
+                    <input type="text" id="sale-city" data-model="on(change)|city" value="{{ this.city }}" placeholder="Woonplaats *" autocomplete="off" maxlength="255" required
+                           class="h-14 w-full border border-[#d6c4b1] bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                </div>
+                <div>
+                    <label for="sale-note" class="sr-only">Notitie</label>
+                    <input type="text" id="sale-note" data-model="on(change)|note" value="{{ this.note }}" placeholder="Notitie" autocomplete="off" maxlength="1000"
+                           class="h-14 w-full border border-[#d6c4b1] bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                </div>
+
+                <div class="border border-[#eadfd1]">
+                    <div class="grid grid-cols-[1fr_auto_11rem] items-center gap-x-4 border-b border-[#eadfd1] bg-[#fbeedd] px-4 py-3 text-sm font-semibold uppercase tracking-widest text-gray-600">
+                        <span>Kaartje</span>
+                        <span class="text-right">Prijs</span>
+                        <span class="text-center">Aantal</span>
+                    </div>
+                    <ul class="divide-y divide-[#eadfd1] bg-white">
+                        {% for type in this.ticketTypes %}
+                            {% set id = type.id.toRfc4122 %}
+                            {% set qty = cart[id] ?? 0 %}
+                            <li class="grid grid-cols-[1fr_auto_11rem] items-center gap-x-4 px-4 py-3 {{ qty > 0 ? 'border-l-4 border-[#c62828] pl-3' : '' }}">
+                                <div class="min-w-0">
+                                    <p class="text-base font-semibold">{{ type.name }}</p>
+                                    {% if type.sharedStock %}
+                                        <div class="mt-1">{{ include('components/register/_pool_chip.html.twig', {pool: type.sharedStock}) }}</div>
+                                    {% endif %}
+                                </div>
+                                <p class="whitespace-nowrap text-right text-base tabular-nums">€ {{ this.money(type.price) }}</p>
+                                <div class="flex items-center justify-center">
+                                    <button type="button" data-action="live#action" data-live-action-param="adjust" data-live-id-param="{{ id }}" data-live-delta-param="-1"
+                                            aria-label="Minder {{ type.name }}" {{ qty == 0 ? 'disabled' }}
+                                            class="inline-flex h-12 w-12 items-center justify-center border border-[#d6c4b1] bg-white text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+                                    </button>
+                                    <label for="qty-{{ id }}" class="sr-only">Aantal {{ type.name }}</label>
+                                    <input type="text" id="qty-{{ id }}" inputmode="numeric" pattern="[0-9]*" maxlength="3"
+                                           data-model="on(change)|quantities[{{ id }}]" value="{{ qty }}"
+                                           class="h-12 w-14 border-y border-[#d6c4b1] bg-white text-center text-lg font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#c62828] {{ qty == 0 ? 'text-gray-400' : '' }}">
+                                    <button type="button" data-action="live#action" data-live-action-param="adjust" data-live-id-param="{{ id }}" data-live-delta-param="1"
+                                            aria-label="Meer {{ type.name }}"
+                                            class="inline-flex h-12 w-12 items-center justify-center border border-[#d6c4b1] bg-white text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                    </button>
+                                </div>
+                            </li>
+                        {% else %}
+                            <li class="px-4 py-8 text-center text-gray-600">Deze show heeft geen kaartjes.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <dl class="border border-[#eadfd1] bg-white text-base">
+                    <div class="flex items-center justify-between border-b border-[#eadfd1] px-4 py-3">
+                        <dt>Totaal aantal kaartjes</dt>
+                        <dd class="tabular-nums">{{ this.totalQuantity }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between border-b border-[#eadfd1] px-4 py-3">
+                        <dt>Subtotaal</dt>
+                        <dd class="tabular-nums">€ {{ this.money(this.subtotal) }}</dd>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3 border-b border-[#eadfd1] px-4 py-2" data-controller="register--dropdown">
+                        {% if this.discountKind %}
+                            <dt class="flex flex-1 flex-wrap items-center gap-3">
+                                <span>{{ this.discountLabel }}</span>
+                                {% if this.discountKind != 'group' %}
+                                    <label for="sale-discount" class="sr-only">{{ this.discountKind == 'percent' ? 'Percentage' : 'Bedrag in euro' }}</label>
+                                    <input type="text" id="sale-discount" inputmode="decimal" autocomplete="off" maxlength="10"
+                                           data-model="on(change)|discountValue" value="{{ this.discountValue }}"
+                                           placeholder="{{ this.discountKind == 'percent' ? '%' : '€' }}"
+                                           class="h-12 w-28 border border-[#d6c4b1] bg-white px-3 text-right text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                                {% endif %}
+                            </dt>
+                            <dd class="flex items-center gap-2">
+                                <span>− € {{ this.money(this.discountAmount) }}</span>
+                                <button type="button" data-action="live#action" data-live-action-param="removeDiscount" aria-label="Korting verwijderen"
+                                        class="inline-flex h-12 w-12 items-center justify-center text-gray-600 hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 10 10m0-10L5 15"/></svg>
+                                </button>
+                            </dd>
+                        {% else %}
+                            <dt class="sr-only">Korting</dt>
+                            <dd class="-ml-3">
+                                <button type="button" data-register--dropdown-target="trigger" data-action="register--dropdown#toggle"
+                                        aria-haspopup="menu" aria-expanded="false" aria-label="Korting toevoegen"
+                                        class="inline-flex h-12 w-12 items-center justify-center text-green-700 hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                </button>
+                                <div data-register--dropdown-target="menu" role="menu" class="hidden z-30 w-64 border border-[#eadfd1] bg-white py-1 text-left shadow-lg">
+                                    <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="addDiscount" data-live-kind-param="group"
+                                            class="flex min-h-12 w-full items-center px-4 text-base hover:bg-white/60 focus:bg-[#fbeedd] focus:outline-none">Groepskorting ({{ this.groupDiscountLabel }}%)</button>
+                                    <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="addDiscount" data-live-kind-param="percent"
+                                            class="flex min-h-12 w-full items-center px-4 text-base hover:bg-white/60 focus:bg-[#fbeedd] focus:outline-none">Percentage</button>
+                                    <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="addDiscount" data-live-kind-param="fixed"
+                                            class="flex min-h-12 w-full items-center px-4 text-base hover:bg-white/60 focus:bg-[#fbeedd] focus:outline-none">Vast bedrag</button>
+                                </div>
+                            </dd>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex items-center justify-between bg-[#fbeedd] px-4 py-4 text-xl font-bold">
+                        <dt>Totaal</dt>
+                        <dd>€ {{ this.money(this.total) }}</dd>
+                    </div>
+                </dl>
+
+                {% if this.saleError %}
+                    <p role="alert" class="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ this.saleError }}</p>
+                {% endif %}
+
+                <button type="button" data-action="live#action:prevent" data-live-action-param="save" data-loading="addAttribute(disabled)"
+                        class="inline-flex h-14 items-center gap-3 bg-green-700 px-6 text-base font-semibold uppercase tracking-wider text-white hover:bg-green-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-700 disabled:opacity-60">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+                    Opslaan
+                </button>
+            </div>
+        {% endif %}
     </section>
 </div>
