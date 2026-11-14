@@ -109,6 +109,7 @@ class EventRepository extends ServiceEntityRepository
             ->leftJoin('e.ticketTypes', 't')->addSelect('t')
             ->leftJoin('t.sharedStock', 's')->addSelect('s')
             ->leftJoin('e.displayStock', 'd')->addSelect('d')
+            ->leftJoin('e.categories', 'c')->addSelect('c')
             ->andWhere('e.startsAt >= :now')
             ->andWhere('e.soldFrom IS NULL OR e.soldFrom <= :now')
             ->andWhere('e.soldUntil IS NULL OR e.soldUntil >= :now')

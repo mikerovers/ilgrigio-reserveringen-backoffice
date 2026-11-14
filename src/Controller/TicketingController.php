@@ -70,8 +70,19 @@ final class TicketingController extends AbstractController
             $this->eventRepository->findUpcoming($this->clock->now()),
         );
 
+        $categories = [];
+        foreach ($events as $event) {
+            foreach ($event['categories'] as $name) {
+                $categories[$name] = $name;
+            }
+        }
+        $categories = array_values($categories);
+        sort($categories, SORT_NATURAL | SORT_FLAG_CASE);
+
         return $this->render('ticketing/index.html.twig', [
             'events' => $events,
+            'categories' => $categories,
+            'show_event_categories' => count($categories) > 1,
             'homepage' => $this->sitePageRepository->findHomepage(),
         ]);
     }
@@ -488,9 +499,24 @@ final class TicketingController extends AbstractController
             'location' => $event->location,
             'image_url' => $event->imageUrl,
             'permalink' => $event->permalink,
+            'categories' => $this->categoryNames($event),
             'stock_status' => $event->displayStockStatus()->value,
             'stock_quantity' => $event->displayStockQuantity(),
         ];
+    }
+
+    /**
+     * @return list<string> category names, sorted for a stable display order
+     */
+    private function categoryNames(Event $event): array
+    {
+        $names = [];
+        foreach ($event->categories as $category) {
+            $names[] = $category->name;
+        }
+        sort($names, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $names;
     }
 
     /**

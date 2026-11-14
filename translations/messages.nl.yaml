@@ -41,6 +41,10 @@ events:
     select_tickets: "Tickets Selecteren"
     no_events: "Geen shows Beschikbaar"
     check_back_soon: "Kijk binnenkort weer voor aankomende shows!"
+    choose_title: "Kies een voorstelling"
+    choose_intro: "Kies een datum en tijd om tickets te reserveren."
+    choose_intro_categories: "Kies een datum en tijd om tickets voor %categories% te reserveren."
+    category_and: " en "
     refresh_page: "Pagina Vernieuwen"
 
 tickets:
