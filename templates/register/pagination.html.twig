@@ -1,0 +1,94 @@
+{#
+    Register theme for ux_pagination(): same markup contract as the bundled
+    tailwind theme, restyled to the register look (cream bar, red current page,
+    48px touch targets) and always rendered so the "Toont 1-15 van 40" summary
+    stays visible on a single page. Strings come from the bundle's translations.
+#}
+{% block pagination %}
+    {% set link_class = 'inline-flex h-12 min-w-12 items-center justify-center px-3 text-base font-semibold text-[#34272a] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]' %}
+    {% set root_attributes = {
+        'aria-label': 'Pagination'|trans({}, 'UXPaginationBundle'),
+    }|merge(attributes)|merge({
+        class: ('flex flex-wrap items-center justify-between gap-3 border-t border-[#eadfd1] bg-[#fbeedd] px-4 py-3 text-sm text-gray-700 ' ~ attributes.class|default(''))|trim,
+    }) %}
+    {% set navigation_attributes = navigation_attributes|merge({
+        class: ('flex items-center gap-1 ' ~ navigation_attributes.class|default(''))|trim,
+    }) %}
+    {% set attr = root_attributes %}
+    <nav{{ block('attr') }}>
+        {% if show_info %}<p>{{ pagination.info }}</p>{% else %}<span></span>{% endif %}
+        {% if pagination.hasPrevious() or pagination.hasNext() %}
+            {{ block('navigation') }}
+        {% endif %}
+    </nav>
+{% endblock %}
+
+{% if false %}
+    {% block navigation %}
+        {% set attr = navigation_attributes %}
+        <ul{{ block('attr') }}>
+            {{ block('previous') }}
+            {{ block('pages') }}
+            {{ block('next') }}
+        </ul>
+    {% endblock %}
+
+    {% block previous %}
+        <li>
+            {% if pagination.hasPrevious() %}
+                {% set attr = {
+                    class: link_class,
+                    'aria-label': 'Previous page'|trans({}, 'UXPaginationBundle'),
+                    rel: 'prev',
+                }|merge(link_attributes.previous)|merge({
+                    class: (link_class ~ ' ' ~ link_attributes.previous.class|default(''))|trim,
+                }) %}
+                <a href="{{ pagination.previousUrl }}"{{ block('attr') }}>‹</a>
+            {% else %}
+                <span class="inline-flex h-12 min-w-12 items-center justify-center text-gray-400" aria-hidden="true">‹</span>
+            {% endif %}
+        </li>
+    {% endblock %}
+
+    {% block pages %}
+        {% if numbered %}
+            {% for link in pagination.pages %}
+                <li>
+                    {% if link.isGap %}
+                        <span class="inline-flex h-12 w-8 items-center justify-center text-gray-500" aria-hidden="true">&hellip;</span>
+                    {% elseif link.isCurrent %}
+                        <span class="inline-flex h-12 min-w-12 items-center justify-center bg-[#c62828] px-3 text-base font-semibold text-white" aria-current="page">{{ link.page }}</span>
+                    {% else %}
+                        {% set page_link_attributes = link_attributes.pages[link.page]|default({}) %}
+                        {% set attr = {
+                            class: link_class,
+                            'aria-label': 'Go to page %page%'|trans({'%page%': link.page}, 'UXPaginationBundle'),
+                        }|merge(page_link_attributes)|merge({
+                            class: (link_class ~ ' ' ~ page_link_attributes.class|default(''))|trim,
+                        }) %}
+                        <a href="{{ link.url }}"{{ block('attr') }}>{{ link.page }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        {% endif %}
+    {% endblock %}
+
+    {% block next %}
+        <li>
+            {% if pagination.hasNext() %}
+                {% set attr = {
+                    class: link_class,
+                    'aria-label': 'Next page'|trans({}, 'UXPaginationBundle'),
+                    rel: 'next',
+                }|merge(link_attributes.next)|merge({
+                    class: (link_class ~ ' ' ~ link_attributes.next.class|default(''))|trim,
+                }) %}
+                <a href="{{ pagination.nextUrl }}"{{ block('attr') }}>›</a>
+            {% else %}
+                <span class="inline-flex h-12 min-w-12 items-center justify-center text-gray-400" aria-hidden="true">›</span>
+            {% endif %}
+        </li>
+    {% endblock %}
+
+    {% block attr %}{% for name, value in attr %}{% if value is same as(true) %} {{ name }}{% elseif value is not same as(false) and value is not null %} {{ name }}="{{ value }}"{% endif %}{% endfor %}{% endblock %}
+{% endif %}

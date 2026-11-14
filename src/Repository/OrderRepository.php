@@ -9,6 +9,7 @@ use App\Entity\Order;
 use App\Entity\OrderLineItem;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
@@ -39,14 +40,25 @@ class OrderRepository extends ServiceEntityRepository
      */
     public function findPaginated(OrderListQuery $query): Paginator
     {
+        $qb = $this->createListQueryBuilder($query)
+            ->setFirstResult(($query->page - 1) * $query->limit)
+            ->setMaxResults($query->limit);
+
+        return new Paginator($qb, fetchJoinCollection: false);
+    }
+
+    /**
+     * Filtered and ordered order list without any offset or limit, so callers
+     * can paginate it themselves (API paginator, UX Pagination).
+     */
+    public function createListQueryBuilder(OrderListQuery $query): QueryBuilder
+    {
         $direction = $query->orderDirection === 'ASC' ? SortDirection::Ascending : SortDirection::Descending;
         $qb = $this->createQueryBuilder('o')
             ->addSelect('c')
             ->join('o.customer', 'c')
             ->orderBy('o.createdAt', $direction)
-            ->addOrderBy('o.id', $direction)
-            ->setFirstResult(($query->page - 1) * $query->limit)
-            ->setMaxResults($query->limit);
+            ->addOrderBy('o.id', $direction);
 
         // Only orders with at least one line item for a ticket type of the given event.
         if ($query->eventId !== null) {
@@ -73,7 +85,7 @@ class OrderRepository extends ServiceEntityRepository
             ))->setParameter($param, '%' . mb_strtolower((string) preg_replace('/[!%_]/', '!$0', $word)) . '%');
         }
 
-        return new Paginator($qb, fetchJoinCollection: false);
+        return $qb;
     }
 
     /**

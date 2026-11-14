@@ -197,6 +197,23 @@ config/
   importmap entrypoint `register` (`assets/register/app.js`, Turbo), Stimulus controllers go in
   `assets/controllers/register/` (`register--*`); both paths are in `tailwind.config.js`. Tests:
   `tests/Controller/Register/RegisterTest.php` (host from `REGISTER_HOST`, firewall name `register`).
+  A tab menu in `layout.html.twig` links `register_index`, `register_orders` (`/bestellingen`) and
+  `register_coupons` (`/kortingscodes`). The orders screen is the `RegisterOrderTable` Live Component
+  (`src/Twig/Components/`, search LiveProp + `symfony/ux-pagination` via `ComponentWithPaginationTrait`, rendered with
+  the `register/pagination.html.twig` theme; `OrderRepository::createListQueryBuilder` feeds it; notes modal, cancel via `OrderCancellationService`, resend
+  mail by dispatching `OrderCompletedEvent`). Live components answer on every host under `/_components`, so such a
+  component must carry its own `#[IsGranted]`; the host-matched firewall does not protect it.
+  "Download tickets" opens `register_order_tickets` (`/bestellingen/{n}/tickets`, new tab): a standalone print sheet
+  (order summary + one QR per valid ticket, `inline-block` cells with `break-inside: avoid` so no QR is split across pages,
+  12 per A4 page) that calls `window.print()` on load. "Omboeken" opens a modal (`OrderRebookingService`): pick another upcoming show
+  of the same category, ticket types are auto-mapped by normalised name and can be changed; tickets keep their codes
+  and prices, snapshots move to the new show, stock is released and re-taken. Staff may overbook: `SharedStockRepository::take()`
+  has no capacity guard and `Version20261115100000` dropped `chk_shared_stock_non_negative`, so pools can go below 0
+  (customer checkout still uses the guarded `reserve()`). QR images come from `SecurePdfStorageService::qrDataUriForTicketCode`.
+  The kassa screen (`register_index`, `/`) is the `RegisterEventPicker` Live Component: left half = category select + name search + all upcoming shows of that category
+  (`EventRepository::findForRegister`, no pagination, stock pools as pills) and a refresh button; selecting a show fills the right half, which is still a placeholder for the sale logic.
+  `register_coupons` (`/kortingscodes`) is the `RegisterCouponTable` Live Component (same pattern as the order table: search, ux-pagination,
+  `CouponRepository::createListQueryBuilder`); its row menu only offers "Ongeldig maken" (confirm modal, sets `active = false`, one-way like the API).
 - **Scanner setup page:** `/scanners` on the scanner host (`ROLE_CHECK_IN`, F4) shows
   the Code 128 programming barcodes of the active `BarcodeScannerType`; scanner types
   and payloads are edited in EasyAdmin under Scanbalie. Do not seed manufacturer

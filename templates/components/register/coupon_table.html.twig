@@ -1,0 +1,107 @@
+{% set pagination = this.couponsPagination %}
+<div {{ attributes }}>
+    {% if this.flash %}
+        <p role="status" class="mb-4 border px-4 py-3 text-sm {{ this.flashIsError ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800' }}">
+            {{ this.flash }}
+        </p>
+    {% endif %}
+
+    <div class="border border-[#eadfd1] bg-white" data-loading="addClass(opacity-60)">
+        <div class="flex items-center gap-2 border-b border-[#eadfd1] bg-[#fbeedd] p-3 sm:p-4">
+            <label for="coupon-search" class="sr-only">Zoeken</label>
+            <input type="search" id="coupon-search" data-model="debounce(300)|search" placeholder="Zoeken op code" autocomplete="off" maxlength="64"
+                   class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+            <svg class="shrink-0 text-gray-500" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>
+            </svg>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[40rem] text-left text-base">
+                <thead>
+                    <tr class="border-b border-[#eadfd1] text-sm font-semibold uppercase tracking-widest text-gray-500">
+                        <th scope="col" class="px-4 py-3 text-center">Status</th>
+                        <th scope="col" class="px-4 py-3">Code</th>
+                        <th scope="col" class="px-4 py-3">Bedrag</th>
+                        <th scope="col" class="px-4 py-3">Gebruik</th>
+                        <th scope="col" class="px-4 py-3">Aanmaakdatum</th>
+                        <th scope="col" class="px-4 py-3">Vervaldatum</th>
+                        <th scope="col" class="px-4 py-3"><span class="sr-only">Acties</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for coupon in pagination %}
+                        {% set expired = this.isExpired(coupon) %}
+                        {% set label = not coupon.active ? 'Ongeldig' : (expired ? 'Verlopen' : 'Geldig') %}
+                        <tr class="border-b border-[#eadfd1] last:border-b-0 odd:bg-white even:bg-[#fffaf2]">
+                            <td class="align-middle px-4 py-3 text-center">
+                                <span class="group relative flex justify-center">
+                                    <span aria-hidden="true" data-tooltip="{{ label }}" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{{ label }}</span>
+                                    {% if not coupon.active %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-gray-500" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m8.5 8.5 7 7m0-7-7 7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+                                    {% elseif expired %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-amber-500" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v5.2l3.2 2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% else %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-green-600" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m7 12.5 3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% endif %}
+                                    <span class="sr-only">{{ label }}</span>
+                                </span>
+                            </td>
+                            <td class="align-middle px-4 py-3 font-medium whitespace-nowrap">{{ coupon.code }}</td>
+                            <td class="align-middle px-4 py-3 whitespace-nowrap">{{ this.formatAmount(coupon) }}</td>
+                            <td class="align-middle px-4 py-3 whitespace-nowrap">{{ coupon.usedCount }}{{ coupon.usageLimit is not null ? ' / ' ~ coupon.usageLimit }}</td>
+                            <td class="align-middle px-4 py-3 whitespace-nowrap">{{ coupon.createdAt|date('d-m-Y H:i') }}</td>
+                            <td class="align-middle px-4 py-3 whitespace-nowrap">{{ coupon.expiresAt ? coupon.expiresAt|date('d-m-Y H:i') }}</td>
+                            <td class="align-middle px-4 py-3 text-right" data-controller="register--dropdown">
+                                <button type="button" data-register--dropdown-target="trigger" data-action="register--dropdown#toggle"
+                                        aria-haspopup="menu" aria-expanded="false" aria-label="Acties voor kortingscode {{ coupon.code }}"
+                                        class="inline-flex h-12 w-12 items-center justify-center text-gray-600 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                                </button>
+                                <div data-register--dropdown-target="menu" role="menu" class="hidden z-30 w-64 border border-[#eadfd1] bg-white py-1 text-left shadow-lg">
+                                    {% if coupon.active %}
+                                        <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="askDeactivate" data-live-id-param="{{ coupon.id }}"
+                                                class="flex min-h-12 w-full items-center gap-3 px-4 text-base hover:bg-[#fbeedd] focus:bg-[#fbeedd] focus:outline-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="m7 7 6 6m0-6-6 6"/></svg>
+                                            Ongeldig maken
+                                        </button>
+                                    {% else %}
+                                        <p class="px-4 py-3 text-sm text-gray-500">Geen acties beschikbaar</p>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-12 text-center text-gray-600">
+                                {{ this.search|trim is empty ? 'Er zijn nog geen kortingscodes.' : 'Geen kortingscodes gevonden.' }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {{ ux_pagination(pagination, theme: 'register/pagination.html.twig', linkAttributes: this.paginationLinkAttributes) }}
+    </div>
+
+    {% set deactivateCoupon = this.deactivateCoupon %}
+    {% if deactivateCoupon %}
+        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" data-action="keydown.esc@window->live#action" data-live-action-param="closeModal">
+            <div role="alertdialog" aria-modal="true" aria-labelledby="deactivate-title" class="w-full max-w-md bg-white shadow-xl">
+                <div class="bg-[#c62828] px-6 py-4 text-white">
+                    <h2 id="deactivate-title" class="text-lg font-semibold">Kortingscode ongeldig maken?</h2>
+                </div>
+                <div class="px-6 py-5 text-base">
+                    <p>Kortingscode <strong>{{ deactivateCoupon.code }}</strong> kan daarna niet meer worden gebruikt. Bestaande bestellingen veranderen niet.</p>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-[#eadfd1] px-6 py-4">
+                    <button type="button" data-action="live#action" data-live-action-param="closeModal"
+                            class="h-12 px-5 text-sm font-semibold uppercase tracking-wider text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">Terug</button>
+                    <button type="button" data-action="live#action" data-live-action-param="confirmDeactivate" data-loading="addAttribute(disabled)"
+                            class="h-12 bg-[#c62828] px-5 text-sm font-semibold uppercase tracking-wider text-white hover:bg-[#a91f24] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c62828] disabled:opacity-60">Ongeldig maken</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

@@ -408,6 +408,9 @@
             "config/routes/ux_live_component.yaml"
         ]
     },
+    "symfony/ux-pagination": {
+        "version": "v3.7.2"
+    },
     "symfony/ux-turbo": {
         "version": "3.7",
         "recipe": {

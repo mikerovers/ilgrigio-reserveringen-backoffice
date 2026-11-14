@@ -10,6 +10,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
@@ -23,7 +25,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Money\Money;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('ROLE_ADMIN')]
@@ -31,6 +35,8 @@ class TicketTypeCrudController extends AbstractCrudController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly AdminUrlGenerator $adminUrlGenerator,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -54,6 +60,26 @@ class TicketTypeCrudController extends AbstractCrudController
         }
 
         return new TicketType($event, '', Money::EUR(0));
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        // The "New" button must carry the event filter, otherwise createEntity()
+        // falls back to the latest event and the ticket type lands on the wrong event.
+        $eventId = $this->requestStack->getCurrentRequest()?->query->get('event');
+        if ($eventId === null) {
+            return $actions;
+        }
+
+        return $actions->update(
+            Crud::PAGE_INDEX,
+            Action::NEW,
+            fn (Action $action): Action => $action->linkToUrl($this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Crud::PAGE_NEW)
+                ->set('event', (string) $eventId)
+                ->generateUrl()),
+        );
     }
 
     public function configureCrud(Crud $crud): Crud

@@ -44,6 +44,58 @@ class EventRepository extends ServiceEntityRepository
     }
 
     /**
+     * Shows an order can be moved to: same category as $source, not $source itself,
+     * not yet over (a show that ended is not a target). Soonest first.
+     *
+     * @return Event[]
+     */
+    public function findRebookTargets(Event $source, \DateTimeImmutable $now): array
+    {
+        if ($source->categories->isEmpty()) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('e')
+            ->innerJoin('e.categories', 'c')
+            ->leftJoin('e.ticketTypes', 't')->addSelect('t')
+            ->andWhere('c IN (:categories)')
+            ->andWhere('e != :source')
+            ->andWhere('COALESCE(e.endsAt, e.startsAt) >= :now')
+            ->setParameter('categories', $source->categories->toArray())
+            ->setParameter('source', $source)
+            ->setParameter('now', $now)
+            ->orderBy('e.startsAt', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Shows the register can sell tickets for: in the given category, not yet over,
+     * optionally filtered on a name search. Soonest first, no pagination.
+     * Fetch-joins the stock pools so the list can show them without N+1 loads.
+     *
+     * @return Event[]
+     */
+    public function findForRegister(Uuid $categoryId, ?string $search, \DateTimeImmutable $now): array
+    {
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.ticketTypes', 't')->addSelect('t')
+            ->leftJoin('t.sharedStock', 's')->addSelect('s')
+            ->andWhere(':category MEMBER OF e.categories')
+            ->andWhere('COALESCE(e.endsAt, e.startsAt) >= :now')
+            ->setParameter('category', $categoryId)
+            ->setParameter('now', $now)
+            ->orderBy('e.startsAt', SortDirection::Ascending);
+
+        if ($search !== null && $search !== '') {
+            $qb->andWhere('LOWER(e.name) LIKE :search')
+                ->setParameter('search', '%' . mb_strtolower(addcslashes($search, '%_\\')) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Upcoming events (start in the future) that are inside their sale window
      * (empty bounds are open-ended), soonest first. Fetch-joins ticket
      * types, shared stock and the display stock to avoid N+1 lazy-loads when the

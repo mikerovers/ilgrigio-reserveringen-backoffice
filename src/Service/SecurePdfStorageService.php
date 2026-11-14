@@ -298,6 +298,15 @@ class SecurePdfStorageService
         return base64_decode(str_pad(strtr($data, '-_', '+/'), strlen($data) % 4, '=', STR_PAD_RIGHT));
     }
 
+    /**
+     * The QR code (PNG data URI) the PDF prints for a ticket code; shared with
+     * the register's printable ticket sheet so both scan identically.
+     */
+    public function qrDataUriForTicketCode(string $ticketCode): string
+    {
+        return $this->generateTicketQrCode(['ticket_code' => $ticketCode]);
+    }
+
     private function generateTicketQrCode(array $ticketData): string
     {
         // Use ticket_code if available, otherwise fall back to order number

@@ -8,6 +8,7 @@ use App\DTO\CouponListQuery;
 use App\Entity\Coupon;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 use SortDirection;
@@ -32,12 +33,22 @@ class CouponRepository extends ServiceEntityRepository
      */
     public function findPaginated(CouponListQuery $query): Paginator
     {
+        $qb = $this->createListQueryBuilder($query)
+            ->setFirstResult(($query->page - 1) * $query->limit)
+            ->setMaxResults($query->limit);
+
+        return new Paginator($qb, fetchJoinCollection: false);
+    }
+
+    /**
+     * Filtered and ordered list query without limits (page and limit are left to the caller).
+     */
+    public function createListQueryBuilder(CouponListQuery $query): QueryBuilder
+    {
         $direction = $query->orderDirection === 'ASC' ? SortDirection::Ascending : SortDirection::Descending;
         $qb = $this->createQueryBuilder('c')
             ->orderBy('c.createdAt', $direction)
-            ->addOrderBy('c.id', $direction)
-            ->setFirstResult(($query->page - 1) * $query->limit)
-            ->setMaxResults($query->limit);
+            ->addOrderBy('c.id', $direction);
 
         if ($query->search !== null && $query->search !== '') {
             $escaped = preg_replace('/[!%_]/', '!$0', $query->search);
@@ -45,7 +56,7 @@ class CouponRepository extends ServiceEntityRepository
                 ->setParameter('search', '%' . mb_strtolower($escaped) . '%');
         }
 
-        return new Paginator($qb, fetchJoinCollection: false);
+        return $qb;
     }
 
     /**

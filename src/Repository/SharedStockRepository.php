@@ -56,4 +56,24 @@ class SharedStockRepository extends ServiceEntityRepository
             ['qty' => $quantity, 'in' => StockStatus::IN_STOCK->value, 'id' => $pool->id->toRfc4122()],
         );
     }
+
+    /**
+     * Take $quantity from a pool without a capacity guard: the quantity may go
+     * below zero (overbooking). Only for staff actions such as rebooking an
+     * order; customer checkout keeps using reserve().
+     */
+    public function take(SharedStock $pool, int $quantity): void
+    {
+        if ($pool->stockQuantity === null) {
+            return;
+        }
+
+        $this->getEntityManager()->getConnection()->executeStatement(
+            'UPDATE shared_stock
+                SET stock_quantity = stock_quantity - :qty,
+                    stock_status = CASE WHEN stock_quantity - :qty <= 0 THEN :out ELSE stock_status END
+              WHERE id = :id AND stock_quantity IS NOT NULL',
+            ['qty' => $quantity, 'out' => StockStatus::OUT_OF_STOCK->value, 'id' => $pool->id->toRfc4122()],
+        );
+    }
 }

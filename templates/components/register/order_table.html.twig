@@ -1,0 +1,251 @@
+{% set pagination = this.ordersPagination %}
+<div {{ attributes }}>
+    {% if this.flash %}
+        <p role="status" class="mb-4 border px-4 py-3 text-sm {{ this.flashIsError ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800' }}">
+            {{ this.flash }}
+        </p>
+    {% endif %}
+
+    <div class="border border-[#eadfd1] bg-white" data-loading="addClass(opacity-60)">
+        <div class="flex items-center gap-2 border-b border-[#eadfd1] bg-[#fbeedd] p-3 sm:p-4">
+            <label for="order-search" class="sr-only">Zoeken</label>
+            <input type="search" id="order-search" data-model="debounce(300)|search" placeholder="Zoeken op bestelnummer of naam" autocomplete="off" maxlength="64"
+                   class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+            <svg class="shrink-0 text-gray-500" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>
+            </svg>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[44rem] text-left text-base">
+                <thead>
+                    <tr class="border-b border-[#eadfd1] text-sm font-semibold uppercase tracking-widest text-gray-500">
+                        <th scope="col" class="px-4 py-3 text-center">Status</th>
+                        <th scope="col" class="px-4 py-3 text-center"><span class="sr-only">Bron</span></th>
+                        <th scope="col" class="px-4 py-3">Bestelnummer</th>
+                        <th scope="col" class="px-4 py-3">Naam</th>
+                        <th scope="col" class="px-4 py-3">Aanmaakdatum</th>
+                        <th scope="col" class="px-4 py-3 text-right">Totaal</th>
+                        <th scope="col" class="px-4 py-3"><span class="sr-only">Acties</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in pagination %}
+                        {% set status = order.status.value %}
+                        <tr class="border-b border-[#eadfd1] last:border-b-0 odd:bg-white even:bg-[#fffaf2]">
+                            <td class="align-middle px-4 py-3 text-center">
+                                {% set labels = {pending: 'In afwachting', processing: 'In behandeling', completed: 'Voltooid', cancelled: 'Geannuleerd', failed: 'Mislukt', refunded: 'Terugbetaald'} %}
+                                <span class="group relative flex justify-center">
+                                    <span aria-hidden="true" data-tooltip="{{ labels[status] }}" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{{ labels[status] }}</span>
+                                    {% if status == 'completed' %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-green-600" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m7 12.5 3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% elseif status == 'failed' %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-red-600" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="16.8" r="1.4" fill="#fff"/></svg>
+                                    {% elseif status == 'cancelled' %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-gray-500" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m8.5 8.5 7 7m0-7-7 7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+                                    {% elseif status == 'refunded' %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-purple-600" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 11a4.5 4.5 0 1 1 1.3 4.2M8 7.5V11h3.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% else %}
+                                        <svg width="24" height="24" viewBox="0 0 24 24" class="text-amber-500" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v5.2l3.2 2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% endif %}
+                                    <span class="sr-only">{{ labels[status] }}</span>
+                                </span>
+                            </td>
+                            <td class="align-middle px-4 py-3 text-center">
+                                {% if order.source and order.source.value == 'register' %}
+                                    <span class="group relative flex justify-center text-[#c62828]">
+                                    <span aria-hidden="true" data-tooltip="Via kassa" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">Via kassa</span>
+                                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10l1 5H6zM5 8h14v4H5zM8 12v3h8v-3M7 15l-2 5h14l-2-5M9 17.5h6"/></svg>
+                                        <span class="sr-only">Via kassa</span>
+                                    </span>
+                                {% else %}
+                                    <span class="group relative flex justify-center text-[#4a90e2]">
+                                    <span aria-hidden="true" data-tooltip="Via internet" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">Via internet</span>
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+                                        <span class="sr-only">Via internet</span>
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle px-4 py-3 font-medium whitespace-nowrap">{{ order.orderNumber }}</td>
+                            <td class="align-middle px-4 py-3">{{ order.customer.firstName }} {{ order.customer.lastName }}</td>
+                            <td class="align-middle px-4 py-3 whitespace-nowrap">{{ order.createdAt|date('d-m-Y H:i:s') }}</td>
+                            <td class="align-middle px-4 py-3 text-right whitespace-nowrap">€ {{ this.formatMoney(order) }}</td>
+                            <td class="align-middle px-4 py-3 text-right" data-controller="register--dropdown">
+                                <button type="button" data-register--dropdown-target="trigger" data-action="register--dropdown#toggle"
+                                        aria-haspopup="menu" aria-expanded="false" aria-label="Acties voor bestelling {{ order.orderNumber }}"
+                                        class="inline-flex h-12 w-12 items-center justify-center text-gray-600 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                                </button>
+                                <div data-register--dropdown-target="menu" role="menu" class="hidden z-30 w-64 border border-[#eadfd1] bg-white py-1 text-left shadow-lg">
+                                    <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="openNotes" data-live-order-number-param="{{ order.orderNumber }}"
+                                            class="flex min-h-12 w-full items-center gap-3 px-4 text-base hover:bg-[#fbeedd] focus:bg-[#fbeedd] focus:outline-none">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h12M3 9h8M3 13h5M12 15l5-5 1.5 1.5-5 5H12z"/></svg>
+                                        Notities
+                                    </button>
+                                    {% if this.canResendMail(order) %}
+                                        <a href="{{ path('register_order_tickets', {orderNumber: order.orderNumber}) }}" target="_blank" rel="noopener" role="menuitem" data-turbo="false" data-action="register--dropdown#close"
+                                           class="flex min-h-12 w-full items-center gap-3 px-4 text-base hover:bg-[#fbeedd] focus:bg-[#fbeedd] focus:outline-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 15.5h12"/></svg>
+                                            Download tickets
+                                        </a>
+                                    {% endif %}
+                                    {% if this.canRebook(order) %}
+                                        <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="openRebook" data-live-order-number-param="{{ order.orderNumber }}"
+                                                class="flex min-h-12 w-full items-center gap-3 px-4 text-base hover:bg-[#fbeedd] focus:bg-[#fbeedd] focus:outline-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12.5" rx="1"/><path d="M3 8.5h14M7 3v3M13 3v3M8 13h4m-1.5-1.5L12 13l-1.5 1.5"/></svg>
+                                            Omboeken
+                                        </button>
+                                    {% endif %}
+                                    {% if this.canCancel(order) %}
+                                        <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="askCancel" data-live-order-number-param="{{ order.orderNumber }}"
+                                                class="flex min-h-12 w-full items-center gap-3 px-4 text-base hover:bg-[#fbeedd] focus:bg-[#fbeedd] focus:outline-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="m7 7 6 6m0-6-6 6"/></svg>
+                                            Annuleren
+                                        </button>
+                                    {% endif %}
+                                    {% if this.canResendMail(order) %}
+                                        <button type="button" role="menuitem" data-action="register--dropdown#close live#action" data-live-action-param="resendMail" data-live-order-number-param="{{ order.orderNumber }}"
+                                                class="flex min-h-12 w-full items-center gap-3 px-4 text-base hover:bg-[#fbeedd] focus:bg-[#fbeedd] focus:outline-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="1"/><path d="m3 5.5 7 5.5 7-5.5"/></svg>
+                                            Mail opnieuw versturen
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-12 text-center text-gray-600">
+                                {{ this.search|trim is empty ? 'Er zijn nog geen bestellingen.' : 'Geen bestellingen gevonden.' }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {{ ux_pagination(pagination, theme: 'register/pagination.html.twig', linkAttributes: this.paginationLinkAttributes) }}
+    </div>
+
+    {% set notesOrder = this.notesOrder %}
+    {% if notesOrder %}
+        <div class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8" data-action="keydown.esc@window->live#action" data-live-action-param="closeModal">
+            <div role="dialog" aria-modal="true" aria-labelledby="notes-title" class="w-full max-w-2xl bg-white shadow-xl">
+                <div class="bg-[#c62828] px-6 py-4 text-white">
+                    <h2 id="notes-title" class="text-lg font-semibold">Notities voor bestelling “{{ notesOrder.orderNumber }}”</h2>
+                </div>
+                <div class="max-h-[40vh] space-y-3 overflow-y-auto px-6 py-5">
+                    {% for note in this.notes %}
+                        <div class="border-b border-[#eadfd1] pb-3 last:border-b-0">
+                            <p class="whitespace-pre-line text-base">{{ note.content }}</p>
+                            <p class="mt-1 text-xs text-gray-500">{{ note.createdAt|date('d-m-Y H:i') }}</p>
+                        </div>
+                    {% else %}
+                        <p class="text-gray-600">Er zijn nog geen notities.</p>
+                    {% endfor %}
+                </div>
+                <form data-action="live#action:prevent" data-live-action-param="addNote" class="border-t border-[#eadfd1] px-6 py-5">
+                    <label for="note-content" class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500">Notitie aanmaken</label>
+                    <textarea id="note-content" rows="3" maxlength="5000" data-model="norender|noteContent" placeholder="Notitie"
+                              class="w-full border border-[#d6c4b1] bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]"></textarea>
+                    {% if this.noteError %}
+                        <p role="alert" class="mt-2 text-sm text-red-700">{{ this.noteError }}</p>
+                    {% endif %}
+                    <div class="mt-4 flex justify-end gap-3">
+                        <button type="button" data-action="live#action" data-live-action-param="closeModal"
+                                class="h-12 px-5 text-sm font-semibold uppercase tracking-wider text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">Sluiten</button>
+                        <button type="submit" data-loading="addAttribute(disabled)"
+                                class="h-12 bg-[#c62828] px-5 text-sm font-semibold uppercase tracking-wider text-white hover:bg-[#a91f24] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c62828] disabled:opacity-60">Notitie aanmaken</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
+    {% set cancelOrder = this.cancelOrder %}
+    {% if cancelOrder %}
+        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" data-action="keydown.esc@window->live#action" data-live-action-param="closeModal">
+            <div role="alertdialog" aria-modal="true" aria-labelledby="cancel-title" class="w-full max-w-md bg-white shadow-xl">
+                <div class="bg-[#c62828] px-6 py-4 text-white">
+                    <h2 id="cancel-title" class="text-lg font-semibold">Bestelling annuleren?</h2>
+                </div>
+                <div class="px-6 py-5 text-base">
+                    <p>Bestelling <strong>{{ cancelOrder.orderNumber }}</strong> wordt geannuleerd: tickets worden ongeldig en de voorraad komt vrij. Er wordt geen geld terugbetaald.</p>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-[#eadfd1] px-6 py-4">
+                    <button type="button" data-action="live#action" data-live-action-param="closeModal"
+                            class="h-12 px-5 text-sm font-semibold uppercase tracking-wider text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">Terug</button>
+                    <button type="button" data-action="live#action" data-live-action-param="confirmCancel" data-loading="addAttribute(disabled)"
+                            class="h-12 bg-[#c62828] px-5 text-sm font-semibold uppercase tracking-wider text-white hover:bg-[#a91f24] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c62828] disabled:opacity-60">Annuleren</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    {% set rebookOrder = this.rebookOrder %}
+    {% if rebookOrder %}
+        {% set rebookTarget = this.rebookTarget %}
+        <div class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8" data-action="keydown.esc@window->live#action" data-live-action-param="closeModal">
+            <div role="dialog" aria-modal="true" aria-labelledby="rebook-title" class="w-full max-w-2xl bg-white shadow-xl">
+                <div class="bg-[#c62828] px-6 py-4 text-white">
+                    <h2 id="rebook-title" class="text-lg font-semibold">Bestelling “{{ rebookOrder.orderNumber }}” omboeken</h2>
+                </div>
+                <div class="space-y-5 px-6 py-5 text-base">
+                    {% if this.rebookSource %}
+                        <p>Nu: <strong>{{ this.rebookSource.name }}</strong>, {{ this.rebookSource.startsAt|date('d-m-Y H:i') }}</p>
+
+                        <div>
+                            <label for="rebook-event" class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500">Nieuwe show</label>
+                            <select id="rebook-event" data-model="rebookEvent"
+                                    class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                                <option value="" {{ this.rebookEvent == '' ? 'selected' }}>Kies een show…</option>
+                                {% for event in this.rebookTargets %}
+                                    <option value="{{ event.id }}" {{ this.rebookEvent == event.id|e ? 'selected' }}>{{ event.name }} — {{ event.startsAt|date('d-m-Y H:i') }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if this.rebookTargets is empty %}
+                                <p class="mt-2 text-sm text-gray-600">Er zijn geen andere komende shows in dezelfde categorie.</p>
+                            {% endif %}
+                        </div>
+
+                        {% if rebookTarget %}
+                            <div>
+                                <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">Tickettypes koppelen</p>
+                                <ul class="space-y-3">
+                                    {% for row in this.rebookTypes %}
+                                        {% set sourceId = row.ticketType.id|e %}
+                                        <li class="grid items-center gap-2 sm:grid-cols-2">
+                                            <span>{{ row.quantity }} × {{ row.name }}</span>
+                                            <select data-model="rebookMap[{{ sourceId }}]" aria-label="Tickettype voor {{ row.name }}"
+                                                    class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
+                                                <option value="">Kies tickettype…</option>
+                                                {% for type in rebookTarget.ticketTypes %}
+                                                    {% if not type.disabled %}
+                                                        <option value="{{ type.id }}" {{ this.rebookMap[sourceId]|default('') == type.id|e ? 'selected' }}>{{ type.name }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                                {% set quantity = rebookTarget.displayStockQuantity %}
+                                {% if quantity is not null and quantity < rebookOrder.tickets|length %}
+                                    <p class="mt-3 text-sm text-amber-800">Let op: deze show heeft nog {{ max(quantity, 0) }} plaatsen vrij. Omboeken kan, maar overboekt de show.</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    {% if this.rebookError %}
+                        <p role="alert" class="text-sm text-red-700">{{ this.rebookError }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex justify-end gap-3 border-t border-[#eadfd1] px-6 py-4">
+                    <button type="button" data-action="live#action" data-live-action-param="closeModal"
+                            class="h-12 px-5 text-sm font-semibold uppercase tracking-wider text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">Sluiten</button>
+                    <button type="button" data-action="live#action" data-live-action-param="confirmRebook" data-loading="addAttribute(disabled)"
+                            {{ rebookTarget ? '' : 'disabled' }}
+                            class="h-12 bg-[#c62828] px-5 text-sm font-semibold uppercase tracking-wider text-white hover:bg-[#a91f24] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#c62828] disabled:opacity-60">Omboeken</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
