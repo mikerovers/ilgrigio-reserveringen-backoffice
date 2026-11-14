@@ -1,13 +1,13 @@
 {% set pagination = this.couponsPagination %}
-<div {{ attributes }}>
+<div {{ attributes.defaults({class: 'flex h-full min-h-0 flex-col'}) }}>
     {% if this.flash %}
-        <p role="status" class="mb-4 border px-4 py-3 text-sm {{ this.flashIsError ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800' }}">
+        <p role="status" class="mb-4 shrink-0 border px-4 py-3 text-sm {{ this.flashIsError ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800' }}">
             {{ this.flash }}
         </p>
     {% endif %}
 
-    <div class="border border-[#eadfd1] bg-white" data-loading="addClass(opacity-60)">
-        <div class="flex items-center gap-2 border-b border-[#eadfd1] bg-[#fbeedd] p-3 sm:p-4">
+    <div class="flex min-h-0 flex-1 flex-col border border-[#eadfd1] bg-white" data-loading="addClass(opacity-60)">
+        <div class="flex shrink-0 items-center gap-2 border-b border-[#eadfd1] bg-[#fbeedd] p-3 sm:p-4">
             <label for="coupon-search" class="sr-only">Zoeken</label>
             <input type="search" id="coupon-search" data-model="debounce(300)|search" placeholder="Zoeken op code" autocomplete="off" maxlength="64"
                    class="h-12 w-full border border-[#d6c4b1] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c62828]">
@@ -16,9 +16,9 @@
             </svg>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="min-h-0 flex-1 overflow-auto">
             <table class="w-full min-w-[40rem] text-left text-base">
-                <thead>
+                <thead class="sticky top-0 z-10 bg-white shadow-[0_1px_0_#eadfd1]">
                     <tr class="border-b border-[#eadfd1] text-sm font-semibold uppercase tracking-widest text-gray-500">
                         <th scope="col" class="px-4 py-3 text-center">Status</th>
                         <th scope="col" class="px-4 py-3">Code</th>
@@ -82,7 +82,9 @@
             </table>
         </div>
 
-        {{ ux_pagination(pagination, theme: 'register/pagination.html.twig', linkAttributes: this.paginationLinkAttributes) }}
+        <div class="shrink-0">
+            {{ ux_pagination(pagination, theme: 'register/pagination.html.twig', linkAttributes: this.paginationLinkAttributes) }}
+        </div>
     </div>
 
     {% set deactivateCoupon = this.deactivateCoupon %}

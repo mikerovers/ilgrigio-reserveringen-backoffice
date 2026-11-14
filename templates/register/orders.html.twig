@@ -2,9 +2,12 @@
 
 {% block title %}Bestellingen{% endblock %}
 
+{# The page itself does not scroll: only the table does, header and pagination stay put. #}
+{% block body_class %}h-dvh overflow-hidden{% endblock %}
+
 {% block content %}
-    <main class="flex-1 px-4 py-6">
-        <div class="mx-auto max-w-6xl">
+    <main class="min-h-0 flex-1 px-4 py-6">
+        <div class="mx-auto h-full max-w-6xl">
             <h1 class="sr-only">Bestellingen</h1>
             {{ component('RegisterOrderTable') }}
         </div>
