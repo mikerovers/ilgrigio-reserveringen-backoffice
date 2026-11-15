@@ -17,8 +17,8 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-auto">
-            <table class="w-full min-w-[44rem] text-left text-base">
-                <thead class="sticky top-0 z-10 bg-white shadow-[0_1px_0_#eadfd1]">
+            <table class="w-full text-left text-base md:min-w-[44rem]">
+                <thead class="max-md:hidden sticky top-0 z-10 bg-white shadow-[0_1px_0_#eadfd1]">
                     <tr class="border-b border-[#eadfd1] text-sm font-semibold uppercase tracking-widest text-gray-500">
                         <th scope="col" class="px-4 py-3 text-center">Status</th>
                         <th scope="col" class="px-4 py-3 text-center"><span class="sr-only">Bron</span></th>
@@ -32,8 +32,8 @@
                 <tbody>
                     {% for order in pagination %}
                         {% set status = order.status.value %}
-                        <tr class="border-b border-[#eadfd1] last:border-b-0 odd:bg-white even:bg-[#fffaf2]">
-                            <td class="align-middle px-4 py-3 text-center">
+                        <tr class="border-b border-[#eadfd1] last:border-b-0 odd:bg-white even:bg-[#fffaf2] max-md:grid max-md:grid-cols-[auto_auto_minmax(0,1fr)_auto] max-md:items-center max-md:gap-x-3 max-md:gap-y-1 max-md:px-4 max-md:py-3">
+                            <td class="align-middle px-4 py-3 text-center max-md:p-0">
                                 {% set labels = {pending: 'In afwachting', processing: 'In behandeling', completed: 'Voltooid', cancelled: 'Geannuleerd', failed: 'Mislukt', refunded: 'Terugbetaald'} %}
                                 <span class="group relative flex justify-center">
                                     <span aria-hidden="true" data-tooltip="{{ labels[status] }}" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{{ labels[status] }}</span>
@@ -51,7 +51,7 @@
                                     <span class="sr-only">{{ labels[status] }}</span>
                                 </span>
                             </td>
-                            <td class="align-middle px-4 py-3 text-center">
+                            <td class="align-middle px-4 py-3 text-center max-md:p-0">
                                 {% if order.source and order.source.value == 'register' %}
                                     <span class="group relative flex justify-center text-[#c62828]">
                                     <span aria-hidden="true" data-tooltip="Via kassa" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">Via kassa</span>
@@ -66,7 +66,7 @@
                                     </span>
                                 {% endif %}
                             </td>
-                            <td class="align-middle px-4 py-3 font-medium whitespace-nowrap">
+                            <td class="align-middle px-4 py-3 font-medium whitespace-nowrap max-md:p-0">
                                 <span class="inline-flex items-center gap-2">
                                     {{ order.orderNumber }}
                                     {% if order.note %}
@@ -78,10 +78,10 @@
                                     {% endif %}
                                 </span>
                             </td>
-                            <td class="align-middle px-4 py-3">{{ (order.billing.firstName ~ ' ' ~ order.billing.lastName)|trim ?: (order.customer.firstName ~ ' ' ~ order.customer.lastName) }}</td>
-                            <td class="align-middle px-4 py-3 whitespace-nowrap">{{ order.createdAt|date('d-m-Y H:i:s') }}</td>
-                            <td class="align-middle px-4 py-3 text-right whitespace-nowrap">€ {{ this.formatMoney(order) }}</td>
-                            <td class="align-middle px-4 py-3 text-right" data-controller="register--dropdown">
+                            <td class="align-middle px-4 py-3 max-md:col-span-4 max-md:p-0">{{ (order.billing.firstName ~ ' ' ~ order.billing.lastName)|trim ?: (order.customer.firstName ~ ' ' ~ order.customer.lastName) }}</td>
+                            <td class="align-middle px-4 py-3 whitespace-nowrap max-md:col-span-3 max-md:p-0 max-md:text-sm max-md:text-gray-600">{{ order.createdAt|date('d-m-Y H:i:s') }}</td>
+                            <td class="align-middle px-4 py-3 text-right whitespace-nowrap max-md:p-0 max-md:font-semibold">€ {{ this.formatMoney(order) }}</td>
+                            <td class="align-middle px-4 py-3 text-right max-md:col-start-4 max-md:row-start-1 max-md:p-0" data-controller="register--dropdown">
                                 <button type="button" data-register--dropdown-target="trigger" data-action="register--dropdown#toggle"
                                         aria-haspopup="menu" aria-expanded="false" aria-label="Acties voor bestelling {{ order.orderNumber }}"
                                         class="inline-flex h-12 w-12 items-center justify-center text-gray-600 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]">

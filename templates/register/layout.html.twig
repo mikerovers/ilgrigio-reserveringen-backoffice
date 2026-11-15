@@ -38,10 +38,10 @@
         <ul class="mx-auto max-w-6xl px-2 sm:px-4 flex">
             {% for item in menu %}
                 {% set active = app.current_route == item.route %}
-                <li class="flex-1 sm:flex-none">
+                <li class="min-w-0 flex-1 sm:flex-none">
                     <a href="{{ path(item.route) }}"
                        {% if active %}aria-current="page"{% endif %}
-                       class="flex min-h-12 items-center justify-center gap-2 border-b-4 px-4 text-base font-semibold sm:justify-start sm:px-6
+                       class="flex min-h-12 items-center justify-center gap-1.5 border-b-4 px-2 text-sm min-[420px]:gap-2 min-[420px]:px-4 min-[420px]:text-base font-semibold sm:justify-start sm:px-6 sm:text-base
                               {{ active ? 'border-[#c62828] bg-white text-[#c62828]' : 'border-transparent text-gray-700 hover:bg-white/60 hover:text-[#c62828]' }}
                               focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c62828]">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
