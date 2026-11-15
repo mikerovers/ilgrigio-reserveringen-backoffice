@@ -66,7 +66,18 @@
                                     </span>
                                 {% endif %}
                             </td>
-                            <td class="align-middle px-4 py-3 font-medium whitespace-nowrap">{{ order.orderNumber }}</td>
+                            <td class="align-middle px-4 py-3 font-medium whitespace-nowrap">
+                                <span class="inline-flex items-center gap-2">
+                                    {{ order.orderNumber }}
+                                    {% if order.note %}
+                                        <span class="group relative inline-flex text-[#c62828]">
+                                            <span aria-hidden="true" class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 w-max max-w-xs -translate-x-1/2 whitespace-pre-line rounded-md bg-[#2b2118] px-3 py-1.5 text-sm font-medium normal-case text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{{ order.note }}</span>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v12h-7l-4 4v-4H5zM8.5 9h7M8.5 12h4.5"/></svg>
+                                            <span class="sr-only">Notitie: {{ order.note }}</span>
+                                        </span>
+                                    {% endif %}
+                                </span>
+                            </td>
                             <td class="align-middle px-4 py-3">{{ (order.billing.firstName ~ ' ' ~ order.billing.lastName)|trim ?: (order.customer.firstName ~ ' ' ~ order.customer.lastName) }}</td>
                             <td class="align-middle px-4 py-3 whitespace-nowrap">{{ order.createdAt|date('d-m-Y H:i:s') }}</td>
                             <td class="align-middle px-4 py-3 text-right whitespace-nowrap">€ {{ this.formatMoney(order) }}</td>
