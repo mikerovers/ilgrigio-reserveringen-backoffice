@@ -32,6 +32,13 @@ when@test:
 when@prod:
     monolog:
         handlers:
+            # Does not write anything. The New Relic PHP agent forwards log records that reach a
+            # Monolog handler, so this makes every record reach it regardless of the fingers_crossed
+            # `main` handler below. The minimum level that is actually sent is NEW_RELIC_LOG_LEVEL.
+            new_relic_forward:
+                type: "null"
+                level: debug
+                bubble: true
             main:
                 type: fingers_crossed
                 action_level: error
