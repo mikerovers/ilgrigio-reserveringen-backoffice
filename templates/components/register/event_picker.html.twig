@@ -130,7 +130,7 @@
                                 <div class="min-w-0">
                                     <p class="text-base font-semibold">{{ type.name }}</p>
                                     {% if type.sharedStock %}
-                                        <div class="mt-1">{{ include('components/register/_pool_chip.html.twig', {pool: type.sharedStock}) }}</div>
+                                        <div class="mt-1">{{ include('components/register/_pool_chip.html.twig', {pool: type.sharedStock, hide_quantity: true}) }}</div>
                                     {% endif %}
                                 </div>
                                 <p class="whitespace-nowrap text-right text-base tabular-nums">€ {{ this.money(type.price) }}</p>
