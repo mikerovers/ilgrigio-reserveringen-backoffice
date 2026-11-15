@@ -17,7 +17,11 @@
                 <h1 class="text-lg font-semibold">Inloggen</h1>
             </div>
             <form method="post" class="space-y-5 p-6">
-                {% if error %}
+                {% if no_access %}
+                    <p role="alert" class="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                        Dit account heeft geen toegang tot de scanbalie. Log in met een ander account.
+                    </p>
+                {% elseif error %}
                     <p role="alert" class="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
                         {{ error.messageKey|trans(error.messageData, 'security') }}
                     </p>
