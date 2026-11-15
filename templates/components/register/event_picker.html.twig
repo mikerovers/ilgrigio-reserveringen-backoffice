@@ -117,7 +117,7 @@
                 </div>
 
                 <div class="border border-[#eadfd1]">
-                    <div class="grid grid-cols-[1fr_auto_11rem] items-center gap-x-4 border-b border-[#eadfd1] bg-[#fbeedd] px-4 py-3 text-sm font-semibold uppercase tracking-widest text-gray-600">
+                    <div class="hidden sm:grid grid-cols-[1fr_auto_11rem] items-center gap-x-4 border-b border-[#eadfd1] bg-[#fbeedd] px-4 py-3 text-sm font-semibold uppercase tracking-widest text-gray-600">
                         <span>Kaartje</span>
                         <span class="text-right">Prijs</span>
                         <span class="text-center">Aantal</span>
@@ -126,7 +126,7 @@
                         {% for type in this.ticketTypes %}
                             {% set id = type.id.toRfc4122 %}
                             {% set qty = cart[id] ?? 0 %}
-                            <li class="grid grid-cols-[1fr_auto_11rem] items-center gap-x-4 px-4 py-3 {{ qty > 0 ? 'border-l-4 border-[#c62828] pl-3' : '' }}">
+                            <li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto_11rem] gap-x-4 px-4 py-3 {{ qty > 0 ? 'border-l-4 border-[#c62828] pl-3' : '' }}">
                                 <div class="min-w-0">
                                     <p class="text-base font-semibold">{{ type.name }}</p>
                                     {% if type.sharedStock %}
@@ -134,7 +134,7 @@
                                     {% endif %}
                                 </div>
                                 <p class="whitespace-nowrap text-right text-base tabular-nums">€ {{ this.money(type.price) }}</p>
-                                <div class="flex items-center justify-center">
+                                <div class="flex items-center justify-center max-sm:col-span-2">
                                     <button type="button" data-action="live#action" data-live-action-param="adjust" data-live-id-param="{{ id }}" data-live-delta-param="-1"
                                             aria-label="Minder {{ type.name }}" {{ qty == 0 ? 'disabled' }}
                                             class="inline-flex h-12 w-12 items-center justify-center border border-[#d6c4b1] bg-white text-gray-700 hover:bg-[#fbeedd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white">
