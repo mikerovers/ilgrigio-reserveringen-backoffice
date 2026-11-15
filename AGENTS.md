@@ -78,7 +78,7 @@ src/
   MessageHandler/     # Async message handlers
   Payment/            # Payment integration (OmnipayMolliePaymentInitiator, PaymentInitiatorInterface)
   Repository/         # Doctrine repositories
-  Security/           # API key authenticator and user provider
+  Security/           # Customer email-code authenticator
   Service/            # Business logic services
   Webhook/            # Mollie webhook request parser and consumer
 templates/            # Twig templates (HTML, email, PDF)
@@ -100,8 +100,9 @@ config/
   `OrderFulfilmentListener` issues tickets idempotently, creates a signed PDF
   token, and queues `SendOrderEmailMessage` on the Doctrine-backed `email`
   transport.
-- The `main` firewall protects the EasyAdmin backoffice. Most `/api` endpoints
-  use the API-key authenticator; check-in and order reprocessing require a JWT.
+- The `main` firewall protects the EasyAdmin backoffice. The register/check-in
+  `/api` endpoints require a JWT (`secure_api` firewall); the public storefront `/api` routes
+  (coupon validation, available events) need no login. The old API-key authentication was removed.
 - **Register (JWT, `ROLE_REGISTER`) API:** `GET /api/events` (returns both
   `ticketTypes` and `sharedStocks`; stock pools and ticket types carry `lowStockThreshold`
   and a derived `lowStock` flag, true when remaining quantity <= threshold), `GET /api/event-categories`,
@@ -125,7 +126,7 @@ config/
   (`PageQuery`, `CouponListQuery`; events use `EventListQuery`), returning
   `PaginatedResponse`. Any new JWT-only route must also be added to the
   `secure_api` firewall pattern in `config/packages/security.yaml`, otherwise it
-  falls through to the API-key firewall and a JWT gets a 401. `ROLE_ADMIN` inherits
+  falls through to the `main` firewall and a JWT is ignored (the request is redirected to the login form). `ROLE_ADMIN` inherits
   `ROLE_REGISTER` and `ROLE_CHECK_IN` via `role_hierarchy`, so admins can call every API endpoint;
   the check-in endpoints (`CheckInController`) require `ROLE_CHECK_IN`, which `ROLE_REGISTER` does not grant;
   create dedicated users interactively with `bin/console app:user:create` (prompts for email, name,
@@ -436,7 +437,6 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `REGISTER_GROUP_DISCOUNT_PERCENT` | Percentage of the kassa "Groepskorting" button (default `10`) |
 | `ORDER_RESERVATION_TTL_MINUTES` | How long an unpaid web order holds stock (default `30`) |
 | `TAX_RATE` | VAT rate (e.g. `9` for 9%) |
-| `API_KEY` | API key for `OrderApiController` authentication |
 | `MESSENGER_TRANSPORT_DSN` | Doctrine DSN for the `async` queue, e.g. `doctrine://default?queue_name=async` |
 | `MESSENGER_EMAIL_TRANSPORT_DSN` | DSN for order emails (`email` transport). `sync://` sends inline; a Doctrine DSN queues them |
 | `MESSENGER_FAILED_TRANSPORT_DSN` | Doctrine DSN for exhausted messages, e.g. `doctrine://default?queue_name=failed` |

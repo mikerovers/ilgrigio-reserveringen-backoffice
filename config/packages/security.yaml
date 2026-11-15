@@ -11,8 +11,6 @@ security:
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         # used to reload user from session & other features (e.g. switch_user)
-        api_key_users:
-            id: App\Security\ApiKeyUserProvider
         # backs the JWT login firewall — loads App\Entity\User by email
         app_user_provider:
             entity:
@@ -97,23 +95,13 @@ security:
 
         # check-in, me, orders (listing/detail/process/notes), coupons, and the
         # events/event-categories listing endpoints accept ONLY a JWT bearer
-        # token (jwt: ~, registered by LexikJWTAuthenticationBundle) — the legacy X-API-KEY header is
-        # deliberately NOT accepted here. Must appear before the general
-        # `api` firewall below — Symfony picks the first firewall whose
-        # pattern matches.
+        # token (jwt: ~, registered by LexikJWTAuthenticationBundle). Any other
+        # /api route (the public storefront ones) falls through to the `main` firewall.
         secure_api:
             pattern: ^/api/(events/[^/]+/check-in|events$|event-categories$|me$|orders$|orders/[^/]+$|orders/[^/]+/(process|notes|tickets|check-in)$|sale-report$|coupons$|coupons/[^/]+/deactivate$)
             stateless: true
             provider: app_user_provider
             jwt: ~
-
-        # All other /api/* routes — unchanged, API-key only.
-        api:
-            pattern: ^/api
-            stateless: true
-            provider: api_key_users
-            custom_authenticators:
-                - App\Security\ApiKeyAuthenticator
 
         # Passwordless customer login (emailed one-time code) for the public
         # storefront's ticket download area. Own firewall, so the customer

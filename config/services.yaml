@@ -97,11 +97,6 @@ services:
         arguments:
             $taxRatePercent: '%env(float:TAX_RATE)%'
 
-    # API Key Authenticator configuration
-    App\Security\ApiKeyAuthenticator:
-        arguments:
-            $apiKey: '%env(API_KEY)%'
-
     # Publishes check-in updates to the Mercure hub (scanner app live sync)
     App\Service\CheckInBroadcaster:
         arguments:

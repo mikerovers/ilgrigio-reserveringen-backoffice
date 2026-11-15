@@ -16,8 +16,7 @@ when@dev: &nelmio_api_doc_config
                 securitySchemes:
                     # Registered here (not under areas.default.security) so it's
                     # available for the #[Security(name: 'BearerAuth')] override
-                    # on check-in/order-process without becoming every route's
-                    # default requirement alongside ApiKeyAuth.
+                    # on the JWT routes without becoming every route's default requirement.
                     BearerAuth:
                         type: http
                         scheme: bearer
@@ -28,11 +27,6 @@ when@dev: &nelmio_api_doc_config
                     # Document /api routes, excluding available-events, validate-coupon,
                     # and remove-coupon.
                     - "^/api(?!/(available-events|validate-coupon|remove-coupon)$)"
-                security:
-                    ApiKeyAuth:
-                        type: apiKey
-                        in: header
-                        name: X-API-KEY
         models:
             use_jms: false
 
