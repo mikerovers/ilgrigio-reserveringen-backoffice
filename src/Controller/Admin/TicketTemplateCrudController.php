@@ -122,6 +122,13 @@ class TicketTemplateCrudController extends AbstractCrudController
         $position = 0;
         foreach ($sections as $section) {
             $section->content = $this->sanitizer->sanitize($section->content);
+
+            // A part that was added but left empty is dropped (orphanRemoval deletes it).
+            if (trim(strip_tags($section->content)) === '') {
+                $template->removeSection($section);
+                continue;
+            }
+
             $section->position = $position++;
         }
 
