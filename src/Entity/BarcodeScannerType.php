@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use SortDirection;
 use App\Repository\BarcodeScannerTypeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -52,7 +53,7 @@ class BarcodeScannerType
 
     /** @var Collection<int, ScannerProgrammingBarcode> */
     #[ORM\OneToMany(targetEntity: ScannerProgrammingBarcode::class, mappedBy: 'scannerType', cascade: ['persist'])]
-    #[ORM\OrderBy(['sortOrder' => 'ASC'])]
+    #[ORM\OrderBy(['sortOrder' => SortDirection::Ascending])]
     public Collection $barcodes;
 
     public function __construct(string $name = '')

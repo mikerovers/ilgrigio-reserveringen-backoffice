@@ -8,6 +8,7 @@ use App\Controller\Admin\TicketTemplateCrudController;
 use App\Entity\TicketTemplate;
 use App\Entity\TicketTemplateSection;
 use App\Entity\User;
+use App\Form\TicketTemplateSectionType;
 use App\Service\TicketContentSanitizer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -73,6 +74,21 @@ final class TicketTemplateCrudTest extends WebTestCase
         $entityManager->expects($this->once())->method('flush');
 
         $this->controller()->deleteEntity($entityManager, $template);
+    }
+
+    public function testNewSectionWithoutPositionAndContentCanBeSubmitted(): void
+    {
+        self::bootKernel();
+        $form = static::getContainer()->get('form.factory')->create(TicketTemplateSectionType::class);
+
+        // What the browser posts for a part that was just added and left untouched.
+        $form->submit(['content' => '', 'position' => '']);
+
+        self::assertTrue($form->isSynchronized());
+        $section = $form->getData();
+        self::assertInstanceOf(TicketTemplateSection::class, $section);
+        self::assertSame(0, $section->position);
+        self::assertSame('', $section->content);
     }
 
     private function controller(): TicketTemplateCrudController

@@ -24,10 +24,15 @@ final class TicketTemplateSectionType extends AbstractType
             ->add('content', TextEditorType::class, [
                 'label' => false,
                 'required' => false,
+                // An untouched editor posts nothing; the property is a non-null string.
+                'empty_data' => '',
                 'attr' => ['class' => 'ticket-section-editor'],
                 'row_attr' => ['class' => 'ticket-section-editor'],
             ])
             ->add('position', HiddenType::class, [
+                // A part added in the browser has no position yet; the CRUD
+                // controller renumbers every part on save anyway.
+                'empty_data' => 0,
                 'attr' => ['data-ticket-section-position' => ''],
             ]);
     }
