@@ -7,7 +7,6 @@ namespace App\Controller\Admin;
 use App\Entity\EventCategory;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -35,12 +34,18 @@ class EventCategoryCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->onlyOnDetail();
         yield TextField::new('name');
         yield TextField::new('slug')
             ->hideOnForm()
             ->setHelp('Generated automatically from the name.');
-        yield DateTimeField::new('createdAt')->hideOnForm();
-        yield DateTimeField::new('updatedAt')->hideOnForm();
+        yield TextField::new('id', 'Events')
+            ->setSortable(false)
+            ->onlyOnIndex()
+            ->formatValue(
+                static fn (mixed $value, EventCategory $category): string => (string) $category->events->count(),
+            );
+        yield VenueDateTimeField::new('createdAt')->onlyOnDetail();
+        yield VenueDateTimeField::new('updatedAt')->onlyOnDetail();
     }
 }

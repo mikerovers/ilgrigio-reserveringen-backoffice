@@ -9,6 +9,7 @@ use App\Enum\DiscountType;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -16,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
 use Money\Currencies\ISOCurrencies;
 use Money\Formatter\DecimalMoneyFormatter;
 use Money\Money;
@@ -45,7 +47,8 @@ class CouponCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Coupon')
             ->setEntityLabelInPlural('Coupons')
-            ->setDefaultSort(['createdAt' => 'DESC']);
+            ->setDefaultSort(['createdAt' => 'DESC'])
+            ->setSearchFields(['code', 'description']);
     }
 
     public function configureActions(Actions $actions): Actions
@@ -59,9 +62,14 @@ class CouponCrudController extends AbstractCrudController
             ->add(Crud::PAGE_INDEX, $bulkCreate);
     }
 
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters->add(BooleanFilter::new('active'));
+    }
+
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->onlyOnDetail();
         yield TextField::new('code')
             ->setHelp('Unique coupon code (case-sensitive).');
         yield ChoiceField::new('discountType')
@@ -95,17 +103,24 @@ class CouponCrudController extends AbstractCrudController
                 return number_format($coupon->amount / 100, 2) . '%';
             });
         yield IntegerField::new('usageLimit')
+            ->hideOnIndex()
             ->setHelp('Max. non-failed orders that may use this code. Empty = unlimited.');
+        yield TextField::new('id', 'Used')
+            ->setSortable(false)
+            ->onlyOnIndex()
+            ->formatValue(static fn (mixed $value, Coupon $coupon): string => sprintf(
+                '%d / %s',
+                $coupon->getUsedCount(),
+                $coupon->usageLimit ?? '∞',
+            ));
         yield TextareaField::new('description')->hideOnIndex();
+        yield VenueDateTimeField::new('expiresAt');
         yield BooleanField::new('active')
             ->renderAsSwitch(false);
         yield IntegerField::new('usedCount')
             ->setLabel('Times used')
-            ->hideOnForm()
-            ->hideOnIndex()
-            ->setDisabled();
-        yield VenueDateTimeField::new('expiresAt')->hideOnIndex();
-        yield VenueDateTimeField::new('createdAt')->hideOnForm();
-        yield VenueDateTimeField::new('updatedAt')->hideOnForm();
+            ->onlyOnDetail();
+        yield VenueDateTimeField::new('createdAt')->onlyOnDetail();
+        yield VenueDateTimeField::new('updatedAt')->onlyOnDetail();
     }
 }

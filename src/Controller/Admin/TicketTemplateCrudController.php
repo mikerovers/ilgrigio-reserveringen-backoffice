@@ -16,7 +16,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -57,7 +56,7 @@ class TicketTemplateCrudController extends AbstractCrudController
     {
         // The default template is the fallback for every event: never delete it.
         // The buttons are hidden here; deleteEntity() enforces it for direct URLs.
-        return $actions->disable(Action::BATCH_DELETE)->update(
+        return $actions->disable(Action::BATCH_DELETE)->add(Crud::PAGE_INDEX, Action::DETAIL)->update(
             Crud::PAGE_INDEX,
             Action::DELETE,
             fn (Action $action) => $action->displayIf(fn (TicketTemplate $t): bool => !$t->isDefault),
@@ -70,11 +69,27 @@ class TicketTemplateCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm()->hideOnIndex();
         yield TextField::new('name');
         yield BooleanField::new('isDefault')
             ->setLabel('Default')
-            ->setHelp('Used for events without their own template. Only one template can be the default.');
+            ->setHelp('Used for events without their own template. Only one template can be the default.')
+            ->renderAsSwitch(false);
+        yield TextField::new('id', 'Parts')
+            ->setSortable(false)
+            ->onlyOnIndex()
+            ->formatValue(
+                static fn (mixed $value, TicketTemplate $template): string => (string) $template->sections->count(),
+            );
+        yield TextField::new('id', 'Parts')
+            ->onlyOnDetail()
+            ->renderAsHtml()
+            ->formatValue(static fn (mixed $value, TicketTemplate $template): string => implode(
+                '<hr>',
+                array_map(
+                    static fn ($section): string => (string) $section->content,
+                    $template->sections->toArray(),
+                ),
+            ));
         yield CollectionField::new('sections')
             ->setLabel('Parts')
             ->setEntryType(TicketTemplateSectionType::class)

@@ -10,7 +10,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
@@ -60,19 +59,20 @@ class BarcodeScannerTypeCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->onlyOnDetail();
         yield TextField::new('name');
         yield TextField::new('slug')
             ->hideOnForm()
+            ->hideOnIndex()
             ->setHelp('Wordt automatisch gegenereerd uit de naam.');
-        yield TextField::new('manufacturer')->hideOnIndex();
+        yield TextField::new('manufacturer');
         yield TextareaField::new('notes')
             ->hideOnIndex()
             ->setHelp('Instructietekst boven de barcodes, bijvoorbeeld: zet de scanner in de '
                 . 'programmeermodus, scan de codes in volgorde en sluit de modus af.');
         yield IntegerField::new('sortOrder');
         yield BooleanField::new('active');
-        yield DateTimeField::new('createdAt')->hideOnForm();
-        yield DateTimeField::new('updatedAt')->hideOnForm();
+        yield VenueDateTimeField::new('createdAt')->onlyOnDetail();
+        yield VenueDateTimeField::new('updatedAt')->onlyOnDetail();
     }
 }

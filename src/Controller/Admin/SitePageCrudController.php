@@ -37,13 +37,13 @@ class SitePageCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
         yield TextField::new('pageKey')->setDisabled();
 
         if ($this->isTermsPage()) {
             yield TextField::new('heroTitle')->setLabel('Title');
             yield TextareaField::new('heroDescription')
                 ->setLabel('Terms text')
+                ->hideOnIndex()
                 ->setNumOfRows(20)
                 ->setHelp('Een lege regel begint een nieuwe alinea. HTML wordt niet weergegeven.');
 
@@ -51,8 +51,8 @@ class SitePageCrudController extends AbstractCrudController
         }
 
         yield TextField::new('heroTitle')->setLabel('Hero title');
-        yield TextField::new('heroDateText')->setLabel('Hero date text');
-        yield TextareaField::new('heroDescription')->setLabel('Hero description');
+        yield TextField::new('heroDateText')->setLabel('Hero date text')->hideOnIndex();
+        yield TextareaField::new('heroDescription')->setLabel('Hero description')->hideOnIndex();
     }
 
     /**

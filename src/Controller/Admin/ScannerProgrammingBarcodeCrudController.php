@@ -18,7 +18,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
@@ -88,7 +87,7 @@ class ScannerProgrammingBarcodeCrudController extends AbstractCrudController
             $setChoices[$set->label()] = $set;
         }
 
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->onlyOnDetail();
         yield AssociationField::new('scannerType')
             ->setFormTypeOption('disabled', $pageName === Crud::PAGE_EDIT);
         yield TextField::new('label');
@@ -106,7 +105,7 @@ class ScannerProgrammingBarcodeCrudController extends AbstractCrudController
         yield IntegerField::new('sortOrder')
             ->setHelp('Volgorde waarin de codes op de scanbalie gescand moeten worden.');
         yield BooleanField::new('active');
-        yield DateTimeField::new('createdAt')->hideOnForm();
-        yield DateTimeField::new('updatedAt')->hideOnForm();
+        yield VenueDateTimeField::new('createdAt')->onlyOnDetail();
+        yield VenueDateTimeField::new('updatedAt')->onlyOnDetail();
     }
 }

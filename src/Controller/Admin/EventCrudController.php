@@ -39,7 +39,8 @@ class EventCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Event')
             ->setEntityLabelInPlural('Events')
-            ->setDefaultSort(['startsAt' => 'DESC']);
+            ->setDefaultSort(['startsAt' => 'DESC'])
+            ->setSearchFields(['name', 'location']);
     }
 
     public function configureActions(Actions $actions): Actions
@@ -52,16 +53,18 @@ class EventCrudController extends AbstractCrudController
                 ->generateUrl());
 
         return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $manageTicketTypes)
             ->add(Crud::PAGE_DETAIL, $manageTicketTypes);
     }
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->onlyOnDetail();
         yield TextField::new('name');
         yield TextField::new('slug')
             ->hideOnForm()
+            ->hideOnIndex()
             ->setHelp('Generated automatically from the name.');
         yield TextField::new('description')
             ->hideOnIndex()
@@ -69,14 +72,31 @@ class EventCrudController extends AbstractCrudController
             ->setHelp('Maximaal 255 tekens.');
         yield VenueDateTimeField::new('startsAt');
         yield VenueDateTimeField::new('doorsOpenAt')
+            ->hideOnIndex()
             ->setHelp('Moment waarop de zaal opent. Wordt op het ticket en de website getoond '
                 . 'als "Zaal open"; alleen het tijdstip wanneer dit op dezelfde dag is als de '
                 . 'voorstelling. Laat leeg wanneer nog niet bekend.');
-        yield VenueDateTimeField::new('endsAt');
+        yield VenueDateTimeField::new('endsAt')->hideOnIndex();
         yield VenueDateTimeField::new('soldFrom')
+            ->hideOnIndex()
             ->setHelp('Start of the ticket sale period. Leave empty for no start limit.');
         yield VenueDateTimeField::new('soldUntil')
+            ->hideOnIndex()
             ->setHelp('End of the ticket sale period. Leave empty for no end limit.');
+        yield TextField::new('id', 'Ticket sale')
+            ->setSortable(false)
+            ->hideOnForm()
+            ->formatValue(static fn (mixed $value, Event $event): string => $event->isOnSale(new \DateTimeImmutable())
+                ? 'On sale'
+                : 'Closed');
+        yield TextField::new('id', 'Stock')
+            ->setSortable(false)
+            ->hideOnForm()
+            ->formatValue(static function (mixed $value, Event $event): string {
+                $quantity = $event->displayStockQuantity();
+
+                return $quantity === null ? 'Unlimited' : (string) $quantity;
+            });
         yield TextField::new('location')->hideOnIndex();
         yield AssociationField::new('categories');
         yield AssociationField::new('displayStock')
@@ -87,7 +107,7 @@ class EventCrudController extends AbstractCrudController
             ->setHelp('Text below the date on the PDF ticket. Leave empty to use the default template.');
         yield AssociationField::new('ticketTypes')
             ->onlyOnDetail();
-        yield VenueDateTimeField::new('createdAt')->hideOnForm();
-        yield VenueDateTimeField::new('updatedAt')->hideOnForm();
+        yield VenueDateTimeField::new('createdAt')->onlyOnDetail();
+        yield VenueDateTimeField::new('updatedAt')->onlyOnDetail();
     }
 }

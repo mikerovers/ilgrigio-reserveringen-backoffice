@@ -9,7 +9,6 @@ use App\Enum\StockStatus;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -38,7 +37,7 @@ class SharedStockCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->onlyOnDetail();
         yield TextField::new('name');
         yield IntegerField::new('stockQuantity')
             ->setHelp('Leave empty for unlimited stock.');
@@ -51,7 +50,9 @@ class SharedStockCrudController extends AbstractCrudController
                 StockStatus::OUT_OF_STOCK->value => 'danger',
             ])
             ->hideOnForm();
-        yield DateTimeField::new('createdAt')->hideOnForm();
-        yield DateTimeField::new('updatedAt')->hideOnForm();
+        yield TextField::new('id', 'Low stock')
+            ->setSortable(false)
+            ->onlyOnIndex()
+            ->formatValue(static fn (mixed $value, SharedStock $stock): string => $stock->isLowStock() ? 'Low' : '');
     }
 }
