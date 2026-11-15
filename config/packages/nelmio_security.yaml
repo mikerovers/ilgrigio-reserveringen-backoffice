@@ -30,10 +30,10 @@ nelmio_security:
     csp:
         report:
             default-src: ["'self'"]
-            script-src: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"]
+            script-src: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://js-agent.newrelic.com"]
             style-src: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"]
             font-src: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "data:"]
             img-src: ["'self'", "data:"]
             # The Mercure hub (scanner app live sync) is its own origin
-            connect-src: ["'self'", "%env(MERCURE_PUBLIC_ORIGIN)%"]
+            connect-src: ["'self'", "%env(MERCURE_PUBLIC_ORIGIN)%", "https://bam.nr-data.net", "https://*.nr-data.net"]
             frame-ancestors: ["'self'"]
