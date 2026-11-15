@@ -14,6 +14,24 @@ RUN apk add --no-cache \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd intl xsl bcmath pdo_pgsql
 
+# New Relic PHP agent (musl build). Ships logs/APM in the background via its daemon,
+# configured at runtime from NEW_RELIC_LICENSE_KEY / NEW_RELIC_APP_NAME.
+# Leave NEW_RELIC_AGENT_VERSION empty to use the latest release, or pin e.g. 11.x.y.z.
+ARG NEW_RELIC_AGENT_VERSION=""
+COPY docker/newrelic.ini /tmp/newrelic-overrides.ini
+RUN cd /tmp \
+    && NR_VERSION="${NEW_RELIC_AGENT_VERSION:-$(curl -fsS https://download.newrelic.com/php_agent/release/ | grep -o '[1-9][0-9]\?\(\.[0-9]\+\)\{3\}' | head -n1)}" \
+    && curl -fsSo newrelic-php-agent.tar.gz "https://download.newrelic.com/php_agent/release/newrelic-php5-${NR_VERSION}-linux-musl.tar.gz" \
+    && tar xzf newrelic-php-agent.tar.gz \
+    && NR_INSTALL_USE_CP_NOT_LN=1 NR_INSTALL_SILENT=1 NR_INSTALL_KEY=0000000000000000000000000000000000000000 ./newrelic-php5-*/newrelic-install install \
+    && sed -i 's/^[ ;]*newrelic.license[[:space:]]*=.*/newrelic.license = "${NEW_RELIC_LICENSE_KEY}"/' "$(php-config --ini-dir)/newrelic.ini" \
+    && sed -i 's/^[ ;]*newrelic.appname[[:space:]]*=.*/newrelic.appname = "${NEW_RELIC_APP_NAME}"/' "$(php-config --ini-dir)/newrelic.ini" \
+    && cat /tmp/newrelic-overrides.ini >> "$(php-config --ini-dir)/newrelic.ini" \
+    && rm -rf /tmp/newrelic-php-agent.tar.gz /tmp/newrelic-php5-* /tmp/newrelic-overrides.ini
+
+# PHP-FPM must pass the container environment to workers so the agent sees NEW_RELIC_* vars
+RUN printf '%s\n' '[www]' 'clear_env = no' > /usr/local/etc/php-fpm.d/zz-clear-env.conf
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \

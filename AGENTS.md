@@ -187,8 +187,7 @@ config/
   `symfonycasts/tailwind-bundle` (standalone CLI v3.4.17, no Node) with `tailwind.config.js` and linked from
   `templates/base.html.twig` and `templates/scanner/base.html.twig` via `asset('tailwind/app.css')`. Run
   `bin/console tailwind:build --watch` while developing (dev throws if it was never built) and
-  `tailwind:build --minify` before `asset-map:compile` on deploy (already in `docker-entrypoint.sh` and the
-  Cloudways workflow). Only the `content` paths in `tailwind.config.js` are scanned: a class built in a JS
+  `tailwind:build --minify` before `asset-map:compile` on deploy (already in `docker-entrypoint.sh`). Only the `content` paths in `tailwind.config.js` are scanned: a class built in a JS
   string must appear literally in the source (no `${PREFIX}:text-sm` concatenation), and a class that only
   lives in database content (e.g. event `disabledReason` HTML) must be added to the `safelist`. The error
   pages in `templates/bundles/TwigBundle/Exception` deliberately keep the CDN so they never depend on the
@@ -358,6 +357,9 @@ config/
   Never persist a `DateTimeImmutable` that is not in UTC: Doctrine drops the timezone.
 
 ### Error handling and logging
+- Logs reach New Relic through the PHP APM agent's log forwarding (`docker/newrelic.ini`),
+  shipped in the background by the agent daemon. Do not add a Monolog handler that does
+  HTTP calls in the request path.
 - Catch `\Exception` at integration boundaries; re-throw after logging
 - Always log errors with contextual data arrays (order ID, token prefix, etc.):
   ```php
@@ -431,7 +433,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `MESSENGER_TRANSPORT_DSN` | Doctrine DSN for the `async` queue, e.g. `doctrine://default?queue_name=async` |
 | `MESSENGER_EMAIL_TRANSPORT_DSN` | DSN for order emails (`email` transport). `sync://` sends inline; a Doctrine DSN queues them |
 | `MESSENGER_FAILED_TRANSPORT_DSN` | Doctrine DSN for exhausted messages, e.g. `doctrine://default?queue_name=failed` |
-| `NEW_RELIC_LICENSE_KEY` | New Relic license key for APM/logging |
-| `NEW_RELIC_APP_NAME` | New Relic application name |
-| `NEW_RELIC_LOGS_ENDPOINT` | New Relic logs API endpoint |
+| `NEW_RELIC_LICENSE_KEY` | New Relic license key; read by the PHP APM agent baked into `Dockerfile.web`/`Dockerfile.messenger` (empty = agent idle) |
+| `NEW_RELIC_APP_NAME` | New Relic application name (use a distinct name for the messenger container) |
+| `NEW_RELIC_LOG_LEVEL` | Minimum level the PHP agent forwards to New Relic Logs (`DEBUG`..`EMERGENCY`, default `WARNING`) |
 | `LOCK_DSN` | Symfony Lock store DSN backing the rate limiters (e.g. `flock`) |

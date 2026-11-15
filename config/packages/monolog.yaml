@@ -32,11 +32,6 @@ when@test:
 when@prod:
     monolog:
         handlers:
-            new_relic:
-                type: service
-                id: App\Service\NewRelicMonologHandler
-                level: warning
-                channels: ["!http_client"]
             main:
                 type: fingers_crossed
                 action_level: error

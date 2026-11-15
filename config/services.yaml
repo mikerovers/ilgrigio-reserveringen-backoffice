@@ -102,14 +102,6 @@ services:
         arguments:
             $apiKey: '%env(API_KEY)%'
 
-    # New Relic Monolog Handler configuration
-    App\Service\NewRelicMonologHandler:
-        arguments:
-            $licenseKey: '%env(NEW_RELIC_LICENSE_KEY)%'
-            $endpoint: '%env(NEW_RELIC_LOGS_ENDPOINT)%'
-            $appName: '%env(NEW_RELIC_APP_NAME)%'
-            $environment: '%kernel.environment%'
-
     # Publishes check-in updates to the Mercure hub (scanner app live sync)
     App\Service\CheckInBroadcaster:
         arguments:
