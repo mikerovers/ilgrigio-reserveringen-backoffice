@@ -230,6 +230,12 @@ final class RegisterOrderTable
         return number_format($this->moneyService->toFloat($order->totalGross), 2, ',', '.');
     }
 
+    /** Re-renders the list (the refresh button next to the search field). */
+    #[LiveAction]
+    public function refresh(): void
+    {
+    }
+
     #[LiveAction]
     public function openNotes(#[LiveArg] string $orderNumber): void
     {
