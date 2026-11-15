@@ -143,12 +143,17 @@ plain text, blank lines start paragraphs). Seeded by `Version20261107120000` and
   ignored and the request redirects to the login form.
 - `register`: session `form_login` for the kassa app (host-matched, see Register app).
 - `customer`: passwordless customer login.
+- `ROLE_SUPER_ADMIN` inherits `ROLE_ADMIN` and is the only role that may open the
+  Users admin (`UserCrudController`, `#[IsGranted('ROLE_SUPER_ADMIN')]`; passwords are
+  hashed from an unmapped field, empty on edit keeps the hash). The form never offers
+  `ROLE_SUPER_ADMIN` and keeps it on users that have it: only the CLI grants it.
 - `ROLE_ADMIN` inherits `ROLE_REGISTER` and `ROLE_CHECK_IN` (`role_hierarchy`), so
   admins can call every API endpoint. `CheckInController` requires `ROLE_CHECK_IN`,
   which `ROLE_REGISTER` does not grant.
 - Create users with `bin/console app:user:create` (prompts for email, name, hidden
   password and roles; `--role` is repeatable and skips the role prompt, e.g.
-  `--role=ROLE_CHECK_IN`). The old API-key authentication was removed.
+  `--role=ROLE_CHECK_IN`; `ROLE_SUPER_ADMIN` is allowed too and is the only way to create one).
+  The old API-key authentication was removed.
 
 ### Register JWT API (`ROLE_REGISTER`)
 - `GET /api/events` returns `ticketTypes` and `sharedStocks`; both carry

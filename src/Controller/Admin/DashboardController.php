@@ -79,5 +79,10 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Promotions', 'fa fa-percent');
         yield MenuItem::linkTo(CouponCrudController::class, 'Coupons', 'fa fa-ticket')
             ->setPermission('ROLE_ADMIN');
+
+        yield MenuItem::section('Users', 'fa fa-users')
+            ->setPermission('ROLE_SUPER_ADMIN');
+        yield MenuItem::linkTo(UserCrudController::class, 'Users', 'fa fa-user')
+            ->setPermission('ROLE_SUPER_ADMIN');
     }
 }

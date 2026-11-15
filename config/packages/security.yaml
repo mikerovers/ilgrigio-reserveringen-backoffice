@@ -1,7 +1,9 @@
 security:
     # Admins can call every register API endpoint and the check-in endpoints too.
     # ROLE_CHECK_IN is intentionally NOT granted to ROLE_REGISTER.
+    # ROLE_SUPER_ADMIN is an admin who may also manage backoffice users.
     role_hierarchy:
+        ROLE_SUPER_ADMIN: [ROLE_ADMIN]
         ROLE_ADMIN: [ROLE_REGISTER, ROLE_CHECK_IN]
 
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords

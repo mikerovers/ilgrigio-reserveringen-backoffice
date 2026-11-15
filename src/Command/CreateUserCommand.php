@@ -26,7 +26,7 @@ final class CreateUserCommand extends Command
     private const MAX_PASSWORD_ATTEMPTS = 3;
 
     /** @var list<string> */
-    private const ALLOWED_ROLES = ['ROLE_REGISTER', 'ROLE_CHECK_IN', 'ROLE_ADMIN'];
+    private const ALLOWED_ROLES = ['ROLE_REGISTER', 'ROLE_CHECK_IN', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'];
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
