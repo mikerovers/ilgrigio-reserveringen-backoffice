@@ -12,3 +12,24 @@
 .ticket-type-disabled-reason trix-toolbar .trix-button--icon-strike {
     display: none;
 }
+
+/* Ticket template sections: bold and bullet list only. */
+.ticket-section-editor trix-toolbar .trix-button-group--file-tools,
+.ticket-section-editor trix-toolbar .trix-button-group--history-tools,
+.ticket-section-editor trix-toolbar .trix-button--icon-italic,
+.ticket-section-editor trix-toolbar .trix-button--icon-strike,
+.ticket-section-editor trix-toolbar .trix-button--icon-link,
+.ticket-section-editor trix-toolbar .trix-button--icon-heading-1,
+.ticket-section-editor trix-toolbar .trix-button--icon-quote,
+.ticket-section-editor trix-toolbar .trix-button--icon-code,
+.ticket-section-editor trix-toolbar .trix-button--icon-number-list,
+.ticket-section-editor trix-toolbar .trix-button--icon-decrease-nesting-level,
+.ticket-section-editor trix-toolbar .trix-button--icon-increase-nesting-level {
+    display: none;
+}
+
+.ticket-section-controls {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}

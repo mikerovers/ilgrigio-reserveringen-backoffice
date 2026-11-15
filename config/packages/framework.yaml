@@ -35,6 +35,20 @@ framework:
                         rel: 'noopener noreferrer'
                         class: 'text-red-600 hover:text-red-700 underline'
 
+            # Ticket PDF template sections: bold and bullet lists only, no
+            # attributes or links (Dompdf runs with remote/PHP enabled).
+            app.ticket_content:
+                allow_safe_elements: false
+                allow_elements:
+                    strong: []
+                    b: []
+                    ul: []
+                    li: []
+                    br: []
+                    div: []
+                allow_relative_links: false
+                allow_relative_medias: false
+
     #esi: true
     #fragments: true
 

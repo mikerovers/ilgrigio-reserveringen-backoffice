@@ -77,44 +77,10 @@
 					</div>
 				</div>
 
-				<!-- Important notice -->
-				<div class="important-notice">
-					<p>
-						<strong>{{ 'pdf.ticket.original_notice'|trans }}</strong>
-					</p>
-					<ul class="instructions">
-						<li>{{ 'pdf.ticket.print_instruction'|trans }}</li>
-						<li>{{ 'pdf.ticket.qr_scan_instruction'|trans }}</li>
-						<li>{{ 'pdf.ticket.cancel_instruction'|trans }}</li>
-						<li>{{ 'pdf.ticket.arrival_instruction'|trans }}</li>
-						<li>{{ 'pdf.ticket.group_instruction'|trans }}</li>
-						<li>{{ 'pdf.ticket.ticket_required'|trans }}</li>
-						<li>{{ 'pdf.ticket.child_free'|trans }}</li>
-						<li>{{ 'pdf.ticket.stroller_restriction'|trans }}</li>
-					</ul>
-				</div>
-
-				<!-- Website reference -->
-				<div class="website-info">
-					<p>
-						<strong>{{ 'pdf.ticket.usefull_information'|trans }}</strong>
-					</p>
-					<ul class="website-features">
-						<li>{{ 'pdf.ticket.location_label' | trans }}
-							{{ 'pdf.ticket.location_address'|trans }}</li>
-						<li>{{ 'pdf.ticket.seating_warning_short'|trans }}</li>
-						<li>{{ 'pdf.ticket.seating_warning_short_time'|trans }}</li>
-					</ul>
-				</div>
-
-				<!-- Seating warning -->
-				{# <div class="seating-warning">
-				                <p><strong>{{ 'pdf.ticket.seating_warning'|trans }}</strong></p>
-				            </div> #}
-
-				<!-- Footer message -->
-					<div class="footer-message"> <p>{{ 'pdf.ticket.closing_message'|trans }}</p>
-				</div>
+				{# Editable sections (ticket template, sanitized HTML). No template: nothing is rendered. #}
+				{% for section in ticket_info.sections ?? [] %}
+					<div class="ticket-section">{{ section|raw }}</div>
+				{% endfor %}
 			</div>
 
 			{% if not loop.last %}

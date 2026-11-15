@@ -25,6 +25,7 @@ class SecurePdfStorageService
         private LoggerInterface $logger,
         private TicketNameService $ticketNameService,
         private OrderRepository $orderRepository,
+        private TicketTemplateResolver $ticketTemplateResolver,
         private string $tokenSecret,
         private int $tokenExpirationDays = 150
     ) {
@@ -159,8 +160,15 @@ class SecurePdfStorageService
         $eventStartTime = null;
         $eventDoorsOpen = null;
         $eventName = null;
+        $ticketSections = null;
+        $sectionsResolved = false;
 
         foreach ($ticketEntities as $ticket) {
+            if (!$sectionsResolved) {
+                $ticketSections = $this->ticketTemplateResolver->sectionsForEvent($ticket->event);
+                $sectionsResolved = true;
+            }
+
             $eventName ??= $ticket->eventNameSnapshot;
             $eventDate ??= EventSchedule::date($ticket->eventDateTimeSnapshot);
             $eventStartTime ??= EventSchedule::time($ticket->eventDateTimeSnapshot);
@@ -184,6 +192,7 @@ class SecurePdfStorageService
             'event_description' => $eventDescription,
             'event_start_time' => $eventStartTime,
             'event_doors_open' => $eventDoorsOpen,
+            'sections' => $ticketSections,
             'tickets' => $ticketViews,
         ];
 

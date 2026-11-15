@@ -86,6 +86,13 @@ class Event
     #[ORM\JoinColumn(name: 'display_stock_id', nullable: true, onDelete: 'SET NULL')]
     public ?SharedStock $displayStock = null;
 
+    /**
+     * Editable ticket PDF content. Null falls back to the default template.
+     */
+    #[ORM\ManyToOne(targetEntity: TicketTemplate::class)]
+    #[ORM\JoinColumn(name: 'ticket_template_id', nullable: true, onDelete: 'SET NULL')]
+    public ?TicketTemplate $ticketTemplate = null;
+
     public function __construct(string $name, \DateTimeImmutable $startsAt)
     {
         $this->id = Uuid::v7();

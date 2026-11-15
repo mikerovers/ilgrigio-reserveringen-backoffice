@@ -164,8 +164,27 @@
         /* Remove old styles */
         .header, .order-info, .customer-info, .order-details, .items-table, .total, .footer {
             display: none;
-        } 
-            color: #666; 
+        }
+
+        /* Editable ticket template sections (bold + bullet lists only) */
+        .ticket-section {
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        /* A line divides each section from the one above it. */
+        .ticket-section + .ticket-section {
+            border-top: 1px solid #ccc;
+            padding-top: 15px;
+        }
+
+        .ticket-section ul {
+            margin: 0 0 0 0;
+            padding-left: 20px;
+        }
+
+        .ticket-section li {
+            margin-bottom: 5px;
         }
         {% endblock %}
     </style>

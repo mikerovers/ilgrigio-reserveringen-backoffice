@@ -69,6 +69,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Website', 'fa fa-globe');
         yield MenuItem::linkTo(SitePageCrudController::class, 'Website pages', 'fa fa-file-alt')
             ->setPermission('ROLE_ADMIN');
+        yield MenuItem::linkTo(TicketTemplateCrudController::class, 'Ticket templates', 'fa fa-file-pdf')
+            ->setPermission('ROLE_ADMIN');
 
         yield MenuItem::section('Scanbalie', 'fa fa-barcode');
         yield MenuItem::linkTo(BarcodeScannerTypeCrudController::class, 'Scanner types', 'fa fa-barcode')

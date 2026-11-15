@@ -82,6 +82,9 @@ class EventCrudController extends AbstractCrudController
         yield AssociationField::new('displayStock')
             ->setHelp('Shared stock whose quantity drives the low stock and sold out display for this event. '
                 . 'Leave empty to use all of this event\'s stock.');
+        yield AssociationField::new('ticketTemplate')
+            ->hideOnIndex()
+            ->setHelp('Text below the date on the PDF ticket. Leave empty to use the default template.');
         yield AssociationField::new('ticketTypes')
             ->onlyOnDetail();
         yield VenueDateTimeField::new('createdAt')->hideOnForm();

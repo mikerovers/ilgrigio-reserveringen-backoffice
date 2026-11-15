@@ -166,6 +166,15 @@ config/
   and its body is `heroDescription`, plain text where blank lines start paragraphs.
   The row is seeded by `Version20261107120000` and `PageFixtures`; the modal reads it
   through the `terms_page()` Twig function.
+- **Ticket PDF template (editable):** everything below the fixed header (event, QR, date, customer) in
+  `templates/pdf/order.html.twig` comes from `TicketTemplate` > ordered `TicketTemplateSection`s, edited under
+  Ticket templates (`TicketTemplateCrudController`: add/remove/reorder parts, each a Trix editor limited to bold and
+  bullets). `Event::$ticketTemplate` picks one; empty uses the template flagged `isDefault` (at most one, enforced by
+  a partial unique index); with no template at all the PDF renders no sections (only the fixed header).
+  `TicketTemplateResolver::sectionsForEvent()` returns sanitized HTML (`app.ticket_content` sanitizer: strong/b/ul/li/
+  br/div only, no attributes or links), applied on save and again at render because Dompdf runs with remote/PHP
+  enabled. PDFs are rendered on demand, so edits show on already-issued tickets. The default template is loaded by
+  `TicketTemplateFixtures`, not by a migration.
 - **Scanner on mobile:** below Tailwind `md` (768px) the scan screen (`/` on the scanner host) is
   scan-only: compact header, stats, scan panel; the screen picker, recent-scans sidebar and order
   popup are hidden with `max-md:hidden` (kept in the DOM so Stimulus targets still resolve). Input
