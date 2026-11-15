@@ -320,7 +320,10 @@ Always declare parameter, return and property types. Prefer specific types over
 shapes in docblocks.
 
 ### Symfony patterns
-- Autowired and autoconfigured services; no manual service ID strings. Scalar config is bound in `services.yaml` `arguments:` via `%env(VAR)%`.
+- **Prefer autowiring and autoconfiguration.** Type-hint dependencies in the constructor and let the container resolve them; do not add `services.yaml` entries for ordinary services, and no manual service ID strings or `@service` references.
+- Inject scalar config with `#[Autowire]` on the constructor argument (`#[Autowire(env: 'int:MAX_TICKETS_PER_ORDER')]`, `#[Autowire(param: 'register_host')]`) so the class declares its own wiring. Existing per-class `arguments:` blocks in `services.yaml` are legacy: leave them alone unless you touch that class, and do not add new ones.
+- Use `services.yaml` only for what attributes cannot express: interface aliases (e.g. `PaymentInitiatorInterface`), tags with options (e.g. the `webhook.request_parser` tag) and shared parameters. Prefer `#[AsAlias]`/`#[AsTaggedItem]`/`#[Autoconfigure]` on the class where they fit.
+- When several implementations share an interface, select one with `#[Autowire(service: ...)]` or `#[Target]` rather than editing `services.yaml`.
 - `#[Route]` on actions; `#[AsRemoteEventConsumer('name')]` for webhook consumers; `#[AsMessageHandler]` on handlers.
 - `#[AsMessage('email')]` (or `async`) on messages so they match `messenger.yaml` routing (`SendOrderEmailMessage` is `email`).
 - `#[Assert\...]` on DTOs. Controllers throw `$this->createNotFoundException(...)` and re-throw domain exceptions.
