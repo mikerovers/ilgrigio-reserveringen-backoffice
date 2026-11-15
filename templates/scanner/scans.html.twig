@@ -8,7 +8,7 @@
     {%- if event -%}
         data-controller="scanner--clock scanner--order-modal"
         data-scanner--order-modal-url-value="{{ path('scanner_order', {id: event.id, orderNumber: '__ORDER__'}) }}"
-        data-scanner--order-modal-can-scan-value="false"
+        data-scanner--order-modal-scan-url-value="{{ path('scanner_scan', {id: event.id}) }}"
     {%- else -%}
         data-controller="scanner--clock"
     {%- endif -%}
