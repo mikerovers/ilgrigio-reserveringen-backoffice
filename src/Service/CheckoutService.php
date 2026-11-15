@@ -223,15 +223,13 @@ final class CheckoutService
         if ($customer === null) {
             $customer = new Customer($email, $firstName, $lastName);
             $this->entityManager->persist($customer);
-        } else {
-            $customer->firstName = $firstName;
-            $customer->lastName = $lastName;
+            $customer->companyName = $companyName;
+            $customer->city = $city;
+            $customer->phoneNumber = $phoneNumber;
         }
 
-        $customer->companyName = $companyName;
-        $customer->city = $city;
-        $customer->phoneNumber = $phoneNumber;
-
+        // An existing customer is never changed from an unauthenticated checkout
+        // (anyone can type any email). The order keeps its own billing snapshot.
         return $customer;
     }
 }

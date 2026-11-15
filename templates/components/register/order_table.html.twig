@@ -67,7 +67,7 @@
                                 {% endif %}
                             </td>
                             <td class="align-middle px-4 py-3 font-medium whitespace-nowrap">{{ order.orderNumber }}</td>
-                            <td class="align-middle px-4 py-3">{{ order.customer.firstName }} {{ order.customer.lastName }}</td>
+                            <td class="align-middle px-4 py-3">{{ (order.billing.firstName ~ ' ' ~ order.billing.lastName)|trim ?: (order.customer.firstName ~ ' ' ~ order.customer.lastName) }}</td>
                             <td class="align-middle px-4 py-3 whitespace-nowrap">{{ order.createdAt|date('d-m-Y H:i:s') }}</td>
                             <td class="align-middle px-4 py-3 text-right whitespace-nowrap">€ {{ this.formatMoney(order) }}</td>
                             <td class="align-middle px-4 py-3 text-right" data-controller="register--dropdown">

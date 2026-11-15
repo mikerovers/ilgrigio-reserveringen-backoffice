@@ -56,7 +56,8 @@ final class ScannerOrderResponse
 
         return new self(
             orderNumber: $order->orderNumber,
-            customerName: trim($order->customer->firstName . ' ' . $order->customer->lastName),
+            customerName: trim($order->billing->firstName . ' ' . $order->billing->lastName)
+                ?: trim($order->customer->firstName . ' ' . $order->customer->lastName),
             eventDate: (string) $date->format(VenueTime::toLocal($event->startsAt)),
             total: count($rows),
             scanned: $scanned,

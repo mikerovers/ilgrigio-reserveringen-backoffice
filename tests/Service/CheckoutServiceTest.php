@@ -73,6 +73,34 @@ class CheckoutServiceTest extends TestCase
         return $ticketType;
     }
 
+    public function testExistingCustomerIsNotOverwrittenByCheckout(): void
+    {
+        $existing = new Customer('jan@example.com', 'Jan', 'Jansen');
+        $existing->city = 'Utrecht';
+        $repository = $this->createMock(CustomerRepository::class);
+        $repository->method('findOneByEmail')->willReturn($existing);
+        $moneyService = new MoneyService();
+        $service = new CheckoutService(
+            $this->entityManager,
+            $repository,
+            $this->sharedStockRepository,
+            $this->couponRepository,
+            $moneyService,
+            new OrderPricingService($moneyService, new DiscountCalculator($moneyService)),
+            new OrderNumberGenerator(),
+            $this->createMock(EventDispatcherInterface::class),
+            9.0,
+        );
+
+        $resolved = $service->resolveCustomer('jan@example.com', 'Evil', 'Attacker', 'Evil BV', 'Nowhere', '0612345678');
+
+        self::assertSame($existing, $resolved);
+        self::assertSame('Jan', $resolved->firstName);
+        self::assertSame('Jansen', $resolved->lastName);
+        self::assertSame('Utrecht', $resolved->city);
+        self::assertNull($resolved->phoneNumber);
+    }
+
     public function testOrderTotalsReconcileWithoutDiscount(): void
     {
         $cart = [

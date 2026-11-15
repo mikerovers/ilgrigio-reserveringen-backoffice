@@ -230,6 +230,12 @@ config/
 - **Dev-only previews** (`when@dev` in `config/routes/dev_email_preview.yaml`):
   `GET /_dev/orders/{orderNumber}/email-preview` and
   `GET /_dev/tickets/{ticketCode}/preview`. They are not registered outside `dev`.
+- **Closed orders are final / customers are immutable at checkout:** `MollieWebhookConsumer` ignores status changes for
+  `cancelled`/`refunded` orders (it only records the payment status and an order note), PDF tokens stop working for those
+  orders, and `CheckoutService::resolveCustomer` never changes an existing `Customer` (anyone can type any email). Staff
+  views, search and the order DTOs show the per-order `billing` name (falling back to the customer for legacy rows).
+  `POST /events/{id}/scan` accepts JSON only (`acceptFormat: 'json'`) as its CSRF protection. Dompdf runs with PHP and
+  remote resources disabled.
 - `/bedankt` (`TicketingController::thankYou`) resolves the order strictly from
   the session (`order_number`), never from a query parameter — do not
   reintroduce a `?order=`-driven lookup, as that previously allowed anyone to
@@ -414,6 +420,7 @@ All environment configuration is injected via `.env` files (`.env`, `.env.dev`, 
 | `ADMIN_HOST` | Hostname the backoffice UI (EasyAdminBundle) is bound to, e.g. `admin.reserveringen.ilgrigio.nl` in prod, `admin.localhost:8000` locally |
 | `SCANNER_HOST` | Bare hostname of the door-scanner app, e.g. `scan.ilgrigio.nl` in prod, `scanner.localhost` locally |
 | `REGISTER_HOST` | Bare hostname of the register (kassa) app, e.g. `kassa.ilgrigio.nl` in prod, `kassa.localhost` locally |
+| `TRUSTED_HOSTS` | Prod only (`framework.trusted_hosts`): one regex matching every host the app answers on, e.g. `^(reserveringen\.ilgrigio\.nl\|admin\.reserveringen\.ilgrigio\.nl\|scan\.ilgrigio\.nl\|kassa\.ilgrigio\.nl)$`. Must be set in production or the kernel fails to boot |
 | `SECURE_CHANNEL` | Set to `https` in production to require HTTPS for non-API routes |
 | `TRUSTED_PROXIES` | Comma-separated IPs/CIDRs of the reverse proxy in front of the app; only these may set `X-Forwarded-*` headers. Local default `127.0.0.1,::1`. Never use `0.0.0.0/0` in production |
 | `JWT_SECRET_KEY` | Path to JWT private key |

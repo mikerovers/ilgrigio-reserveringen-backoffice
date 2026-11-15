@@ -15,6 +15,7 @@ use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use App\Entity\Order;
 use App\Entity\Ticket;
+use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -103,6 +104,11 @@ class SecurePdfStorageService
             return null;
         }
 
+        // Links in old emails must stop working once the order is void.
+        if (in_array($order->status, [OrderStatus::CANCELLED, OrderStatus::REFUNDED], true)) {
+            return null;
+        }
+
         return $order;
     }
 
@@ -145,9 +151,10 @@ class SecurePdfStorageService
     {
         $options = new Options();
         $options->set('defaultFont', 'Arial');
-        $options->set('isRemoteEnabled', true);
+        // Tickets only embed data: URIs; keep remote fetching and inline PHP off.
+        $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', true);
+        $options->set('isPhpEnabled', false);
         $options->set('isFontSubsettingEnabled', true);
 
         $dompdf = new Dompdf($options);

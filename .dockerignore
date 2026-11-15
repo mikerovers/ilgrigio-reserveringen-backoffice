@@ -1,5 +1,4 @@
 .git
-.github
 .do
 var/cache
 var/log
@@ -16,3 +15,5 @@ docs
 phpcs.xml.dist
 phpunit.xml.dist
 phpunit.dist.xml
+.env.*
+config/jwt/*.pem

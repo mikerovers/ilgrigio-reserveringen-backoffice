@@ -332,6 +332,14 @@ final class ScannerTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+    public function testScanRejectsFormEncodedBodies(): void
+    {
+        $this->client->loginUser($this->checkInUser, 'scanner');
+        $this->client->request('POST', '/events/' . $this->event->id . '/scan', ['ticketCode' => 'SCANTEST-1']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
+    }
+
     public function testBlankCodeIsRejected(): void
     {
         $this->client->loginUser($this->checkInUser, 'scanner');

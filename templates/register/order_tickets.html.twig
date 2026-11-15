@@ -67,7 +67,7 @@
 
         <section class="summary">
             <div class="meta">
-                <div>Naam: <strong class="name">{{ order.customer.firstName }} {{ order.customer.lastName }}</strong></div>
+                <div>Naam: <strong class="name">{{ (order.billing.firstName ~ ' ' ~ order.billing.lastName)|trim ?: (order.customer.firstName ~ ' ' ~ order.customer.lastName) }}</strong></div>
                 <div>Bestelnummer: <strong>{{ order.orderNumber }}</strong></div>
                 <div>Notitie: {{ order.note }}</div>
                 <div>Datum: <strong>{{ order.createdAt|date('d-m-Y H:i:s') }}</strong></div>

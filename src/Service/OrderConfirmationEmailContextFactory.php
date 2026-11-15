@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Order;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 final class OrderConfirmationEmailContextFactory
 {
     public function __construct(
         private MoneyService $moneyService,
-        private RequestStack $requestStack,
         private SecurePdfStorageService $securePdfStorageService,
         private string $appBaseUrl,
     ) {
@@ -22,14 +20,13 @@ final class OrderConfirmationEmailContextFactory
      */
     public function create(Order $order, string $downloadToken): array
     {
-        $request = $this->requestStack->getCurrentRequest();
         return [
             'order_number' => $order->orderNumber,
             'order_date' => $order->createdAt ?? new \DateTimeImmutable(),
             'customer_name' => trim($order->billing->firstName),
             'customer_email' => $order->billing->email,
             'download_url' => $this->securePdfStorageService->generateDownloadUrl(
-                $request,
+                null,
                 $downloadToken,
                 $this->appBaseUrl,
             ),

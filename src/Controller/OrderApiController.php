@@ -60,7 +60,7 @@ final class OrderApiController extends AbstractController
      * re-sends the confirmation email) for an existing order.
      */
     #[Route('/orders/{orderNumber}/process', name: 'order_process', methods: ['POST'])]
-    #[IsGranted('IS_AUTHENTICATED')]
+    #[IsGranted('ROLE_REGISTER')]
     #[Security(name: 'BearerAuth')]
     #[OA\Response(
         response: 200,

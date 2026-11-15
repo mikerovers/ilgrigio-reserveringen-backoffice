@@ -99,7 +99,8 @@ final class ScannerController extends AbstractController
     #[Route('/events/{id}/scan', name: 'scanner_scan', methods: ['POST'])]
     public function scan(
         #[MapEntity(mapping: ['id' => 'id'])] Event $event,
-        #[MapRequestPayload] ScanRequest $payload,
+        // JSON only: a cross-site form post cannot send it without a CORS preflight (no CSRF token needed).
+        #[MapRequestPayload(acceptFormat: 'json')] ScanRequest $payload,
     ): JsonResponse {
         $now = $this->clock->now();
         $code = trim($payload->ticketCode);

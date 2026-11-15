@@ -57,3 +57,8 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+
+when@prod:
+    framework:
+        # Regex of every host this app answers on (public, admin, scanner, register).
+        trusted_hosts: ['%env(TRUSTED_HOSTS)%']

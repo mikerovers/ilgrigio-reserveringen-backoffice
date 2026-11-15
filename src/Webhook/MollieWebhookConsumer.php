@@ -91,6 +91,26 @@ final class MollieWebhookConsumer implements ConsumerInterface
                 return;
             }
 
+            // Cancelled and refunded orders are final: a (replayed or late) webhook
+            // must not revive them. Record Mollie's status on the payment only.
+            if (in_array($order->status, [OrderStatus::CANCELLED, OrderStatus::REFUNDED], true)) {
+                $payment->status = $newStatus;
+                $this->entityManager->flush();
+                $connection->commit();
+                $this->logger->warning('Mollie webhook for closed order ignored', [
+                    'mollie_id'    => $mollieId,
+                    'order_number' => $order->orderNumber,
+                    'order_status' => $order->status->value,
+                    'new_status'   => $newStatus->value,
+                ]);
+                $this->orderNoteRecorder->record($order, sprintf(
+                    'Mollie meldt status "%s" voor een geannuleerde of terugbetaalde bestelling; bestelling is niet gewijzigd.',
+                    $newStatus->value,
+                ));
+
+                return;
+            }
+
             $payment->status = $newStatus;
 
             if ($newStatus === PaymentStatus::PAID && $payment->paidAt === null) {

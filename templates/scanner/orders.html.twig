@@ -57,7 +57,7 @@
                                         aria-label="Order {{ order.orderNumber }} bekijken"
                                         data-action="click->scanner--order-modal#openFromRow" data-order-number="{{ order.orderNumber }}">
                                     <span class="w-32 shrink-0 font-mono text-base text-gray-700">{{ order.orderNumber }}</span>
-                                    <span class="min-w-0 flex-1 truncate text-base text-gray-700">{{ order.customer.firstName }} {{ order.customer.lastName }}</span>
+                                    <span class="min-w-0 flex-1 truncate text-base text-gray-700">{{ (order.billing.firstName ~ ' ' ~ order.billing.lastName)|trim ?: (order.customer.firstName ~ ' ' ~ order.customer.lastName) }}</span>
                                     {% if count.total > 0 and count.checkedIn == count.total %}
                                         <span class="shrink-0 border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-emerald-900">{{ count.checkedIn }}/{{ count.total }} gescand</span>
                                     {% else %}

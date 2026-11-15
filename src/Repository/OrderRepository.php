@@ -80,7 +80,7 @@ class OrderRepository extends ServiceEntityRepository
         foreach ($words as $i => $word) {
             $param = 'search' . $i;
             $qb->andWhere(sprintf(
-                "(LOWER(o.orderNumber) LIKE :%1\$s ESCAPE '!' OR LOWER(c.firstName) LIKE :%1\$s ESCAPE '!' OR LOWER(c.lastName) LIKE :%1\$s ESCAPE '!')",
+                "(LOWER(o.orderNumber) LIKE :%1\$s ESCAPE '!' OR LOWER(COALESCE(NULLIF(o.billing.firstName, ''), c.firstName)) LIKE :%1\$s ESCAPE '!' OR LOWER(COALESCE(NULLIF(o.billing.lastName, ''), c.lastName)) LIKE :%1\$s ESCAPE '!')",
                 $param,
             ))->setParameter($param, '%' . mb_strtolower((string) preg_replace('/[!%_]/', '!$0', $word)) . '%');
         }
