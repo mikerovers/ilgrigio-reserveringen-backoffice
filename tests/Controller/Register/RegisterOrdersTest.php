@@ -55,6 +55,8 @@ final class RegisterOrdersTest extends WebTestCase
             $order = new Order($number, $customer, 900);
             $order->source = $source;
             $order->status = $status;
+            // The till order has no address: it cannot be mailed.
+            $order->billing->email = $number === self::TILL ? null : self::CUSTOMER_EMAIL;
             $this->em->persist($order);
         }
         $this->em->flush();
@@ -164,6 +166,29 @@ final class RegisterOrdersTest extends WebTestCase
             'Orderverwerking opnieuw gestart door Kassa Test',
             (string) $component->render(),
         );
+    }
+
+    public function testMailActionIsHiddenWhenTheOrderHasNoEmailAddress(): void
+    {
+        $this->client->loginUser($this->user, 'register');
+        $crawler = $this->client->request('GET', '/bestellingen');
+
+        $till = $crawler->filter('tr:contains("' . self::TILL . '")');
+        self::assertStringNotContainsString('Mail opnieuw versturen', $till->text());
+        self::assertStringContainsString('Download tickets', $till->text());
+
+        $web = $crawler->filter('tr:contains("' . self::WEB . '")');
+        self::assertStringContainsString('Mail opnieuw versturen', $web->text());
+    }
+
+    public function testResendMailIsRefusedWithoutEmailAddress(): void
+    {
+        $this->client->loginUser($this->user, 'register');
+        $component = $this->createLiveComponent(name: 'RegisterOrderTable', client: $this->client);
+
+        $component->call('resendMail', ['orderNumber' => self::TILL]);
+
+        self::assertStringContainsString('heeft geen e-mailadres', (string) $component->render());
     }
 
     public function testResendMailIsRefusedForUncompletedOrders(): void

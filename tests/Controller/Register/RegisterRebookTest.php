@@ -84,6 +84,7 @@ final class RegisterRebookTest extends WebTestCase
 
         $order = new Order(self::ORDER, $customer, 900);
         $order->status = OrderStatus::COMPLETED;
+        $order->billing->email = self::CUSTOMER_EMAIL;
         $this->em->persist($order);
         $index = 0;
         foreach ([[$this->fromAdult, 2], [$this->fromChild, 1]] as [$type, $qty]) {
@@ -131,6 +132,7 @@ final class RegisterRebookTest extends WebTestCase
         $component = $this->createLiveComponent(name: 'RegisterOrderTable', client: $this->client);
         $component->call('openRebook', ['orderNumber' => self::ORDER]);
         $component->set('rebookEvent', $this->to->id->toRfc4122());
+        $component->set('rebookSendMail', false);
         $component->call('confirmRebook');
 
         self::assertStringContainsString('is omgeboekt naar RB Naar', (string) $component->render());
@@ -151,6 +153,50 @@ final class RegisterRebookTest extends WebTestCase
         self::assertSame(11, $from->stockQuantity);
         self::assertSame(-2, $to->stockQuantity);
         self::assertStringContainsString('Omgeboekt door Kassa Test', $order->notes->last()->content);
+    }
+
+    public function testRebookSendsANewConfirmationMailByDefault(): void
+    {
+        $this->client->loginUser($this->user, 'register');
+        $component = $this->createLiveComponent(name: 'RegisterOrderTable', client: $this->client);
+        $component->call('openRebook', ['orderNumber' => self::ORDER]);
+        self::assertStringContainsString('Nieuwe bevestigingsmail versturen', (string) $component->render());
+        self::assertTrue($component->component()->rebookSendMail);
+        $component->set('rebookEvent', $this->to->id->toRfc4122());
+        $component->call('confirmRebook');
+
+        self::assertStringContainsString('De bevestigingsmail wordt opnieuw verstuurd', (string) $component->render());
+        $this->em->clear();
+        $order = $this->em->getRepository(Order::class)->findOneBy(['orderNumber' => self::ORDER]);
+        self::assertStringContainsString('Bevestigingsmail opnieuw verstuurd na omboeken', $order->notes->last()->content);
+    }
+
+    public function testRebookSendsNoMailWhenTheBoxIsUnchecked(): void
+    {
+        $this->client->loginUser($this->user, 'register');
+        $component = $this->createLiveComponent(name: 'RegisterOrderTable', client: $this->client);
+        $component->call('openRebook', ['orderNumber' => self::ORDER]);
+        $component->set('rebookEvent', $this->to->id->toRfc4122());
+        $component->set('rebookSendMail', false);
+        $component->call('confirmRebook');
+
+        self::assertStringNotContainsString('bevestigingsmail wordt opnieuw verstuurd', (string) $component->render());
+        $this->em->clear();
+        $order = $this->em->getRepository(Order::class)->findOneBy(['orderNumber' => self::ORDER]);
+        self::assertStringNotContainsString('Bevestigingsmail opnieuw', $order->notes->last()->content);
+    }
+
+    public function testRebookSendsNoMailWithoutEmailAddress(): void
+    {
+        $this->em->getConnection()->executeStatement('UPDATE customer_order SET billing_email = NULL WHERE order_number = ?', [self::ORDER]);
+        $this->client->loginUser($this->user, 'register');
+        $component = $this->createLiveComponent(name: 'RegisterOrderTable', client: $this->client);
+        $component->call('openRebook', ['orderNumber' => self::ORDER]);
+        self::assertStringContainsString('geen e-mailadres', (string) $component->render());
+        $component->set('rebookEvent', $this->to->id->toRfc4122());
+        $component->call('confirmRebook');
+
+        self::assertStringNotContainsString('bevestigingsmail wordt opnieuw verstuurd', (string) $component->render());
     }
 
     public function testRebookRefusedWithoutCompleteMappingOrAfterCheckIn(): void

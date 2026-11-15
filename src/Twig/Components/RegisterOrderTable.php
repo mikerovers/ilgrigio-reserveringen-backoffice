@@ -75,6 +75,10 @@ final class RegisterOrderTable
     #[LiveProp]
     public ?string $rebookError = null;
 
+    /** Send the customer a new confirmation mail after rebooking (default on). */
+    #[LiveProp(writable: true)]
+    public bool $rebookSendMail = true;
+
     #[LiveProp(writable: true)]
     public string $noteContent = '';
 
@@ -204,9 +208,20 @@ final class RegisterOrderTable
         return $order->status === OrderStatus::COMPLETED;
     }
 
-    public function canResendMail(Order $order): bool
+    public function canDownloadTickets(Order $order): bool
     {
         return $order->status->triggersFulfilment();
+    }
+
+    /** The confirmation mail goes to the billing address, so no address means nothing to resend. */
+    public function hasEmail(Order $order): bool
+    {
+        return trim((string) $order->billing->email) !== '';
+    }
+
+    public function canResendMail(Order $order): bool
+    {
+        return $this->canDownloadTickets($order) && $this->hasEmail($order);
     }
 
     /** "12,00" for the table; the euro sign is added in the template. */
@@ -293,10 +308,12 @@ final class RegisterOrderTable
         }
 
         if (!$this->canResendMail($order)) {
-            $this->flash = sprintf(
-                'De mail van bestelling %s kan alleen worden verstuurd voor voltooide bestellingen.',
-                $order->orderNumber,
-            );
+            $this->flash = $this->canDownloadTickets($order)
+                ? sprintf('Bestelling %s heeft geen e-mailadres.', $order->orderNumber)
+                : sprintf(
+                    'De mail van bestelling %s kan alleen worden verstuurd voor voltooide bestellingen.',
+                    $order->orderNumber,
+                );
             $this->flashIsError = true;
 
             return;
@@ -364,9 +381,20 @@ final class RegisterOrderTable
             return;
         }
 
+        $sendMail = $this->rebookSendMail && $this->hasEmail($order);
         $this->resetRebook();
         $this->flash = sprintf('Bestelling %s is omgeboekt naar %s.', $order->orderNumber, $target->name);
         $this->flashIsError = false;
+
+        if ($sendMail) {
+            // Same path as "Mail opnieuw versturen": fulfilment is idempotent and queues the confirmation mail.
+            $this->eventDispatcher->dispatch(new OrderCompletedEvent($order));
+            $this->noteRecorder->record($order, sprintf(
+                'Bevestigingsmail opnieuw verstuurd na omboeken door %s.',
+                $this->operatorName(),
+            ));
+            $this->flash .= ' De bevestigingsmail wordt opnieuw verstuurd.';
+        }
     }
 
     #[LiveAction]
@@ -385,6 +413,7 @@ final class RegisterOrderTable
         $this->rebookEvent = '';
         $this->rebookMap = [];
         $this->rebookError = null;
+        $this->rebookSendMail = true;
     }
 
     private function clearFeedback(): void
