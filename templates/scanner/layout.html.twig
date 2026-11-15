@@ -41,7 +41,7 @@
                                 class="h-10 max-w-[16rem] {{ scanOnly ? 'max-md:w-full max-md:max-w-none' }} border border-white/40 bg-transparent px-3 pr-8 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60"
                                 {{ events is empty ? 'disabled' }}>
                             {% for candidate in events %}
-                                <option class="text-[#34272a]" value="{{ candidate.id }}" {{ event and candidate.id == event.id ? 'selected' }}>{{ candidate.name }}</option>
+                                <option class="text-[#34272a]" value="{{ candidate.id }}" {{ event and candidate.id == event.id ? 'selected' }}>{{ candidate.name }}{{ candidate.description ? ' - ' ~ candidate.description|striptags|trim }}</option>
                             {% else %}
                                 <option class="text-[#34272a]">Geen voorstelling</option>
                             {% endfor %}

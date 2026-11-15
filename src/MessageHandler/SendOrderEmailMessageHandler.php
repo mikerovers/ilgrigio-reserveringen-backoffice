@@ -96,6 +96,8 @@ final class SendOrderEmailMessageHandler
             ->textTemplate('email/customer_order_confirmation.txt.twig')
             ->context($this->emailContextFactory->create($order, $downloadToken));
 
+        $email->getHeaders()->addTextHeader('X-Auto-Response-Suppress', 'OOF, DR, RN, NRN, AutoReply');
+
         if ($pdfContent !== null) {
             $email->attach($pdfContent, 'tickets-' . $order->orderNumber . '.pdf', 'application/pdf');
         }

@@ -37,6 +37,8 @@ final class SendLoginCodeMessageHandler
                 'ttl_minutes' => $message->ttlMinutes,
             ]);
 
+        $email->getHeaders()->addTextHeader('X-Auto-Response-Suppress', 'OOF, DR, RN, NRN, AutoReply');
+
         try {
             $this->mailer->send($email);
         } catch (\Exception $e) {
